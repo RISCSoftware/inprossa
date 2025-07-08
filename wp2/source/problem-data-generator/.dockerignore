@@ -1,0 +1,11 @@
+# Ignore everything
+*
+
+# but
+!/pyproject.toml
+!/poetry.lock
+!/problem_data_generator/**/*.py
+
+# but but
+# Ignore the unignored
+# /problem_data_generator/super/specific.py
