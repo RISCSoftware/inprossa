@@ -11,6 +11,7 @@ Directory tree overview:
 │   ├───instances
 │   └───source
 │       └───problemdatagenerator
+|       └───simulator
 ├───wp3
 ├───wp4
 └───wp5

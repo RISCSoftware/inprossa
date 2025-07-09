@@ -1,0 +1,57 @@
+push
+scan
+bgo
+bgo
+pop
+bgo
+cut 50 300 550
+discard
+keep
+keep
+discard
+pgo
+pgo
+assemble
+assemble
+bgo
+cut 50 400 550
+discard
+keep
+keep
+discard
+pgo
+pgo
+assemble
+assemble
+bgo
+cut 50 300 550
+discard
+keep
+keep
+discard
+pgo
+pgo
+assemble
+assemble
+bgo
+cut 50 400 550
+discard
+keep
+keep
+discard
+pgo
+pgo
+assemble
+assemble
+scan
+bgo
+cut 50 300 550
+discard
+keep
+keep
+discard
+pgo
+pgo
+assemble
+assemble
+end
