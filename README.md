@@ -13,6 +13,7 @@ Directory tree overview:
 │   └───source
 │       ├───problemdatagenerator
 |       └───simulator
+|       └───optimiser
 ├───wp3
 │   └───examples
 ├───wp4
