@@ -8,11 +8,13 @@ Directory tree overview:
 ```
 ├───wp1
 ├───wp2
+│   ├───formulation
 │   ├───instances
 │   └───source
-│       └───problemdatagenerator
+│       ├───problemdatagenerator
 |       └───simulator
 ├───wp3
+│   └───examples
 ├───wp4
 └───wp5
 ```
