@@ -1,0 +1,181 @@
+system WoodCutting
+{
+  const LEN: Int; // maximum length of a board
+  type Length = Int[0,LEN];
+
+  const CNUM: Int; // maximum number of cut intervals (and thus cuts) per board
+  type CutIndex = Int[0,CNUM];
+  type Cuts = Array[CNUM,Length];
+  
+  type Interval = Tuple[Length,Length];
+  type CutIntervals = Array[CNUM,Interval];  
+  type Board = Record[length:Length,cnum:CutIndex,cints:CutIntervals];
+
+  const IBNUM: Int; // maximum number of boards before reordering stage
+  type InBoardIndex = Int[0,IBNUM];
+  type InBoards = Array[IBNUM,Board];
+  
+  const OBNUM: Int; // maximum number of boards after reordering stage
+  type OutBoardIndex = Int[0,OBNUM];
+  type OutBoards = Array[OBNUM,Board];
+  
+  type Piece = Length;
+  
+  const IPNUM: Int; // maximum number of pieces before discarding
+  type InPieceIndex = Int[0,IPNUM];
+  type InPieces = Array[IPNUM,Piece];
+  
+  const OPNUM: Int; // maximum number of pieces after discarding
+  type OutPieceIndex = Int[0,OPNUM];
+  type OutPieces = Array[OPNUM,Piece];
+  
+  const BNUM: Int; // maximum number of pieces per beam
+  type Beam = Array[BNUM,Piece];
+
+  // may be used to limit the decision search space
+  const RDNUM = IBNUM; // number of reordering decisions (<= IBNUM)
+  const CDNUM = OBNUM; // number of cutting decisions (<= OBNUM)
+  const DDNUM = IPNUM; // number of discarding decisions (<= IPNUM)
+  
+  type Cost = Real; // need not be bounded
+  
+  // the production line (consisting of multiple "stages")
+  pipeline main(
+    var ibnum: InBoardIndex,
+    val inboards: InBoards,
+    var obnum: OutBoardIndex,
+    var outboards: OutBoards,
+    var bempty: Bool,
+    var buffer: Board,
+    var inpnum: Int,
+    var inpieces: Array[IPNUM,Length],
+    var outpnum: Int,
+    var outpieces: Array[OPNUM,Length],
+    val beam: Beam,
+    var cost: Cost
+  )
+  {
+    // try at most RDNUM reordering decisions (if no action is possible,
+    // perform a "dummy" action that leaves the state unchanged)
+    for i:Int[0,RDNUM-1] do 
+    { 
+      try Reorder(inboards,ibnum,outboards,obnum,buffer,bempty); 
+    } 
+    
+    // try at most CDNUM cutting decisions (each with at most CNUM cut positions)
+    for i:Int[0,CDNUM-1] do
+    {
+      try Cut(i,obnum,outboards,pnum,inpieces); 
+    }
+    
+    // try at most DDNUM discarding decisions
+    for i:Int[0,DDNUM-1] do
+    {
+      try Discard(i,inpnum,inpieces,outpnum,outpieces,cost);
+    }
+    
+    // check that result is a correct solution
+    // with respect to the given (partially assembled) beam
+    // (no "try", the "accept" action must be executable)
+    Check(beam,outpnum,outpieces);
+  }
+  
+  // the reordering stage
+  stage Reorder(
+    var ibnum: InBoardIndex,
+    val inboards: InBoards,
+    var obnum: OutBoardIndex,
+    var outboards: OutBoards,
+    var bempty: Bool,
+    var buffer: Board
+  )
+  {
+    action forward()
+    {
+      constraint ibnum < IBNUM && obnum < OBNUM;
+      val board: Board = inboards[ibnum];
+      ibnum' = ibnum+1;
+      obnum' = obnum+1;
+      outboards' = outboards with [obnum] = board;
+      unchanged bempty, buffer;
+    }
+    action swap()
+    {
+      constraint ibnum < IBNUM && (bempty || obnum < OBNUM);
+      val board: Board = inboards[ibnum];
+      ibnum' = ibnum+1;
+      obnum' = if bempty then obnum else obnum+1;
+      outboards' = if bempty then outboards else outboards with [obnum] = buffer;
+      bempty' = false;
+      buffer' = board;
+    }
+  }
+  
+  // the cutting stage
+  stage Cut(
+    val i: OutBoardIndex,
+    val obnum: OutBoardIndex,
+    val outboards: OutBoards,
+    var inpnum: InPieceIndex,
+    var inpieces: InPieces;
+  )
+  {
+    action cut(cnum:CutIndex,cuts:Cuts)
+    {
+      constraint i < obnum && inpnum+cnum <= IPNUM;
+      val board: Board = outboards[i];
+      constraint forall j: CutIndex with j < board.cnum.
+        val cint: Interval = board.cints[j];
+        exists k: CutIndex with k < cnum. 
+          val cut:Cut = cuts[k];
+          cint.1 <= cut && cut <= cint.2;
+      inpnum' = inpnum+cnum;
+      constraint forall j: PieceIndex. j < inpnum => inpieces'[j] = inpieces[j];
+      constraint forall j: CutIndex. j < cnum =>
+        val start: Length = if j = 0 then 0 else cut[j-1];
+        inpieces'[inpnum+j] = cut[j]-start;
+    }
+  }
+  
+  // the discarding stage
+  stage Discard(
+    val i: InPieceIndex,
+    val inpnum: InPieceIndex,
+    val inpieces: InPieces,
+    var outpnum: OutPieceIndex,
+    var outpieces: OutPieces;
+    var cost: Cost;
+  )
+  {
+    action keep()
+    {
+      constraint i < inpnum && outpnum < OPNUM;
+      val piece: Piece = inpieces[i];
+      outpnum' = outpnum+1;
+      outpieces' = outpieces with [outpnum] = piece;
+      unchanged cost;
+    }
+    action discard()
+    {
+      constraint i < inpnum;
+      val piece: Piece = inpieces[i];
+      cost' = cost+piece;
+      unchanged outpnum, outpieces;
+    }
+  }
+  
+  // the check for the correctness of the solution
+  stage Check(
+    val beam: Beam,
+    val outpnum: OutPieceIndex,
+    val outpieces: OutPieces
+  )
+  {
+    action accept()
+    {
+      constraint ... ; 
+      constraint ... ;
+      ...
+    }
+  }
+}

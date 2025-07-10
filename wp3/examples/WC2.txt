@@ -1,0 +1,226 @@
+system WoodCutting
+{
+  const LEN: Int; // maximum length of a board
+  type Length = Int[0,LEN];
+
+  const CNUM: Int; // maximum number of cut intervals (and thus cuts) per board
+  type CutIndex = Int[0,CNUM];
+  type Cuts = Array[CNUM,Length];
+  
+  const GNUM: Int; // number of globally prohibited intervals in board
+  type GlobalIndex = Int[0,GNUM];
+  type GlobalIntervals = Array[GNUM,Interval];
+
+  const DIST: Length; // minimum distance between two cuts
+
+  type InterVal = Tuple[Length,Length];
+  type CutIntervals = Array[CNUM,Interval];  
+  type Board = Record[length:Length,cnum:CutIndex,cints:CutIntervals];
+
+  const IBNUM: Int; // maximum number of boards before reordering stage
+  type InBoardIndex = Int[0,IBNUM];
+  type InBoards = Array[IBNUM,Board];
+  
+  const OBNUM: Int; // maximum number of boards after reordering stage
+  type OutBoardIndex = Int[0,OBNUM];
+  type OutBoards = Array[OBNUM,Board];
+  
+  type Piece = Length;
+  
+  const IPNUM: Int; // maximum number of pieces before discarding
+  type InPieceIndex = Int[0,IPNUM];
+  type InPieces = Array[IPNUM,Piece];
+  
+  const OPNUM: Int; // maximum number of pieces after discarding
+  type OutPieceIndex = Int[0,OPNUM];
+  type OutPieces = Array[OPNUM,Piece];
+  
+  const BLEN: Int;                // desired length of a beam
+  type BeamLength = Int[0,BLEN];  // actual length of beam
+  const BDEPTH: Int;              // desired number of layers
+  type BeamDepth = Int[0,BDEPTH]; // actual number of layers
+  const BNUM: Int;                // maximum number of pieces per beam
+  type BeamIndex = Int[0,BNUM];   // actual number of pieces
+  type BeamLengths = Array[OPNUM,BeamLength]; 
+  
+  // may be used to limit the decision search space
+  const RDNUM = IBNUM; // number of reordering decisions (<= IBNUM)
+  const CDNUM = OBNUM; // number of cutting decisions (<= OBNUM)
+  const DDNUM = IPNUM; // number of discarding decisions (<= IPNUM)
+  const ADNUM = OPNUM; // number of assembling decisions (<= OPNUM)
+  
+  type Cost = Real; // need not be bounded
+  
+  // the production line (consisting of multiple "stages")
+  pipeline main(
+    inout ibnum: InBoardIndex,
+    in inboards: InBoards,
+    inout obnum: OutBoardIndex,
+    in outboards: OutBoards, // unconstrained at indices >= obnum
+    inout bempty: Bool,
+    inout buffer: Board,
+    inout ipnum: InPieceIndex,
+    in inpieces: InPieces,   // unconstrained at indices >= ipnum
+    inout opnum: InPieceIndex,
+    in outpieces: OutPieces, // unconstrained at indices >= ipnum
+    in gints: GlobalIntervals,
+    inout cost: Cost
+  )
+  {
+    // try at most RDNUM reordering decisions (if no action is possible,
+    // perform a "dummy" action that leaves the state unchanged)
+    for i:Int[0,RDNUM-1] do 
+    { 
+      try Reorder(ibnum,inboards,obnum,outboards,bempty,buffer); 
+    } 
+    
+    // try at most CDNUM cutting decisions (each with at most CNUM cut positions)
+    for i:Int[0,CDNUM-1] do
+    {
+      try Cut(i,obnum,outboards,ipnum,inpieces); 
+    }
+    
+    // try at most DDNUM discarding decisions
+    for i:Int[0,DDNUM-1] do
+    {
+      try Discard(i,ipnum,inpieces,opnum,outpieces,cost);
+    }
+    
+    // try at most ADNUM assembly decisions
+    val blens: BeamLengths;
+    var blen: BeamLength = 0;
+    var bnum: BeamIndex = 0;
+    var bdepth: BeamDepth = 0;
+    var bnum0: BeamIndex = 0;
+    for i:Int[0,ADNUM-1] do
+    {
+      try Assembly(i,opnum,outpieces,gints,blens,blen,bnum,bdepth,bnum0);
+    }
+  }
+
+  // the reordering stage
+  stage Reorder(
+    inout ibnum: InBoardIndex,
+    in inboards: InBoards,
+    inout obnum: OutBoardIndex,
+    in outboards: OutBoards, // unconstrained at indices >= obnum
+    inout bempty: Bool,
+    inout buffer: Board
+  )
+  {
+    action forward()
+    requires ibnum < IBNUM && obnum < OBNUM;
+    {
+      in board: Board = inboards[ibnum];
+      ibnum' = ibnum+1;
+      obnum' = obnum+1;
+      outboards[obnum] = board; // equality, not assignment!
+      unchanged bempty, buffer;
+    }
+    action swap()
+    requires ibnum < IBNUM && (bempty || obnum < OBNUM);
+    {
+      in board: Board = inboards[ibnum];
+      ibnum' = ibnum+1;
+      obnum' = if bempty then obnum else obnum+1;
+      !bempty => outboards[obnum] = buffer;
+      bempty' = false;
+      buffer' = board;
+    }
+  }
+  
+  // the cutting stage
+  stage Cut(
+    in i: OutBoardIndex,
+    in obnum: OutBoardIndex,
+    in outboards: OutBoards,
+    inout ipnum: InPieceIndex,
+    in inpieces: InPieces // unconstrained at indices >= ipnum
+  )
+  {
+    action cut(cnum:CutIndex,cuts:Cuts)
+      requires i < obnum;
+    {
+      constraint ipnum+cnum <= IPNUM;
+      val board: Board = outboards[i];
+      constraint forall j: CutIndex with j < board.cnum. 
+        cuts[j] <= board.length && (j+1 < board.cnum => cuts[j] < cuts[j+1]);
+      constraint forall j: CutIndex with j < board.cnum.
+        val cint: InterVal = board.cints[j];
+        exists k: CutIndex with k < cnum. 
+          val cut:Cut = cuts[k];
+          cint.1 <= cut && cut <= cint.2;
+      ipnum' = ipnum+cnum;
+      constraint forall j: CutIndex with j < cnum.
+        val start: Length = if j = 0 then 0 else cut[j-1];
+        inpieces[ipnum+j] = cut[j]-start;
+    }
+  }
+  
+  // the discarding stage
+  stage Discard(
+    in i: InPieceIndex,
+    in ipnum: InPieceIndex,
+    in inpieces: InPieces,
+    inout opnum: OutPieceIndex,
+    in outpieces: OutPieces; // unconstrained at indices >= opnum
+    inout cost: Cost;
+  )
+  {
+    action keep()
+    requires i < ipnum && opnum < OPNUM;
+    {
+      val piece: Piece = inpieces[i];
+      opnum' = opnum+1;
+      outpieces[opnum] = piece; // equality, not assignment!
+      unchanged cost;
+    }
+    action discard()
+    requires i < ipnum;
+    {
+      val piece: Piece = inpieces[i];
+      cost' = cost+piece;
+      unchanged opnum;
+    }
+  }
+  
+  // the assembly stage
+  stage Assembly(
+    in i: OutPieceIndex,
+    in opnum: OutPieceIndex,
+    in outpieces: OutPieces,
+    in gints: GlobalIntervals,
+    in blens: BeamLengths, // unconstrained at indices >= i
+    inout blen: BeamLength,
+    inout bnum: BeamIndex,
+    inout bdepth: BeamDepth,
+    inout bnum0: BeamIndex
+  )
+  {
+    action accept()
+    requires i < opnum;
+    { 
+      val blen0: BeamLength = blen+outpieces[i];
+      blens[i] = blen0;
+      constraint blen0 <= BLEN;
+      constraint !exists j:GlobalIndex with j < GNUM. 
+        gints[j].1 <= blen0 && blen0 <= gints[j].2;
+      constraint forall j:BeamIndex with j < bnum0.
+        value diff: BeamLength = blen0-blens[i-bnum-bnum0+j];
+        DIFF <= if diff >= 0 then diff else -diff;   
+      if blen0 < BLEN then
+        blen' = blen0;
+        bnum' = bnum+1;
+        unchanged bdepth, bnum0;
+      else
+        blen' = 0;
+        bnum' = 0;
+        if bdepth = BDEPTH then
+          bdepth' = 0;
+          bnum0' = 0;
+        else
+          bdepth' = bdepth+1;
+          bnum0' = bnum;
+    }
+  }
+}
