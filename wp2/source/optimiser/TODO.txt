@@ -1,0 +1,15 @@
+Restructure project
+- src
+- test
+- README
+- data
+
+Clean machine functions as done in reordering
+
+Eliminate Piece and Boards objects
+
+Generic function for testing: machine, input, output, result
+
+Change variable names to make it easy to create: machine.id input/output and [index]
+If between brackets but before says output then is output, if second in brackets also output, else input
+Function to adapt variable names
