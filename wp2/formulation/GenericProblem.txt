@@ -1,0 +1,128 @@
+A Generic Specification of an "Action-Oriented" Optimization Problem
+====================================================================
+
+Notation
+--------
+→p  ... the "partial function arrow"
+S*  ... the domain of finite sequences of S-values
+ℕ_n ... the set of natural numbers less than n (= {0,1,..,n-1})
+
+Constants
+---------
+State                  ... the set of states
+Action = {a_1,...,a_n} ... the set of actions (finite)
+Cost ≔ ℝ (or: ℤ)       ... the domain of costs
+
+The "enabled" predicate
+-----------------------
+
+// enabled(a,s) ... action "a" is enabled in state "s"
+enabled ⊆ Action × State 
+
+// terminal(s) ... state "s" is terminal, i.e, no action is enabled in "s"
+terminal ⊆ State 
+terminal(s) ⇔ ∀a∈Action. ¬enabled(a,s) 
+               // ¬enabled(a_1,s) ∧ ... ∧ ¬enabled(a_n,s)
+
+The "step" function
+-------------------
+
+// step(a,s) = (s0,c) ... executing action "a" in state "s"
+//   (which is only allowed if "enabled(a,s)" holds)
+//   yields successor state "s0" and causes costs "c"
+step: Action × State →p State × Cost
+step(a_1,s) requires enabled(a_1,s) ≔ ...
+...
+step(a_n,s) requires enabled(a_n,s) ≔ ...
+
+The Optimization Problem (recursive formulation)
+------------------------------------------------
+Assume fixed "enabled"/"terminal" predicates and "step" function.
+
+This formulation assumes that the system has no infinite executions.
+
+If the lengths of all executions are bound by some constant k∈ℕ, then
+ the recursive function below can be unrolled to a non-recursive function
+that describes the search tree of depth "k".
+
+Given: s∈State         // the initial state
+Find: as∈Action* where // a sequence of actions
+
+  // "as" is an action sequence with minimal cost "c" that
+  // leads from state "s" to some terminal state
+  ∃c∈Cost. (as,c) = minimal(s)
+
+  // returns a pair (as,c) where "as" is an action sequence with minimal
+  // cost "c" that leads from state "s" to some terminal state 
+  minimal: State → Action* × Cost
+  minimal(s) ≔
+    if terminal(s) then
+      ([],0)
+    else min[leq]_(a∈Action ∧ enabled(a,s)) 
+      let (s0,c0) = step(a,s) in
+      let (as,c) = minimal(s0) in
+      ([a]∘as,c0+c)
+
+  // compares action sequences with respect to their costs
+  leq ⊆ (Action* × Cost) × (Action* × Cost)
+  leq((as1,c1),(as2,c2)) ⇔ c1 ≤ c2
+
+The Optimization Problem ("tail-recursive" formulation)
+-------------------------------------------------------
+Assume fixed "enabled"/"terminal" predicates and "step" function.
+
+This formulation assumes that the system has no infinite executions.
+
+If the lengths of all executions are bound by some constant k∈ℕ, then
+the recursive function below can be unrolled to a non-recursive function
+that describes the search tree of depth "k".
+
+Given: s∈State         // the initial state
+Find: as∈Action* where // a sequence of actions
+
+  // "as" is an action sequence with minimal cost "c" that
+  // leads from state "s" to some terminal state
+  ∃c∈Cost. (as,c) = minimal(s,[],0)
+
+  // returns the pair (as0,c0) where "as0" is an action sequence with minimal
+  // cost "c0" that extends the action sequence "as" with cost "c" leading
+  // to state "s" to an action sequence leading to some terminal state 
+  minimal: State × Action* × Cost → Action* × Cost
+  minimal(s,as,c) ≔
+    if terminal(s) then
+      (as,c)
+    else min[leq]_(a∈Action ∧ enabled(a,s)) 
+      let (s0,c0) = step(a,s) in
+      minimal(s0,as∘[a],c+c0)
+
+  // compares action sequences with respect to their costs
+  leq ⊆ (Action* × Cost) × (Action* × Cost)
+  leq((as1,c1),(as2,c2)) ⇔ c1 ≤ c2
+
+The Optimization Problem ("iterative" formulation)
+--------------------------------------------------
+Assume fixed "enabled" predicate and "step" function.
+        
+This formulation also works if the system has infinite executions.
+
+If the lengths of all executions are bound by some constant k∈ℕ, then
+the sequences "as"/"cs" below have maximal length "k".
+
+Given: s∈State         // the initial state
+Find: as∈Action* where // a sequence of actions
+
+  // the action sequence "as" executed in initial state "s" has minimal cost "c"
+  as = argmin_(as∈Action*). choose c∈Cost. run(s,as,c) 
+
+  // the action sequence "as" with cost "c" leads from state "s" 
+  // to some terminal state
+  run: State × Action* × Cost 
+  run(s, as, c) ⇔
+    let an = length(as) in
+    ∃ss∈State*, cs∈Cost*: 
+      length(ss) = an+1 ∧ length(cs) = an
+      ss(0) = s ∧ terminal(ss(an)) ∧ c = ∑_(i∈domain(cs)) cs(i) ∧
+      ∀i∈ℕ_an: 
+        enabled(as(i),ss(i)) ∧ 
+        let (s0,c0) = step(as(i),ss(i)) in 
+        ss(i+1) = s0 ∧ cs(i) = c0

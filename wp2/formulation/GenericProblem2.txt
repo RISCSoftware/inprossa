@@ -1,0 +1,94 @@
+A Modular Specification Format of an "Action-Oriented" Optimization Problem
+===========================================================================
+
+Formalization
+-------------
+
+                d
+                v
+  (s,c) -> [Machine] -> (s',c')
+ 
+  Machine(d,s,c,s',c') ... predicate (conjunction of "constraints")
+ 
+  [ Alternative: (s',c') = Machine(d,s) ]
+  
+  d ... "decision"
+  s,s' ... pre/post-state
+  c,c' ... pre/post-cost
+ 
+  Machine ⊆ Decision × State × Cost × State × Cost
+ 
+[ more general, different state domains:
+
+  Machine ⊆ Decision × State1 × Cost × State2 × Cost
+]
+
+Optimization Problem
+--------------------
+ 
+ Given: s ∈ State
+ Find: d ∈ Decision where
+ 
+   d = argmin_(d∈Decision). 
+        choose c'∈Cost. ∃s'∈State. 
+          Machine(d,s,0,s',c')
+ 
+Modular Definition of "Machine" Predicate
+-----------------------------------------
+
+Atomic
+------
+
+Machine(d,s,c,s',c') ⇔
+  Precondition(d,s,c) ∧ 
+  (s',c') = Function(d,s,c) ∧
+  Postcondition(d,s,c,s',c') // constructive computation attempt with constraint
+  
+Special Cases
+-------------
+Machine(d,s,c,s',c') ⇔
+  Precondition(d,s,c) ∧ 
+  (s',c') = Function(d,s,c) // constructive computation
+  
+Machine(d,s,c,s',c') ⇔
+  FilterCondition(d,s,c) ∧
+  (s',c') = (s,c)
+  
+Machine(d,s,c,s',c') ⇔
+  Precondition(d,s,c) ∧ 
+  Postcondition(d,s,c,s',c')  // inconstructive characterization of result
+  
+Pipeline
+--------
+
+Decision ≔ D1 × D2
+
+Machine(d,s,c,s',c') ⇔
+ Stage1(d.1,s,c,s0,c0) ∧
+ Stage2(d.2,s0,c0,s',c')
+ 
+Iterator
+--------
+
+Decision = D*
+
+Step*[Termination](ds,s,c,s',c') ⇔
+	let n = length(ds) in
+	∃ss∈State*, cs∈Cost*: 
+		length(ss) = n+1 ∧ length(cs) = n+1 ∧ Termination(ss(n)) ∧
+		ss(0) = s ∧ cs(0) = c ∧ s' = ss(n) ∧ c' = cs(n) ∧
+		∀i∈ℕ_an: Step(ds(i),ss(i),cs(i),ss(i+1),cs(i+1))
+		
+Machine(ds,s,c,s',c') ⇔ Step*[Termination](ds,s,c,s',c')
+
+        
+
+
+
+  
+  
+
+
+  
+  
+
