@@ -22,7 +22,7 @@ def intersect_intervals(model: Model, start_cut:int, end_cut, bad_intervals, nam
     possible_intersections = []
     for i, interval in enumerate(bad_intervals):
         start_bad_interval, end_bad_interval = interval
-        intersect = model.addVar(vtype=GRB.BINARY, name=f"intersect_bad_part_{i}")
+        intersect = model.addVar(vtype=GRB.BINARY, name=f"{name_prefix} intersect_bad_part_{i}")
         end_possibly_overlaps = model.addVar(vtype=GRB.BINARY, name=f"{name_prefix} end_overlaps_bad_part_{i}")
         start_possibly_overlaps = model.addVar(vtype=GRB.BINARY, name=f"{name_prefix} start_overlaps_bad_part_{i}")
         # If the interval intersects with the piece defined by start_cut and end_cut,

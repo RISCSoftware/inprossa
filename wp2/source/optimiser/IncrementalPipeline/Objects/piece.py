@@ -23,14 +23,16 @@ class PieceVars:
     - length: Gurobi variable for the length of the piece
     - good: Gurobi binary variable indicating if the piece is good
     """
-    def __init__(self, model: Model, piece: Piece = None, id: str = ""):
+    def __init__(self, model: Model,
+                 piece: Piece = None,
+                 id: str = ""):
         self.length = model.addVar(
             vtype=GRB.CONTINUOUS,
-            name=f"piece_length-{id}"
+            name=f"{id} piece_length"
         )
         self.good = model.addVar(
             vtype=GRB.BINARY,
-            name=f"piece_good-{id}"
+            name=f"{id} piece_good"
         )
 
         # If a piece object is provided, enforce conditional equality

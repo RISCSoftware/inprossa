@@ -75,7 +75,5 @@ if __name__ == "__main__":
     else:
 
         for var in model.getVars():
-            if (var.VarName.startswith("swap_decisions_")
-                 or var.VarName.startswith("piece_good-")
-                    or var.VarName.startswith("aux")):
+            if var.VarName[:3] != "Che" and var.VarName[:3] != "Reo" and var.VarName[:3] != "Fil" and var.VarName[:3] != "Cut":
                 print(f"{var.VarName} = {var.X}")

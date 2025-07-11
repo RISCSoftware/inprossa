@@ -43,17 +43,17 @@ class BoardVars:
     def __init__(self, model, board: Board = None, id: str = ""):
         self.length = model.addVar(
             vtype=GRB.CONTINUOUS,
-            name=f"board_length-{id}"
+            name=f"[{id}] board_length"
         )
         self.curved_parts = [
             (
                 model.addVar(
                     vtype=GRB.CONTINUOUS,
-                    name=f"curved_part_start-{id}-{i}"
+                    name=f"{id} curved_part_start-{i}"
                     ),
                 model.addVar(
                     vtype=GRB.CONTINUOUS,
-                    name=f"curved_part_end-{id}-{i}"
+                    name=f"{id} curved_part_end-{i}"
                     )
             )
             for i in range(max_n_curved_parts)
@@ -62,18 +62,19 @@ class BoardVars:
             (
                 model.addVar(
                     vtype=GRB.CONTINUOUS,
-                    name=f"bad_part_start-{id}-{i}"
+                    name=f"{id} bad_part_start-{i}"
                     ),
                 model.addVar(
                     vtype=GRB.CONTINUOUS,
-                    name=f"bad_part_end-{id}-{i}")
+                    name=f"{id} bad_part_end-{i}"
+                )
             )
             for i in range(max_n_bad_parts)
         ]
 
         # If board is provided, set the initial values
         if board is not None:
-            my_var = model.addVar(vtype=GRB.BINARY, name=f"board_activate_{id}")
+            my_var = model.addVar(vtype=GRB.BINARY, name=f"[{id}] board_activate")
             self.conditional_equality(model, my_var, 1, board)
             model.addConstr(my_var == 1)
 
@@ -107,4 +108,4 @@ def create_board_var_list(model: Model, n, id_prefix: str, start_index: int) -> 
     """
     Create a list of BoardVars of length n.
     """
-    return [BoardVars(model, id=f"{id_prefix}-{i}") for i in range(start_index, start_index + n)]
+    return [BoardVars(model, id=f"{id_prefix}-[{i}]") for i in range(start_index, start_index + n)]
