@@ -22,6 +22,9 @@ def compute_max_pieces_per_board() -> int:
     return (max_board_length // min_piece_length)  # * 2 + 1  # Commented out for efficiency
 
 
+max_pieces_per_board = compute_max_pieces_per_board()
+
+
 def compute_max_pieces_per_layer() -> int:
     """
     Computes the maximum number of pieces that can be in a layer.

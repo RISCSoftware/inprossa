@@ -5,7 +5,7 @@ from IncrementalPipeline.Objects.board import Board, BoardVars
 from IncrementalPipeline.Objects.piece import Piece, PieceVars, create_piece_var_list
 from IncrementalPipeline.config_loader import get_config
 from IncrementalPipeline.Tools.simple_computations import (
-    compute_max_pieces_per_board,
+    max_pieces_per_board,
     min_piece_length
 )
 from IncrementalPipeline.Tools.intervals_intersect import intersect_intervals
@@ -24,7 +24,7 @@ class CuttingMachine(GenericMachine):
         super().__init__(id=f"CuttingMachine-{id}",
                          input_type=BoardVars,
                          output_type=PieceVars)
-        self.max_pieces_per_board = compute_max_pieces_per_board()
+        self.max_pieces_per_board = max_pieces_per_board
 
     def output_length(self,
                       input_length: int,
