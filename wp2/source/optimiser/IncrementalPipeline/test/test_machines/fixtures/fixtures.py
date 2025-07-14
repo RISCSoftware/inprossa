@@ -17,7 +17,24 @@ def board2():
     return Board(length=500, bad_parts=[(100, 150)], curved_parts=[])
 
 @pytest.fixture
-def desired_output1():
+def piece_list4():
+    output_board_1 = empty_piece_filler([
+        Piece(length=40, good=0),
+        Piece(length=50, good=1),
+        Piece(length=20, good=0),
+        Piece(length=100, good=1),
+        Piece(length=290, good=1)],
+        max_pieces_per_board)
+    output_board_2 = empty_piece_filler([
+        Piece(length=50, good=1),
+        Piece(length=100, good=0),
+        Piece(length=350, good=1),
+    ], max_pieces_per_board)
+
+    return output_board_1 + output_board_2
+
+@pytest.fixture
+def piece_list1():
     return empty_piece_filler([
         Piece(length=90, good=1),
         Piece(length=10, good=0),
@@ -25,7 +42,7 @@ def desired_output1():
     ], max_pieces_per_board)
 
 @pytest.fixture
-def desired_output2():
+def piece_list2():
     output_board_1 = empty_piece_filler([
         Piece(length=130, good=1),
         Piece(length=200, good=1),
@@ -40,7 +57,7 @@ def desired_output2():
     return output_board_1 + output_board_2
 
 @pytest.fixture
-def desired_output3():
+def piece_list3():
     output_board_1 = empty_piece_filler([
         Piece(length=90, good=1),
         Piece(length=410, good=1),
