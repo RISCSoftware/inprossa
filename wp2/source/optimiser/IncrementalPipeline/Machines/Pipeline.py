@@ -76,3 +76,29 @@ class Pipeline(GenericMachine):
         for machine in self.machines:
             current_type = machine.bind(current_type)
         return current_type
+
+    def add_input(self, input):
+        """
+        Adds input to the first element of intermediate_lists.
+        """
+        self.intermediate_lists[0].append(input)
+
+    def process_input(self, decisions, machine_changes_per_step):
+        """
+        Actualises the intermediate lists based on the decisions and machine changes.
+        """
+        for i, machine in enumerate(self.machines):
+            decisions_list = decisions[machine.id]
+            changes_per_step = machine_changes_per_step[machine.id]
+            remaining_input, output = machine.process(decisions_list,
+                                                      changes_per_step,
+                                                      self.intermediate_lists[i])
+            # Add the output to the next intermediate list
+            self.intermediate_lists[i + 1].extend(output)
+            self.intermediate_lists[i] = remaining_input
+
+    def empty(self):
+        """
+        Returns true if all intermediate lists are empty.
+        """
+        return all(len(lst) == 0 for lst in self.intermediate_lists)

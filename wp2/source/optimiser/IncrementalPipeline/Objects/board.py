@@ -43,7 +43,7 @@ class BoardVars:
     def __init__(self, model, board: Board = None, id: str = ""):
         self.length = model.addVar(
             vtype=GRB.CONTINUOUS,
-            name=f"[{id}] board_length"
+            name=f"{id} board_length"
         )
         self.curved_parts = [
             (

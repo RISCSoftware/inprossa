@@ -58,7 +58,7 @@ if __name__ == "__main__":
         machines=[cutting_machine, reordering_machine1, filtering_machine, checking_machine]
     )
     model = Model()
-    vars_input_list = [BoardVars(model, board=board, id=f"board-{i}") for i, board in enumerate(input_list)]
+    vars_input_list = [BoardVars(model, board=board, id=f"board-[{i}]") for i, board in enumerate(input_list)]
     pipeline.impose_conditions(model, input_list=vars_input_list)
     model.setParam('TimeLimit', 6)  # Set a time limit for the optimization
     model.optimize()
