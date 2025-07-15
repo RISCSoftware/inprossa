@@ -37,7 +37,9 @@ class PieceVars:
 
         # If a piece object is provided, enforce conditional equality
         if piece is not None:
-            self.conditional_equality(model, 1, 1, piece)
+            my_var = model.addVar(vtype=GRB.BINARY, name=f"[{id}] piece_activate")
+            model.addConstr(my_var == 1)
+            self.conditional_equality(model, my_var, 1, piece)
 
     def conditional_equality(self, model: Model, my_var, value, piece: Piece, name: str = ""):
         """

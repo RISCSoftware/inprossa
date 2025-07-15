@@ -6,6 +6,7 @@ The object will initially take a list of the machines that create the pipeline.
 
 from IncrementalPipeline.Machines.GenericMachine import GenericMachine
 from typing import List
+from IncrementalPipeline.Tools.to_vars import to_vars
 
 
 class Pipeline(GenericMachine):
@@ -44,12 +45,22 @@ class Pipeline(GenericMachine):
         Imposes conditions on the model based on the input list.
         Each machine in the pipeline will impose its own conditions.
         """
-        list_to_process = self.intermediate_lists[0] + input_list
-        print(list_to_process)
+        # TODO think about whether to use input_list or simply modify intermediate_lists little by little
+        # TODO move to_vars to the machines or find a way of always transforming it when calling impose_conditions
+        list_to_process = to_vars(
+            self.intermediate_lists[0] + input_list,
+            model,
+            self.machines[0].id)
         for index, machine in enumerate(self.machines):
-            decisions_list, output_list = machine.impose_conditions(model, list_to_process)
+            decisions_list, output_list = \
+                machine.impose_conditions(model,
+                                          list_to_process)
             self.decisions[machine.id] = decisions_list
-            list_to_process = self.intermediate_lists[index + 1] + output_list
+            if index < len(self.machines) - 1:
+                list_to_process = to_vars(
+                    self.intermediate_lists[index + 1] + output_list,
+                    model,
+                    self.machines[index + 1].id)
 
         return list_to_process
 

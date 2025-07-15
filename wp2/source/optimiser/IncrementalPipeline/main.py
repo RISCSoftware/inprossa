@@ -64,7 +64,13 @@ if __name__ == "__main__":
     model.optimize()
 
     incremental_machine = IncrementalMachine(pipeline, input_list=input_list)
+    
     incremental_machine.optimize(remaining_time=20)
+    # machine_changes = {
+    #             machine.id: (0,0)
+    #             for machine in incremental_machine.pipeline.machines
+    #         }
+    # incremental_machine.process(machine_changes_per_step=machine_changes)
 
 
 

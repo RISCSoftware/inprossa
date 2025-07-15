@@ -19,7 +19,7 @@ class IncrementalMachine():
         remaining_input = self.input_list[:]
         best_model = Model()
         # While there is some input left to process
-        while len(remaining_input) > 0 and self.pipeline.empty() is False:
+        while len(remaining_input) > 0 or self.pipeline.empty() is False:
             step_start_time = time()
             # We have time_per_step seconds to decide how to process the current input
             time_left = time_per_step - (time() - step_start_time)
@@ -27,9 +27,9 @@ class IncrementalMachine():
                 # Continue looking for further solutions
                 new_input = remaining_input.pop(0)
                 self.pipeline.add_input(new_input)
-                self.optimize(time_left,
-                              previous_model=best_model,
-                              machine_changes_per_step=machine_changes_per_step)
+                # TODO new_model = warm_start()
+                # self.optimize(time_left,
+                #               new_model=new_model,)
                 # Remove the processed input from the remaining input
                 remaining_input.pop(0)
             self.pipeline.process_input(remaining_input, machine_changes_per_step)
@@ -37,7 +37,7 @@ class IncrementalMachine():
 
     def optimize(self,
                  remaining_time,
-                 previous_model=Model(),
+                 best_model=Model(),
                  machine_changes=None):
         start_time = time()
         for i in range(len(self.input_list)):
@@ -56,12 +56,16 @@ class IncrementalMachine():
                                             input_list=vars_current_input)
             
             # initialise the values with the solution from previous model
-            warm_start(new_model, previous_model, machine_changes)
+            warm_start(new_model, best_model, machine_changes)
             # optimise with the remaining time
 
             time_left = max(0, remaining_time - (time() - start_time))
             new_model.setParam('TimeLimit', time_left)
             new_model.optimize()
+
+            # TODO in the future compare some metric to decide whether to keep as best model
+            # For now, simply keep the last model as the best one
+            best_model = new_model
 
             
             

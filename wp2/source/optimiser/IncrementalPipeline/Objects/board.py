@@ -75,8 +75,8 @@ class BoardVars:
         # If board is provided, set the initial values
         if board is not None:
             my_var = model.addVar(vtype=GRB.BINARY, name=f"[{id}] board_activate")
-            self.conditional_equality(model, my_var, 1, board)
             model.addConstr(my_var == 1)
+            self.conditional_equality(model, my_var, 1, board)
 
     def conditional_equality(self,
                              model,
