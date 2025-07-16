@@ -23,13 +23,13 @@ from models.WoodCutting import WoodCutting
 @click.option("--noinputboards", default=5, help="Number of input boards (default=5)")
 @click.option("-o", "--output", default="woodcutting.json", help="Output filename (default='woodcutting.json')")
 @click.option("-r", "--randomseed", default=0, help="Random seed (default=0)")
-@click.option("-b", "--bad", default=1, help="Average number of bad errors per board (default=1)")
+@click.option("-d", "--defect_rate", default=0.1, help="Average number of defects per distance (default=0.1)")
+@click.option("-b", "--ratio_bad_curved", default=0.8, help="Ratio between bad errors and curved errors (default=0.8)")
 @click.option("-l", "--bad-max-length", default=20, help="Maximum length of bad errors (default=20)")
 @click.option("--bad-min-length", default=10, help="Minimum length of bad errors (default=10)")
-@click.option("-c", "--curved", default=0, help="Average number of curved errors per board (default=0)")
 @click.option("-e", "--curved-max-length", default=150, help="Maximum length of curved errors (default=150)")
 @click.option("--curved-min-length", default=100, help="Minimum length of curved errors (default=100)")
-def create(beams, beamlength, layers, boards, board_length, beamskipstart, beamskipend, minlengthofboardinlayer, gap, maxshiftcurvedcut, f, noinputboards, output, randomseed, bad, bad_max_length, bad_min_length, curved, curved_min_length, curved_max_length) -> None:
+def create(beams, beamlength, layers, boards, board_length, beamskipstart, beamskipend, minlengthofboardinlayer, gap, maxshiftcurvedcut, f, noinputboards, output, randomseed, defect_rate, ratio_bad_curved, bad_max_length, bad_min_length, curved_min_length, curved_max_length) -> None:
     #command_line_options = {'beams': beams, 'beamlength': beamlength, 'layers': layers, 'boards': boards}
     #click.echo("generate wood cutting problem")
     #click.echo(f"command_line_options={command_line_options}")
@@ -50,27 +50,10 @@ def create(beams, beamlength, layers, boards, board_length, beamskipstart, beams
                                            MaxShiftCurvedCut=maxshiftcurvedcut,
                                            StaticForbiddenZones=forbiddenzones
                                            )
-
-    # random.seed(randomseed) 
-    # inputboards = list()
-    # for i in range(noinputboards):
-
-
-    #     ibp0 = InputBoardPart(Id=0, StartPosition=0, EndPosition=600, Quality=BoardPartQuality.GOOD)
-    #     # ibp1 = InputBoardPart(Id=1, StartPosition=250, EndPosition=260, Quality=BoardPartQuality.BAD)
-    #     # ibp2 = InputBoardPart(Id=2, StartPosition=260, EndPosition=400, Quality=BoardPartQuality.CURVE)
-    #     # ibp3 = InputBoardPart(Id=3, StartPosition=400, EndPosition=405, Quality=BoardPartQuality.BAD)
-    #     # ibp4 = InputBoardPart(Id=4, StartPosition=405, EndPosition=500, Quality=BoardPartQuality.GOOD)
-    #     rb = Board(Id=i, Length=600, Width=25, Height=3, ScanBoardParts=[ibp0]) #, ibp1, ibp2, ibp3, ibp4])
-    #     ib = InputBoard(Position=i, RawBoard=rb)
-    #     inputboards.append(ib)
-    # woodcutting = WoodCutting(BeamConfiguration=beam_configuration, InputBoards=inputboards)
-    
+  
     # parameter:
-    error_rate_per_distance = 0.1 # error rate per meter
     base_distance = 100
-    bad_probability = 0.8 # probability that the error is a bad part
-    curve_probability = 0.2 # probability that the error is a curve error
+    min_length_good_part = 10
     randomseed = 0
 
     inputboards = list()
@@ -86,9 +69,9 @@ def create(beams, beamlength, layers, boards, board_length, beamskipstart, beams
         board_finished = False
         while not board_finished:
             r = random.random()
-            if r < error_rate_per_distance: # there is an error
+            if r < defect_rate: # there is an error
                 error_type = random.random()
-                if error_type < bad_probability:
+                if error_type < ratio_bad_curved:
                     # bad part error
                     # get a position for the error, consider the remaining part
                     max_end_position = min(board_length, temp_board_distance + base_distance)
@@ -104,10 +87,32 @@ def create(beams, beamlength, layers, boards, board_length, beamskipstart, beams
                     board_parts.append(ibp)
                     # calculate remaining length
                     board_distance = error_position + error_length
-                    temp_board_distance = board_distance
+                    temp_board_distance = board_distance + min_length_good_part
                 else:
                     # curve error
-                    pass
+                    #max_end_position = min(board_length, temp_board_distance + base_distance + curved_max_length)
+                    # first we decide about the length of the curved error, so that it fits on the board
+                    # 1. get the current maximum curved error length
+                    max_curved_error_length = min(curved_max_length, board_length - temp_board_distance - base_distance)
+                    # 2. get the curved error length based on max_curved_error_length and curved_min_length
+                    curved_error_length = None
+                    if max_curved_error_length >= curved_min_length:
+                        if max_curved_error_length > curved_min_length:
+                            curved_error_length = random.randint(curved_min_length, max_curved_error_length)
+                        else:
+                            curved_error_length = curved_min_length
+                    if curved_error_length is not None:
+                        max_error_start_position = min(board_length - curved_error_length, temp_board_distance) # + base_distance)
+                        error_position = random.randint(temp_board_distance, max_error_start_position)
+                        board_part_id += 1
+                        ibp = InputBoardPart(Id=board_part_id, StartPosition=board_distance, EndPosition=error_position, Quality=BoardPartQuality.GOOD)
+                        board_parts.append(ibp)
+                        board_part_id += 1
+                        ibp = InputBoardPart(Id=board_part_id, StartPosition=error_position, EndPosition=error_position+curved_error_length, Quality=BoardPartQuality.CURVE)
+                        board_parts.append(ibp)
+                        board_distance = error_position + curved_error_length
+                        temp_board_distance = board_distance + min_length_good_part
+
             else:
                  temp_board_distance += base_distance
 
@@ -124,6 +129,7 @@ def create(beams, beamlength, layers, boards, board_length, beamskipstart, beams
     inputboards = [InputBoard(Position=x, RawBoard=b) for x, b in enumerate(inputboards)]
     woodcutting = WoodCutting(BeamConfiguration=beam_configuration, InputBoards=inputboards)
     click.echo(woodcutting)
+
     from rich import print
     print(woodcutting)
     # with open(output, "wt") as of:
