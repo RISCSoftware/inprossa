@@ -147,31 +147,3 @@ class CheckingMachine(GenericMachine):
                         ],
                         name_prefix=f"{self.id} forbidden_zone_[{i}]_{j}_{zone_index}"
                     )
-
-
-check = CheckingMachine(id="check_machine")
-
-model = Model("CheckingMachineModel")
-
-check.impose_conditions(model=model, input_list=[Piece(length=90),
-                                                 Piece(length=200),
-                                                 Piece(length=0),
-                                                 Piece(length=0),
-                                                 Piece(length=0),
-                                                 Piece(length=100),
-                                                 Piece(length=0),
-                                                 Piece(length=0),
-                                                 Piece(length=110),
-                                                 Piece(length=0),
-                                                 Piece(length=0),
-                                                 Piece(length=0),
-                                                 Piece(length=250),
-                                                 Piece(length=100)])
-# set objective to a dummy value
-model.setObjective(1, GRB.MINIMIZE)
-model.optimize()
-# If unfeasible calculate the minimum unfeasible set of constraints
-if model.status == GRB.INFEASIBLE:
-    print("Model is infeasible, computing IIS...")
-    model.computeIIS()
-    model.write("infeasible.ilp")

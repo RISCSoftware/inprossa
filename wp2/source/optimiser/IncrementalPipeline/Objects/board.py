@@ -71,10 +71,18 @@ class BoardVars:
             )
             for i in range(max_n_bad_parts)
         ]
+        # # Bad part starts shuold be less than their ends
+        # for i in range(max_n_bad_parts):
+        #     start_var, end_var = self.bad_parts[i]
+        #     model.addConstr(start_var <= end_var, name=f"{id} bad_part_start_end_constraint-{i}")
+        # # Curved part starts should be less than their ends
+        # for i in range(max_n_curved_parts):
+        #     start_var, end_var = self.curved_parts[i]
+        #     model.addConstr(start_var <= end_var, name=f"{id} curved_part_start_end_constraint-{i}")
 
         # If board is provided, set the initial values
         if board is not None:
-            my_var = model.addVar(vtype=GRB.BINARY, name=f"[{id}] board_activate")
+            my_var = model.addVar(vtype=GRB.BINARY, name=f"{id} board_activate")
             model.addConstr(my_var == 1)
             self.conditional_equality(model, my_var, 1, board)
 

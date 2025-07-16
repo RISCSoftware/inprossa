@@ -25,10 +25,10 @@ from IncrementalPipeline.Machines.CuttingMachine import CuttingMachine
 #               Piece(length=110)]
 
 input_list = [Board(length=500,
-                    bad_parts=[(90, 100), (120, 130), (330, 350), (450, 480)],
+                    bad_parts=[(100, 110), (120, 130), (330, 350), (450, 480)], # 100 waste but 110 if no reorder
                     curved_parts=[]),
               Board(length=500,
-                    bad_parts=[(100, 150), (400, 440)],
+                    bad_parts=[(100, 150), (400, 440)],  # 90 waste
                     curved_parts=[])]
 
 if __name__ == "__main__":
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     )
     pipeline = Pipeline(
         id="wood_processing_pipeline",
-        machines=[cutting_machine, reordering_machine1, filtering_machine, checking_machine]
+        machines=[cutting_machine, filtering_machine, checking_machine]
     )
     model = Model()
     vars_input_list = [BoardVars(model, board=board, id=f"board-[{i}]") for i, board in enumerate(input_list)]
@@ -64,8 +64,8 @@ if __name__ == "__main__":
     model.optimize()
 
     incremental_machine = IncrementalMachine(pipeline, input_list=input_list)
-    
-    incremental_machine.optimize(remaining_time=20)
+
+    model = incremental_machine.optimize(remaining_time=20)
     # machine_changes = {
     #             machine.id: (0,0)
     #             for machine in incremental_machine.pipeline.machines
@@ -79,7 +79,8 @@ if __name__ == "__main__":
         model.computeIIS()
         model.write("infeasible.ilp")
     else:
-
+        # print optimal cost
+        print(f"Optimal cost: {model.ObjVal}")
         for var in model.getVars():
-            if var.VarName[:3] != "Che" and var.VarName[:3] != "Reo" and var.VarName[:3] != "Fil" and var.VarName[:3] != "Cut":
+            if var.VarName[-13:] == " piece_length" or "keep piece" in var.VarName or "waste_added" in var.VarName or "buffer_penalisation" in var.VarName:
                 print(f"{var.VarName} = {var.X}")

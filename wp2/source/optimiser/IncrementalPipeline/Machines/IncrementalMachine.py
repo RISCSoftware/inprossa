@@ -71,12 +71,10 @@ class IncrementalMachine():
             # TODO in the future compare some metric to decide whether to keep as best model
             # For now, simply keep the last model as the best one
             best_model = new_model
-
-            
             
             # No change has been made to the machines
             machine_changes = {
                 machine.id: (0,0)
                 for machine in self.pipeline.machines
             }
-
+        return best_model

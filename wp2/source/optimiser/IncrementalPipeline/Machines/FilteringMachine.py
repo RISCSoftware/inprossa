@@ -58,7 +58,7 @@ class FilteringMachine(GenericMachine):
 
         is_output_filled = model.addVars(
             n,
-            vtype=GRB.CONTINUOUS,
+            vtype=GRB.BINARY,
             name=f"{self.id} is_output_filled",
             lb=0
         )
@@ -76,10 +76,21 @@ class FilteringMachine(GenericMachine):
                 Piece(length=0, good=True)
             )
 
-        # Only one output variable can be assigned to each input
+        # input[i] goes to output[j] if input_to_output[i, j] == 1
+        # we want this to happen when we keep j pieces before the ith input
+        for i in range(n):
+            for j in range(n):
+                model.addGenConstrIndicator(
+                    input_to_output[i, j],
+                    1,
+                    quicksum(keep[k] for k in range(i)) == j,
+                    name=f"{self.id} input_to_output_indicator_{i}_{j}"
+                )
+
+        # Only one output variable can be assigned to each input if we keep it
         for i in range(n):
             model.addConstr(
-                quicksum(input_to_output[i, j] for j in range(n)) <= 1,
+                quicksum(input_to_output[i, j] for j in range(n)) == keep[i],
                 name=f"{self.id} at most one output per input constraint [{i}]"
             )
 
@@ -100,6 +111,6 @@ class FilteringMachine(GenericMachine):
             )
 
         # Define objective function as the sum of the waste
-        model.setObjective(quicksum(waste_added), GRB.MINIMIZE)
+        model.setObjective(quicksum(waste_added[i] for i in range(n)), GRB.MINIMIZE)
 
         return keep, output_list
