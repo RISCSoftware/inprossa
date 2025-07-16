@@ -27,12 +27,17 @@ class IncrementalMachine():
                 # Continue looking for further solutions
                 new_input = remaining_input.pop(0)
                 self.pipeline.add_input(new_input)
-                # TODO new_model = warm_start()
+                # TODO
+                # new_model = warm_start()
                 # self.optimize(time_left,
                 #               new_model=new_model,)
-                # Remove the processed input from the remaining input
-                remaining_input.pop(0)
-            self.pipeline.process_input(remaining_input, machine_changes_per_step)
+                
+                time_left = time_per_step - (time() - step_start_time)
+                
+            # TODO take decisions from the same place as the output 
+            # extract_decisions(best_model)
+            self.pipeline.process_input(best_model,
+                                        machine_changes_per_step)
             
 
     def optimize(self,

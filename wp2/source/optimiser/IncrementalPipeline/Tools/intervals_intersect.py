@@ -61,3 +61,13 @@ def intersect_intervals(model: Model, start_cut:int, end_cut, bad_intervals, nam
     )
 
     return any_intersection
+
+
+def process_intersect_intervals(start_cut, end_cut, bad_intervals):
+    """
+    Returns True if the piece defined by start_cut and end_cut intersects with any bad part of the board.
+    """
+    for interval in bad_intervals:
+        if start_cut < interval[1] and end_cut > interval[0]:
+            return True
+    return False

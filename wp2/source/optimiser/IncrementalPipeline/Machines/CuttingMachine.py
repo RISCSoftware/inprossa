@@ -8,7 +8,7 @@ from IncrementalPipeline.Tools.simple_computations import (
     max_pieces_per_board,
     min_piece_length
 )
-from IncrementalPipeline.Tools.intervals_intersect import intersect_intervals
+from IncrementalPipeline.Tools.intervals_intersect import intersect_intervals, process_intersect_intervals
 from gurobipy import Model, GRB, quicksum
 
 
@@ -168,3 +168,50 @@ class CuttingMachine(GenericMachine):
             # Add the pieces to the list of all pieces
             all_pieces.extend(pieces)
         return [], all_pieces
+
+    def process(self,
+                decisions_list,
+                n_input_to_process,
+                input_list):
+        """
+        Processes the elements in the input list specified by n_input_to_process based on the decisions
+        """
+        output_pieces = []
+        for i in n_input_to_process:
+            # Get the board from the input list
+            board = input_list[i]
+            # Get the decisions for this board
+            decisions = decisions_list[i]
+            # Cut the board based on the decisions
+            pieces = self.cut_board(board, decisions)
+            # Add the pieces to the output list
+            output_pieces.extend(pieces)
+
+        return output_pieces
+    
+    def cut_board(self,
+                  board,
+                  decisions):
+        # TODO self not used here, maybe move to board or to Tools?
+        """
+        Cuts the board based on the decisions.
+
+        Decisions are expected to be a list of cuts,
+        where each cut is a float representing the position of the cut.
+
+        it is necessary to determine whether the piece is good or bad,
+        it will be bad if its length is less than the minimum length
+        or if it intersects with a bad part of the board.
+        """
+        pieces = []
+        previous_cut = 0
+        for cut in decisions:
+            piece_length = cut - previous_cut
+            # Check if the piece is good or bad
+            if (piece_length < min_piece_length or
+                process_intersect_intervals(previous_cut, cut, board.bad_parts)):
+                piece_good = False
+            else:
+                piece_good = True
+            pieces.append(Piece(length=piece_length, good=piece_good))
+        return pieces

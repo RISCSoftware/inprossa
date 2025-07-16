@@ -28,6 +28,8 @@ class Pipeline(GenericMachine):
             self.intermediate_lists = [list()
                                        for _ in range(len(machines) + 1)]
         else:
+            if len(intermediate_lists) != len(self.machines) + 1:
+                raise Exception("Intermediate lists must be of length equal to the number of machines + 1.")
             self.intermediate_lists = intermediate_lists
 
         # Check correctness of the pipeline
@@ -100,9 +102,11 @@ class Pipeline(GenericMachine):
         """
         for i, machine in enumerate(self.machines):
             decisions_list = decisions[machine.id]
-            changes_per_step = machine_changes_per_step[machine.id]
+            # TODO maybe machine changes per step should only contain the inputs to process not the outputs as well
+            # TODO machine_changes could be stored as part of the pipeline
+            n_input_to_process = machine_changes_per_step[machine.id][0]
             remaining_input, output = machine.process(decisions_list,
-                                                      changes_per_step,
+                                                      n_input_to_process,
                                                       self.intermediate_lists[i])
             # Add the output to the next intermediate list
             self.intermediate_lists[i + 1].extend(output)
