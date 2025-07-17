@@ -1,6 +1,6 @@
 """Defines a filtering machine."""
 
-from Machines.GenericMachine import GenericMachine
+from IncrementalPipeline.Machines.GenericMachine import GenericMachine
 from IncrementalPipeline.Objects.piece import Piece, PieceVars, create_piece_var_list
 from gurobipy import GRB, quicksum
 

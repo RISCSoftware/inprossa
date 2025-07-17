@@ -35,6 +35,8 @@ def compute_max_pieces_per_layer() -> int:
 
     return layer_length // min_piece_length + 1
 
+max_pieces_per_layer = compute_max_pieces_per_layer()
+
 
 def compute_min_distance_in_consecutive_layers() -> int:
     """
@@ -51,3 +53,5 @@ def compute_forbidden_zones() -> list:
     for zone in forbidden_zones:
         my_forbidden_zones.append([zone["Begin"], zone["End"]])
     return my_forbidden_zones
+
+my_forbidden_zones = compute_forbidden_zones()

@@ -1,7 +1,7 @@
 from gurobipy import GRB
 
 
-def add_or_constraints(model, constraints, name_prefix):
+def add_or_constraints(model, constraints, name_prefix="or_constraints"):
     """
     Adds a constraint of the form: (C1) OR (C2) OR ... OR (Cn)
 

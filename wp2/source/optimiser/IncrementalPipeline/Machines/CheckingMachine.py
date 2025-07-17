@@ -97,17 +97,20 @@ class CheckingMachine(GenericMachine):
         """
         for i in range(len(layers) - 1):
             # Check the cuts in layer[i] and layer[i + 1]
-            for j in range(1, len(layers[i]) - 1):
+            for j in range(1, len(layers[i])):
                 # j first pieces in layer[i]
+                # at most all but the last piece
                 # None and all are ignored
-                for k in range(1, len(layers[i + 1]) - 1):
+                for k in range(1, len(layers[i + 1])):
                     # k first pieces in layer[i + 1]
+                    # at most all but the last piece
 
                     # If the cut in layer i + 1 is before the cut in layer i,
                     cut_lower_before = (quicksum(layers[i + 1][:k]) -
                                         quicksum(layers[i][:j]),
                                         '>=',
                                         min_consecutive_distance)
+                    # If the cut in layer i + 1 is after the cut in layer i,
                     cut_upper_before = (quicksum(layers[i][:j]) -
                                         quicksum(layers[i + 1][:k]),
                                         '>=',
@@ -127,7 +130,7 @@ class CheckingMachine(GenericMachine):
         Check that there are no cuts in the global danger zones.
         """
         for i, layer in enumerate(layers):
-            for j in range(1, len(layer)):
+            for j in range(1, len(layer) + 1):
                 # Check if the piece is in a forbidden zone
                 forbidden_zones = compute_forbidden_zones()
                 for zone_index, zone in enumerate(forbidden_zones):
