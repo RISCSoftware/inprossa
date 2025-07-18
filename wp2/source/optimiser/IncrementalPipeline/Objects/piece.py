@@ -34,6 +34,7 @@ class PieceVars:
             vtype=GRB.BINARY,
             name=f"{id} piece_good"
         )
+        self.id = id
 
         # If a piece object is provided, enforce conditional equality
         if piece is not None:
@@ -56,3 +57,10 @@ def create_piece_var_list(model: Model, n, id_prefix: str, start_index: int=0) -
     Create a list of PieceVars of length n.
     """
     return [PieceVars(model, id=f"{id_prefix}[{i}]") for i in range(start_index, start_index + n)]
+
+
+def create_piece_list_from_piece_vars(model: Model, piece_vars: List[PieceVars], start_index: int=0) -> List[Piece]:
+    """
+    Create a list of Piece objects from a list of PieceVars.
+    """
+    return [Piece(length=piece_var.length.X, good=piece_var.good.X, id=f"{piece_var.id}") for piece_var in piece_vars]

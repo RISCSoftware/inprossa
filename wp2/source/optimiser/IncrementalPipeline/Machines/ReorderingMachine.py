@@ -12,7 +12,7 @@ class ReorderMachine(GenericMachine):
     """
 
     def __init__(self, id: str, input_type: type = None):
-        super().__init__(id=f"ReorderMachine-{id}",
+        super().__init__(id=f"ReorderMachine{id}",
                          input_type=input_type,
                          output_type=input_type)
 

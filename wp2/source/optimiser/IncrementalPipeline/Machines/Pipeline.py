@@ -7,6 +7,7 @@ The object will initially take a list of the machines that create the pipeline.
 from IncrementalPipeline.Machines.GenericMachine import GenericMachine
 from typing import List
 from IncrementalPipeline.Tools.to_vars import to_vars
+from IncrementalPipeline.Objects.piece import create_piece_list_from_piece_vars
 
 
 class Pipeline(GenericMachine):
@@ -22,6 +23,7 @@ class Pipeline(GenericMachine):
     def __init__(self,
                  id: str,
                  machines: List[GenericMachine],
+                 machine_changes_per_step: dict = None,
                  intermediate_lists: List[List] = None):
         self.machines = machines
         if intermediate_lists is None:
@@ -38,11 +40,18 @@ class Pipeline(GenericMachine):
                          input_type=machines[0].input_type,
                          output_type=machines[-1].output_type)
         self.decisions = dict()
+        self.machines_output = dict()
+
+        self.no_machine_changes = {
+                    machine.id: (0,0)
+                    for machine in self.machines
+                }
+        self.machine_changes_per_step = machine_changes_per_step
 
         # One by one process the machines, adding their output
         # to the already existing intermediate lists
 
-    def impose_conditions(self, model, input_list: list) -> None:
+    def impose_conditions(self, model, input_list: list = []) -> None:
         """
         Imposes conditions on the model based on the input list.
         Each machine in the pipeline will impose its own conditions.
@@ -58,13 +67,14 @@ class Pipeline(GenericMachine):
                 machine.impose_conditions(model,
                                           list_to_process)
             self.decisions[machine.id] = decisions_list
+            self.machines_output[machine.id] = output_list
             if index < len(self.machines) - 1:
                 list_to_process = to_vars(
                     self.intermediate_lists[index + 1] + output_list,
                     model,
                     self.machines[index + 1].id)
 
-        return list_to_process
+        return self.decisions, self.machines_output
 
     def correctness(self):
         """
@@ -96,21 +106,40 @@ class Pipeline(GenericMachine):
         """
         self.intermediate_lists[0].append(input)
 
-    def process_input(self, decisions, machine_changes_per_step):
+    # def process_input(self, decisions, machine_changes_per_step):
+    #     """
+    #     Actualises the intermediate lists based on the decisions and machine changes.
+    #     """
+    #     for i, machine in enumerate(self.machines):
+    #         decisions_list = decisions[machine.id]
+    #         # TODO maybe machine changes per step should only contain the inputs to process not the outputs as well
+    #         # TODO machine_changes could be stored as part of the pipeline
+    #         n_input_to_process = machine_changes_per_step[machine.id][0]
+    #         remaining_input, output = machine.process(decisions_list,
+    #                                                   n_input_to_process,
+    #                                                   self.intermediate_lists[i])
+    #         # Add the output to the next intermediate list
+    #         self.intermediate_lists[i + 1].extend(output)
+    #         self.intermediate_lists[i] = remaining_input
+
+    def process_input(self, best_model, machine_output_list):
         """
         Actualises the intermediate lists based on the decisions and machine changes.
         """
         for i, machine in enumerate(self.machines):
-            decisions_list = decisions[machine.id]
+            machine_output = machine_output_list[machine.id]
             # TODO maybe machine changes per step should only contain the inputs to process not the outputs as well
             # TODO machine_changes could be stored as part of the pipeline
-            n_input_to_process = machine_changes_per_step[machine.id][0]
-            remaining_input, output = machine.process(decisions_list,
-                                                      n_input_to_process,
-                                                      self.intermediate_lists[i])
+            n_input_to_process, n_output_to_process = self.machine_changes_per_step[machine.id]
+            
+            # Actualise input list
+            self.intermediate_lists[i] = self.intermediate_lists[i][n_input_to_process:]
+
             # Add the output to the next intermediate list
-            self.intermediate_lists[i + 1].extend(output)
-            self.intermediate_lists[i] = remaining_input
+            self.intermediate_lists[i + 1].extend(
+                create_piece_list_from_piece_vars(best_model,
+                                                  machine_output[:n_output_to_process])
+                )
 
     def empty(self):
         """

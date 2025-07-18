@@ -21,7 +21,7 @@ class CheckingMachine(GenericMachine):
     """
 
     def __init__(self, id: str, current_beam: int = 0):
-        super().__init__(id=f"CheckingMachine-{id}",
+        super().__init__(id=f"CheckingMachine{id}",
                          input_type=PieceVars,
                          output_type=None)
 

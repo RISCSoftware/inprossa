@@ -14,7 +14,7 @@ class FilteringMachine(GenericMachine):
     """
 
     def __init__(self, id: str):
-        super().__init__(id=f"FilteringMachine-{id}",
+        super().__init__(id=f"FilteringMachine{id}",
                          input_type=PieceVars,
                          output_type=PieceVars)
 

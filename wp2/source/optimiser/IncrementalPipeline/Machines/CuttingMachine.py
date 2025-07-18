@@ -21,7 +21,7 @@ class CuttingMachine(GenericMachine):
     """
 
     def __init__(self, id: str):
-        super().__init__(id=f"CuttingMachine-{id}",
+        super().__init__(id=f"CuttingMachine{id}",
                          input_type=BoardVars,
                          output_type=PieceVars)
         self.max_pieces_per_board = max_pieces_per_board
