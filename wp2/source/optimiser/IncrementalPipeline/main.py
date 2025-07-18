@@ -43,17 +43,24 @@ if __name__ == "__main__":
     )
     machine_changes_per_step[checking_machine.id] = (max_pieces_per_board, 0)
 
+    reordering_machine0_board = ReorderMachine(
+        id="0",
+        input_type=BoardVars
+    )
+    machine_changes_per_step[reordering_machine0_board.id] = (1, 1)
+
     reordering_machine1 = ReorderMachine(
         id="1",
         input_type=PieceVars
     )
     machine_changes_per_step[reordering_machine1.id] = (max_pieces_per_board, max_pieces_per_board)
+
     reordering_machine2 = ReorderMachine(
         id="2",
         input_type=PieceVars
     )
-
     machine_changes_per_step[reordering_machine2.id] = (max_pieces_per_board, max_pieces_per_board)
+
     reordering_machine3 = ReorderMachine(
         id="3",
         input_type=PieceVars
@@ -70,7 +77,7 @@ if __name__ == "__main__":
     )
     machine_changes_per_step[cutting_machine.id] = (1, max_pieces_per_board)
 
-    pipeline_machines = [cutting_machine, filtering_machine, checking_machine]
+    pipeline_machines = [reordering_machine0_board, cutting_machine, filtering_machine, checking_machine]
     pipeline_machine_changes_per_step = {
         machine.id: machine_changes_per_step[machine.id] for machine in pipeline_machines
     }
@@ -95,18 +102,3 @@ if __name__ == "__main__":
     # #             for machine in incremental_machine.pipeline.machines
     # #         }
     # # incremental_machine.process(machine_changes_per_step=machine_changes)
-
-
-
-
-
-    if model.status == GRB.INFEASIBLE:
-        print("Model is infeasible, computing IIS...")
-        model.computeIIS()
-        model.write("infeasible.ilp")
-    else:
-        # print optimal cost
-        print(f"Optimal cost: {model.ObjVal}")
-        for var in model.getVars():
-            if var.VarName[-13:] == " piece_length" or "keep piece" in var.VarName or "waste_added" in var.VarName or "buffer_penalisation" in var.VarName:
-                print(f"{var.VarName} = {var.X}")

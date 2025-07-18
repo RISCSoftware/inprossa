@@ -71,6 +71,7 @@ class BoardVars:
             )
             for i in range(max_n_bad_parts)
         ]
+        self.id = id
         # # Bad part starts shuold be less than their ends
         # for i in range(max_n_bad_parts):
         #     start_var, end_var = self.bad_parts[i]
@@ -112,8 +113,23 @@ class BoardVars:
 
 
 
-def create_board_var_list(model: Model, n, id_prefix: str, start_index: int) -> List[BoardVars]:
+def create_board_var_list(model: Model, n, id_prefix: str, start_index: int = 0) -> List[BoardVars]:
     """
     Create a list of BoardVars of length n.
     """
     return [BoardVars(model, id=f"{id_prefix}-[{i}]") for i in range(start_index, start_index + n)]
+
+def create_board_list_from_board_vars(model: Model, board_vars_list: List[BoardVars]) -> List[Board]:
+    """
+    Create a list of Board objects from a list of BoardVars.
+    """
+    boards = []
+    for board_vars in board_vars_list:
+        curved_parts = [(board_vars.curved_parts[i][0].X, board_vars.curved_parts[i][1].X)
+                        for i in range(max_n_curved_parts)]
+        bad_parts = [(board_vars.bad_parts[i][0].X, board_vars.bad_parts[i][1].X)
+                     for i in range(max_n_bad_parts)]
+        boards.append(Board(length=board_vars.length.X,
+                            curved_parts=curved_parts,
+                            bad_parts=bad_parts))
+    return boards

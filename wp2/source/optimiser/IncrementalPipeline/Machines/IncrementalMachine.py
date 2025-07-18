@@ -1,4 +1,5 @@
 from IncrementalPipeline.Objects.board import BoardVars
+from IncrementalPipeline.Objects.piece import PieceVars
 from IncrementalPipeline.Machines.Pipeline import Pipeline
 from gurobipy import Model
 from time import time
@@ -46,7 +47,10 @@ class IncrementalMachine():
             for machine_id, output_list in machines_output.items():
                 print(f"Machine {machine_id} produced output:")
                 for output in output_list:
-                    print(f" - length {output.length.X} good {output.good.X}")
+                    if isinstance(output, BoardVars):
+                        print(f" - Board {output.id} with length {output.length.X}")
+                    elif isinstance(output, PieceVars):
+                        print(f" - Piece {output.id} with length {output.length.X} good {output.good.X}")
 
 
     def optimize_temporal(self,

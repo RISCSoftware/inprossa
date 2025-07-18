@@ -8,7 +8,9 @@ from IncrementalPipeline.Machines.GenericMachine import GenericMachine
 from typing import List
 from IncrementalPipeline.Tools.to_vars import to_vars
 from IncrementalPipeline.Objects.piece import create_piece_list_from_piece_vars
-
+from IncrementalPipeline.Objects.board import create_board_list_from_board_vars
+from IncrementalPipeline.Objects.board import BoardVars
+from IncrementalPipeline.Objects.piece import PieceVars
 
 class Pipeline(GenericMachine):
     """
@@ -136,9 +138,15 @@ class Pipeline(GenericMachine):
             self.intermediate_lists[i] = self.intermediate_lists[i][n_input_to_process:]
 
             # Add the output to the next intermediate list
-            self.intermediate_lists[i + 1].extend(
-                create_piece_list_from_piece_vars(best_model,
-                                                  machine_output[:n_output_to_process])
+            if machine.output_type == 'PieceVars':
+                self.intermediate_lists[i + 1].extend(
+                    create_piece_list_from_piece_vars(best_model,
+                                                      machine_output[:n_output_to_process])
+                )
+            elif machine.output_type == 'BoardVars':
+                self.intermediate_lists[i + 1].extend(
+                    create_board_list_from_board_vars(best_model,
+                                                      machine_output[:n_output_to_process])
                 )
 
     def empty(self):
