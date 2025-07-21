@@ -115,12 +115,16 @@ class CheckingMachine(GenericMachine):
                                         quicksum(layers[i + 1][:k]),
                                         '>=',
                                         min_consecutive_distance)
+                    # Both sums are 0
+                    both_sum_zero = (quicksum(layers[i][:j]) +
+                                     quicksum(layers[i + 1][:k]), '==', 0)
                     # one of these two conditions must hold
                     add_or_constraints(
                         model,
                         [
                             cut_lower_before,
-                            cut_upper_before
+                            cut_upper_before,
+                            both_sum_zero
                         ],
                         name_prefix=f"{self.id} cuts_[{i}]_{j}_{k}"
                     )
