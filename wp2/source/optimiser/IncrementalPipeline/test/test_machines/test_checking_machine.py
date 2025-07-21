@@ -69,6 +69,7 @@ def test_checking_machine_consecutive_distance():
     # so the model should be infeasible.
     assert status == 3  # GRB.INFEASIBLE
 
+
 def test_layers_start_with_zeros():
     """
     Tests if the checking machine correctly handles layers that start with zeros.
@@ -79,6 +80,21 @@ def test_layers_start_with_zeros():
         [Piece(length=layer_length)] +  # Complete the first layer
         [Piece(length=0)] * (max_pieces_per_layer - 1) +  # Second layer starts with zeros
         [Piece(length=layer_length)]  # Complete the second layer
+    )
+    status = can_machine_produce_output_from_input(machine, input_list, [])
+    assert status == 2  # GRB.OPTIMAL
+
+
+def test_layers_finish_with_zeros():
+    """
+    Tests if the checking machine correctly handles layers that finish with zeros.
+    """
+    machine = CheckingMachine(id="checking_machine_test")
+    input_list = (
+        [Piece(length=layer_length)] +  # Complete the first layer
+        [Piece(length=0)] * (max_pieces_per_layer - 1) +  # First layer completed with zeros
+        [Piece(length=layer_length)] +  # Complete the second layer
+        [Piece(length=0)] * (max_pieces_per_layer - 1)  # Second layer completed with zeros
     )
     status = can_machine_produce_output_from_input(machine, input_list, [])
     assert status == 2  # GRB.OPTIMAL
