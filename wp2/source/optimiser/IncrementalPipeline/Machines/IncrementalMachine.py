@@ -52,7 +52,6 @@ class IncrementalMachine():
                     elif isinstance(output, PieceVars):
                         print(f" - Piece {output.id} with length {output.length.X} good {output.good.X}")
 
-
     def optimize_temporal(self,
                           remaining_time,
                           best_model=Model(),
@@ -74,7 +73,6 @@ class IncrementalMachine():
         best_model = new_model
 
         return best_model, machines_decisions, machines_output
-            
 
     def optimize(self,
                  remaining_time,
@@ -86,8 +84,9 @@ class IncrementalMachine():
             # create new model
             new_model = Model()
 
-            decisions, output = self.pipeline.impose_conditions(new_model,
-                                                input_list=current_input)
+            decisions, output = self.pipeline.impose_conditions(
+                new_model,
+                input_list=current_input)
             
             # initialise the values with the solution from previous model
             warm_start(new_model, best_model, machine_changes)
