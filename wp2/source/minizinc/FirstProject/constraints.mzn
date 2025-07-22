@@ -1,0 +1,40 @@
+include "predicates.mzn";
+
+constraint forall(i in 1..total_slots)(
+  padded_pieces[i] = piece_lengths[i]
+);
+
+% Compute partial sums incrementally
+constraint forall(l in 1..n_layers, s in 1..max_pieces_per_layer)(
+  if s = 1 then partial_sums[l, s] = layers[l, s]
+  else partial_sums[l, s] = partial_sums[l, s - 1] + layers[l, s]
+  endif
+);
+
+% Compute length of each layer
+constraint forall(l in 1..n_layers)(
+  layer_lengths[l] = partial_sums[l, max_pieces_per_layer]
+);
+
+% Each layer must not exceed the max allowed length
+constraint forall(l in 1..n_layers)(
+  layer_lengths[l] <= layer_length
+);
+
+% If a layer is not full, the next layer must be empty
+constraint forall(l in 1..n_layers - 1)(
+  (layer_lengths[l] < layer_length) -> (layer_lengths[l + 1] = 0)
+);
+
+% Ensure no two partial sums in consecutive layers are too close
+constraint forall(i in 1..n_layers - 1, j in 1..max_pieces_per_layer - 1, k in 1..max_pieces_per_layer - 1)(
+  (partial_sums[i, j] > 0.0 /\ partial_sums[i + 1, k] > 0.0 /\
+   partial_sums[i, j] < layer_length /\ partial_sums[i + 1, k] < layer_length) ->
+   abs(partial_sums[i, j] - partial_sums[i + 1, k]) >= min_consecutive_distance
+);
+
+% Ensure partial sums are not in forbidden zones
+constraint forall(i in 1..n_layers, j in 1..max_pieces_per_layer)(
+  let { var float: cut_pos = sum(j_index in 1..j)(layers[i, j_index]) } in
+    (cut_pos > 0.0 /\ cut_pos < layer_length) -> not_in_forbidden(cut_pos)
+);
