@@ -6,6 +6,8 @@ x = 0
 y = 1
 if x > 0:
     x = x + 1
+    if y < 5:
+        y = y + 1
     for t in range(1, 6):
         y = x + t
 else:
@@ -24,16 +26,31 @@ tree = ast.parse(code)
 # Tracks the current index version of each variable (e.g., x[0], x[1], ...)
 variable_index = {}
 
+class Constraint:
+    def __init__(self, expression = "", conditions = []):
+        self.conditions = conditions
+        self.expression = expression
+
+    def add_condition(self, condition):
+        self.conditions.append(condition)
+        return self
+
+    def __str__(self):
+        if self.conditions == []:
+            return f"constraint {self.expression};"
+        else:
+            # Join conditions with 'and' for MiniZinc syntax
+            conditions_str = " and ".join(self.conditions)
+            return f"constraint {conditions_str} -> {self.expression};"
+
 # Stores the list of generated MiniZinc constraints
 constraints = []
 
-def merge_variable(var, cond_expr, idx_if, idx_else):
+def merge_variable(var, idx_if, idx_else):
     merged_idx = max(idx_if, idx_else)
     variable_index[var] = merged_idx
-    val_if = f"{var}[{idx_if}]"
-    val_else = f"{var}[{idx_else}]"
-    if_constraint = f"{var}[{merged_idx}] = {val_if};"
-    else_constraint = f"{var}[{merged_idx}] = {val_else};"
+    if_constraint = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}];")
+    else_constraint = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}];")
     return if_constraint, else_constraint
 
 
@@ -46,8 +63,7 @@ def execute_branch(block, loop_scope, pre_index):
     result_constraints = constraints[:]
     result_index = variable_index.copy()
     constraints = constraints_backup
-    result_constraints_without_constraint = [c.split("constraint ")[-1] for c in result_constraints]
-    return result_constraints_without_constraint, result_index
+    return result_constraints, result_index
 
 
 # Converts a Python expression AST into a MiniZinc-compatible string
@@ -104,7 +120,7 @@ def execute_block(block, loop_scope):
             variable_index[var] = idx
 
             # Add MiniZinc constraint
-            constraints.append(f"constraint {var}[{idx}] = {rhs};")
+            constraints.append(Constraint(f"{var}[{idx}] = {rhs}"))
 
         # Handle for-loops (possibly nested)
         elif isinstance(stmt, ast.For):
@@ -134,16 +150,16 @@ def execute_block(block, loop_scope):
                 idx_before = pre_branch_index.get(var, 0)
                 idx_if = index_after_if.get(var, idx_before)
                 idx_else = index_after_else.get(var, idx_before)
-                if_constraint, else_constraint = merge_variable(var, cond_expr, idx_if, idx_else)
+                if_constraint, else_constraint = merge_variable(var, idx_if, idx_else)
                 branch_if_constraints.append(if_constraint)
                 branch_else_constraints.append(else_constraint)
+            print(f"Branch IF constraints: {branch_if_constraints}")
+            print(f"Branch ELSE constraints: {branch_else_constraints}")
 
-            constraints.extend([
-                f"constraint {cond_expr} -> {constr}" for constr in branch_if_constraints
-            ])
-            constraints.extend([
-                f"constraint not {cond_expr} -> {constr}" for constr in branch_else_constraints
-            ])
+            new_if_constraints = [Constraint(c.expression, c.conditions + [cond_expr]) for c in branch_if_constraints if c is not None]
+            constraints.extend(new_if_constraints)
+            new_else_constraints = [Constraint(c.expression, c.conditions + [f"not {cond_expr}"]) for c in branch_else_constraints if c is not None]
+            constraints.extend(new_else_constraints)
 
 
 execute_block(tree.body, {})
@@ -154,5 +170,7 @@ max_index = max(variable_index.values())
 # Declare MiniZinc arrays for each variable
 decls = [f"array[0..{max_index}] of var int: {var};" for var in variable_index]
 
+text_constraints = [str(c) for c in constraints if c is not None]
+
 # Print the full MiniZinc model
-print("\n".join(decls + constraints + ["solve satisfy;"]))
+print("\n".join(decls + text_constraints + ["solve satisfy;"]))
