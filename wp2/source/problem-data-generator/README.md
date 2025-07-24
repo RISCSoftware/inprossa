@@ -2,11 +2,11 @@
 
 ## Description
 
-Generates problem data files with 
+Generates problem data files for the InProSSA project.
 
 ## Dependencies
 
-Dependencies are managed by []`poetry`](https://python-poetry.org/).
+Dependencies are managed by [`poetry`](https://python-poetry.org/).
 
 Dependencies are:
 - `click`
