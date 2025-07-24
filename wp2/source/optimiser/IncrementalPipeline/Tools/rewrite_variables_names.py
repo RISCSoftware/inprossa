@@ -21,7 +21,8 @@ def rewrite_variable_name(variable_name: str, machine_info: dict) -> str:
     # is the first part of the variable name before a space
     machine_name = variable_name.split(" ")[0]
     if machine_name not in machine_info:
-        print(f"Warning: Machine '{machine_name}' not found in machine_info. Returning original variable name.")
+        # print(f"Warning: Machine '{machine_name}' not found in machine_info. Returning original variable name.")
+        pass
     else:
         # numbers to be changed always appear between square brackets
         # e.g. "machine_name [2] [3]"

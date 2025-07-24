@@ -84,6 +84,7 @@ if __name__ == "__main__":
     pipeline_machines = [
         reordering_machine0_board,
         cutting_machine,
+        reordering_machine1,
         filtering_machine,
         checking_machine
     ]

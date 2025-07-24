@@ -12,7 +12,7 @@ class IncrementalMachine():
         self.pipeline = pipeline
         self.input_list = input_list
 
-    def process(self, time_per_step=10):
+    def process(self, time_per_step=100):
         """
         When time runs out, modifies the state of the machine
         and sends the current input to the next machine.
