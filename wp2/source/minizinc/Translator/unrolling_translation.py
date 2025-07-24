@@ -39,8 +39,8 @@ class Constraint:
         if self.conditions == []:
             return f"constraint {self.expression};"
         else:
-            # Join conditions with 'and' for MiniZinc syntax
-            conditions_str = " and ".join(self.conditions)
+            # Join conditions with '/\' (and) for MiniZinc syntax
+            conditions_str = " /\ ".join(self.conditions)
             return f"constraint {conditions_str} -> {self.expression};"
 
 # Stores the list of generated MiniZinc constraints
@@ -49,8 +49,8 @@ constraints = []
 def merge_variable(var, idx_if, idx_else):
     merged_idx = max(idx_if, idx_else)
     variable_index[var] = merged_idx
-    if_constraint = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}];")
-    else_constraint = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}];")
+    if_constraint = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}]")
+    else_constraint = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}]")
     return if_constraint, else_constraint
 
 
@@ -83,6 +83,21 @@ def rewrite_expr(expr, loop_scope):
             ast.Pow: "^"
         }.get(type(expr.op), "?")
 
+        return f"({left} {op} {right})"
+
+    elif isinstance(expr, ast.Compare):
+        left = rewrite_expr(expr.left, loop_scope)
+        # comparators of 'x < 0' is '[0]'
+        # comparators of '-2 < x < 0' is '[-2, 0]'
+        right = rewrite_expr(expr.comparators[0], loop_scope)
+        op = {
+            ast.Lt: "<",
+            ast.LtE: "<=",
+            ast.Gt: ">",
+            ast.GtE: ">=",
+            ast.Eq: "=",
+            ast.NotEq: "!="
+        }.get(type(expr.ops[0]), "?")
         return f"({left} {op} {right})"
 
     elif isinstance(expr, ast.Name):
@@ -158,17 +173,14 @@ def execute_block(block, loop_scope):
 
             new_if_constraints = [Constraint(c.expression, c.conditions + [cond_expr]) for c in branch_if_constraints if c is not None]
             constraints.extend(new_if_constraints)
-            new_else_constraints = [Constraint(c.expression, c.conditions + [f"not {cond_expr}"]) for c in branch_else_constraints if c is not None]
+            new_else_constraints = [Constraint(c.expression, c.conditions + [f"(not {cond_expr})"]) for c in branch_else_constraints if c is not None]
             constraints.extend(new_else_constraints)
 
 
 execute_block(tree.body, {})
 
-# Determine the max index to define the length of variable arrays
-max_index = max(variable_index.values())
-
 # Declare MiniZinc arrays for each variable
-decls = [f"array[0..{max_index}] of var int: {var};" for var in variable_index]
+decls = [f"array[0..{variable_index[var]}] of var int: {var};" for var in variable_index]
 
 text_constraints = [str(c) for c in constraints if c is not None]
 
