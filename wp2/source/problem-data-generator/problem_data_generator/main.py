@@ -93,7 +93,7 @@ def create(beams, beamlength, layers, boards, board_length, beamskipstart, beams
                     #max_end_position = min(board_length, temp_board_distance + base_distance + curved_max_length)
                     # first we decide about the length of the curved error, so that it fits on the board
                     # 1. get the current maximum curved error length
-                    max_curved_error_length = min(curved_max_length, board_length - temp_board_distance - base_distance)
+                    max_curved_error_length = min(curved_max_length, board_length - temp_board_distance)
                     # 2. get the curved error length based on max_curved_error_length and curved_min_length
                     curved_error_length = None
                     if max_curved_error_length >= curved_min_length:
@@ -102,7 +102,7 @@ def create(beams, beamlength, layers, boards, board_length, beamskipstart, beams
                         else:
                             curved_error_length = curved_min_length
                     if curved_error_length is not None:
-                        max_error_start_position = min(board_length - curved_error_length, temp_board_distance) # + base_distance)
+                        max_error_start_position = min(board_length - curved_error_length, temp_board_distance + base_distance)
                         error_position = random.randint(temp_board_distance, max_error_start_position)
                         board_part_id += 1
                         ibp = InputBoardPart(Id=board_part_id, StartPosition=board_distance, EndPosition=error_position, Quality=BoardPartQuality.GOOD)
@@ -112,6 +112,8 @@ def create(beams, beamlength, layers, boards, board_length, beamskipstart, beams
                         board_parts.append(ibp)
                         board_distance = error_position + curved_error_length
                         temp_board_distance = board_distance + min_length_good_part
+                    else:
+                        click.echo("curved_error_length is None")
 
             else:
                  temp_board_distance += base_distance
@@ -128,10 +130,7 @@ def create(beams, beamlength, layers, boards, board_length, beamskipstart, beams
 
     inputboards = [InputBoard(Position=x, RawBoard=b) for x, b in enumerate(inputboards)]
     woodcutting = WoodCutting(BeamConfiguration=beam_configuration, InputBoards=inputboards)
-    click.echo(woodcutting)
 
-    from rich import print
-    print(woodcutting)
     # with open(output, "wt") as of:
     #     of.write(woodcutting.model_dump_json())
 
