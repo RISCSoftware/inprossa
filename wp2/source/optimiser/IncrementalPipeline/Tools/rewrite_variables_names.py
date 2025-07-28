@@ -9,19 +9,22 @@ It returns the new name of the given variable after these changes
 
 import re
 
+
 def rewrite_variable_name(variable_name: str, machine_info: dict) -> str:
     """
     Rewrite the variable name based on the machine information.
-    
+
     :param variable_name: The original variable name.
-    :param machine_info: A dictionary with machine names as keys and a tuple of (inputs, outputs) as values.
+    :param machine_info: A dictionary with machine names as keys and
+    a tuple of (inputs, outputs) as values.
     :return: The rewritten variable name.
     """
     # the machine name this variable is associated with
     # is the first part of the variable name before a space
     machine_name = variable_name.split(" ")[0]
     if machine_name not in machine_info:
-        # print(f"Warning: Machine '{machine_name}' not found in machine_info. Returning original variable name.")
+        # print(f"Warning: Machine '{machine_name}' not found in machine_info.
+        # Returning original variable name.")
         pass
     else:
         # numbers to be changed always appear between square brackets
@@ -75,18 +78,23 @@ def rewrite_variable_name(variable_name: str, machine_info: dict) -> str:
                 is_output_context = False  # reset after processing a bracket
 
         return ''.join(rewritten_parts)
-    
 
-machine_info = {
-    "cutterA": (1, 3),
-    "sawB": (2, 5)
-}
 
-print(rewrite_variable_name("cutterA [5] [9]", machine_info))
-# → "cutterA [4] [6]"
+if __name__ == "__main__":
+    # Example usage
+    machine_info = {
+        "cutterA": (1, 3),
+        "sawB": (2, 5)
+    }
 
-print(rewrite_variable_name("cutterA [5] ad ff a output [9]", machine_info))
-# → "cutterA [4] output [6]"
+    print(rewrite_variable_name("cutterA [5] [9]",
+                                machine_info))
+    # → "cutterA [4] [6]"
 
-print(rewrite_variable_name("sawB [6,9]", machine_info))
-# → "sawB [4,4]"
+    print(rewrite_variable_name("cutterA [5] ad ff a output [9]",
+                                machine_info))
+    # → "cutterA [4] output [6]"
+
+    print(rewrite_variable_name("sawB [6,9]",
+                                machine_info))
+    # → "sawB [4,4]"
