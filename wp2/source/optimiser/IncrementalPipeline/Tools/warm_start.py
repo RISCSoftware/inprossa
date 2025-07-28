@@ -28,15 +28,16 @@ def warm_start_vars_with_same_name(new_model, var_value, var_name):
     same_name_vars = get_vars_by_name(new_model, var_name)
     if len(same_name_vars) > 1:
         # Give warning
-        # print(f"Warning: Multiple variables with the name {var_name} ",
-        #       "found in the new model.")
+        print(f"Warning: Multiple variables with the name {var_name} ",
+              "found in the new model.")
         pass
     elif len(same_name_vars) == 0:
         # Give warning
-        # print(f"Warning: No variable with the name {var_name} ",
-        #       "found in the new model.")
+        print(f"Warning: No variable with the name {var_name} ",
+              "found in the new model.")
         pass
     else:
-        # Set the start value of the variable in the new model
-        for same_name_var in same_name_vars:
-            same_name_var.start = var_value
+        print(f"HEY! exactly one variable called {var_name}.")
+    # Set the start value of the variable in the new model
+    for same_name_var in same_name_vars:
+        same_name_var.start = var_value

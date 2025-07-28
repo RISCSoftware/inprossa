@@ -9,8 +9,7 @@ from typing import List
 from IncrementalPipeline.Tools.to_vars import to_vars
 from IncrementalPipeline.Objects.piece import create_piece_list_from_piece_vars
 from IncrementalPipeline.Objects.board import create_board_list_from_board_vars
-from IncrementalPipeline.Objects.board import BoardVars
-from IncrementalPipeline.Objects.piece import PieceVars
+
 
 class Pipeline(GenericMachine):
     """
@@ -33,7 +32,9 @@ class Pipeline(GenericMachine):
                                        for _ in range(len(machines) + 1)]
         else:
             if len(intermediate_lists) != len(self.machines) + 1:
-                raise Exception("Intermediate lists must be of length equal to the number of machines + 1.")
+                raise Exception(
+                    "Intermediate lists must be of length"
+                    " equal to the number of machines + 1.")
             self.intermediate_lists = intermediate_lists
 
         # Check correctness of the pipeline
@@ -45,7 +46,7 @@ class Pipeline(GenericMachine):
         self.machines_output = dict()
 
         self.no_machine_changes = {
-                    machine.id: (0,0)
+                    machine.id: (0, 0)
                     for machine in self.machines
                 }
         self.machine_changes_per_step = machine_changes_per_step
@@ -58,8 +59,10 @@ class Pipeline(GenericMachine):
         Imposes conditions on the model based on the input list.
         Each machine in the pipeline will impose its own conditions.
         """
-        # TODO think about whether to use input_list or simply modify intermediate_lists little by little
-        # TODO move to_vars to the machines or find a way of always transforming it when calling impose_conditions
+        # TODO think about whether to use input_list or
+        # simply modify intermediate_lists little by little
+        # TODO move to_vars to the machines or find a way
+        # of always transforming it when calling impose_conditions
         list_to_process = to_vars(
             self.intermediate_lists[0] + input_list,
             model,
@@ -110,11 +113,13 @@ class Pipeline(GenericMachine):
 
     # def process_input(self, decisions, machine_changes_per_step):
     #     """
-    #     Actualises the intermediate lists based on the decisions and machine changes.
+    #     Actualises the intermediate lists based on the decisions
+    #     and machine changes.
     #     """
     #     for i, machine in enumerate(self.machines):
     #         decisions_list = decisions[machine.id]
-    #         # TODO maybe machine changes per step should only contain the inputs to process not the outputs as well
+    #         # TODO maybe machine changes per step should only contain
+    #         # the inputs to process not the outputs as well
     #         # TODO machine_changes could be stored as part of the pipeline
     #         n_input_to_process = machine_changes_per_step[machine.id][0]
     #         remaining_input, output = machine.process(decisions_list,
@@ -126,27 +131,33 @@ class Pipeline(GenericMachine):
 
     def process_input(self, best_model, machine_output_list):
         """
-        Actualises the intermediate lists based on the decisions and machine changes.
+        Actualises the intermediate lists based on
+        the decisions and machine changes.
         """
         for i, machine in enumerate(self.machines):
             machine_output = machine_output_list[machine.id]
-            # TODO maybe machine changes per step should only contain the inputs to process not the outputs as well
+            # TODO maybe machine changes per step should only
+            # contain the inputs to process not the outputs as well
             # TODO machine_changes could be stored as part of the pipeline
-            n_input_to_process, n_output_to_process = self.machine_changes_per_step[machine.id]
-            
+            n_input_to_process, n_output_to_process =\
+                self.machine_changes_per_step[machine.id]
+
             # Actualise input list
-            self.intermediate_lists[i] = self.intermediate_lists[i][n_input_to_process:]
+            self.intermediate_lists[i] = \
+                self.intermediate_lists[i][n_input_to_process:]
 
             # Add the output to the next intermediate list
             if machine.output_type == 'PieceVars':
                 self.intermediate_lists[i + 1].extend(
-                    create_piece_list_from_piece_vars(best_model,
-                                                      machine_output[:n_output_to_process])
+                    create_piece_list_from_piece_vars(
+                        best_model,
+                        machine_output[:n_output_to_process])
                 )
             elif machine.output_type == 'BoardVars':
                 self.intermediate_lists[i + 1].extend(
-                    create_board_list_from_board_vars(best_model,
-                                                      machine_output[:n_output_to_process])
+                    create_board_list_from_board_vars(
+                        best_model,
+                        machine_output[:n_output_to_process])
                 )
 
     def empty(self):
