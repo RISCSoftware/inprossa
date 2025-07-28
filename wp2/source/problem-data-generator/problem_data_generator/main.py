@@ -29,11 +29,12 @@ JSON_DUMP_INDENT=2
 @click.option("-d", "--defect_rate", default=0.1, help="Average number of defects per distance (default=0.1)")
 @click.option("-b", "--ratio_bad_curved", default=0.8, help="Ratio between bad errors and curved errors (default=0.8)")
 @click.option("-l", "--bad-max-length", default=20, help="Maximum length of bad errors (default=20)")
+@click.option("-random-seed", default=0, help="Random seed (default=0)")
 @click.option("--bad-min-length", default=10, help="Minimum length of bad errors (default=10)")
 @click.option("-e", "--curved-max-length", default=150, help="Maximum length of curved errors (default=150)")
 @click.option("--curved-min-length", default=100, help="Minimum length of curved errors (default=100)")
 @click.option("--compact", default=True, help="Write output in compact format or in a more readable way (default=True)")
-def create(beams, beamlength, layers, boards, boardlength, beamskipstart, beamskipend, minlengthofboardinlayer, gap, maxshiftcurvedcut, f, output, randomseed, defect_rate, ratio_bad_curved, bad_max_length, bad_min_length, curved_min_length, curved_max_length, compact) -> None:
+def create(beams, beamlength, layers, boards, boardlength, beamskipstart, beamskipend, minlengthofboardinlayer, gap, maxshiftcurvedcut, f, output, randomseed, defect_rate, ratio_bad_curved, bad_max_length, random_seed, bad_min_length, curved_min_length, curved_max_length, compact) -> None:
     # We check, if the file is already there, if it is the case then we terminate
     if output is not None and os.path.exists(output):
         click.echo(f"ERROR: Output file '{output}' already exists. Skip instance generation.")
@@ -60,7 +61,7 @@ def create(beams, beamlength, layers, boards, boardlength, beamskipstart, beamsk
     # parameter:
     base_distance = 100
     min_length_good_part = 10
-    randomseed = 0
+    randomseed = random_seed
 
     inputboards = list()
     running_distance = 0
