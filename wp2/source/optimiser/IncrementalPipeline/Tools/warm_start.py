@@ -7,6 +7,10 @@ from IncrementalPipeline.Tools.rewrite_variables_names import rewrite_variable_n
 
 def warm_start(new_model, previous_model, machine_changes=None):
     previous_vars = previous_model.getVars()
+    new_model.update()
+    new_vars = new_model.getVars()
+    print(f"Previous model has {len(previous_vars)} variables.")
+    print(f"New model has {len(new_vars)} variables.")
 
     for var in previous_vars:
         new_var_name = rewrite_variable_name(var.VarName, machine_changes)
@@ -26,18 +30,18 @@ def warm_start_vars_with_same_name(new_model, var_value, var_name):
     """
 
     same_name_vars = get_vars_by_name(new_model, var_name)
-    if len(same_name_vars) > 1:
-        # Give warning
-        print(f"Warning: Multiple variables with the name {var_name} ",
-              "found in the new model.")
-        pass
-    elif len(same_name_vars) == 0:
-        # Give warning
-        print(f"Warning: No variable with the name {var_name} ",
-              "found in the new model.")
-        pass
-    else:
-        print(f"HEY! exactly one variable called {var_name}.")
+    # if len(same_name_vars) > 1:
+    #     # Give warning
+    #     print(f"Warning: Multiple variables with the name {var_name} ",
+    #           "found in the new model.")
+    #     pass
+    # elif len(same_name_vars) == 0:
+    #     # Give warning
+    #     print(f"Warning: No variable with the name {var_name} ",
+    #           "found in the new model.")
+    #     pass
+    # else:
+    #     print(f"HEY! exactly one variable called {var_name}.")
     # Set the start value of the variable in the new model
     for same_name_var in same_name_vars:
         same_name_var.start = var_value

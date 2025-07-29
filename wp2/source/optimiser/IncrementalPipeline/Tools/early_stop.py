@@ -1,4 +1,3 @@
-import gurobipy as gp
 from gurobipy import GRB
 
 IMPROVEMENT_THRESHOLD = 0.0001  # 0.01%
@@ -7,6 +6,7 @@ MAX_NO_IMPROVE = 1000           # Max allowed checks without improvement
 # Use global variables or attach to model for tracking state
 last_obj = [None]      # Use list for mutability in closure
 no_improve_count = [0]
+
 
 def stopping_callback(model, where):
     if where == GRB.Callback.MIP:
@@ -33,6 +33,8 @@ def stopping_callback(model, where):
 
         # Optional: Also stop based on small relative gap between obj and bound
         bound = model.cbGet(GRB.Callback.MIP_OBJBND)
-        if abs(current_obj) > 1e-6 and abs(current_obj - bound) / abs(current_obj) < IMPROVEMENT_THRESHOLD:
+        if (abs(current_obj) > 1e-6 and
+            (abs(current_obj - bound) / abs(current_obj) <
+             IMPROVEMENT_THRESHOLD)):
             print("Stopping: Relative gap below 0.01%.")
             model.terminate()

@@ -10,14 +10,21 @@ if x > 0:
         y = y + 1
     for t in range(1, 6):
         y = x + t
+        assert y > x and y < 10 + t
 else:
     y = y + 1
     x = x + y
-for t in range(1, 4):
+for i, t in enumerate([455,1,255]):
     x = x + y + 1
-    for i in range(1, 3):
-        y = x + i
-    y = x + 1
+    for j in range(1, 3):
+        y = x + j
+    y = x + 1 + t + i
+"""
+
+pieces = [2,5,3,1,9,5,3,2]
+code_check_machine = f"""
+x = 
+if x > 0:
 """
 
 # Parse the code into an Abstract Syntax Tree (AST)
@@ -26,8 +33,9 @@ tree = ast.parse(code)
 # Tracks the current index version of each variable (e.g., x[0], x[1], ...)
 variable_index = {}
 
+
 class Constraint:
-    def __init__(self, expression = "", conditions = []):
+    def __init__(self, expression="", conditions=[]):
         self.conditions = conditions
         self.expression = expression
 
@@ -40,11 +48,13 @@ class Constraint:
             return f"constraint {self.expression};"
         else:
             # Join conditions with '/\' (and) for MiniZinc syntax
-            conditions_str = " /\ ".join(self.conditions)
+            conditions_str = " /\\ ".join(self.conditions)
             return f"constraint {conditions_str} -> {self.expression};"
+
 
 # Stores the list of generated MiniZinc constraints
 constraints = []
+
 
 def merge_variable(var, idx_if, idx_else):
     merged_idx = max(idx_if, idx_else)
@@ -100,10 +110,21 @@ def rewrite_expr(expr, loop_scope):
         }.get(type(expr.ops[0]), "?")
         return f"({left} {op} {right})"
 
+    elif isinstance(expr, ast.BoolOp):
+        # Handle logical and/or
+        op = {
+            ast.And: "/\\",
+            ast.Or: "\\/"
+        }.get(type(expr.op), "?")
+
+        values = [rewrite_expr(v, loop_scope) for v in expr.values]
+        return f"({' {} '.format(op).join(values)})"
+
     elif isinstance(expr, ast.Name):
         name = expr.id
 
-        # If it's a loop variable (e.g. `i` or `t`), substitute its current value
+        # If it's a loop variable (e.g. `i` or `t`),
+        # substitute its current value
         if name in loop_scope:
             return str(loop_scope[name])
 
@@ -118,10 +139,11 @@ def rewrite_expr(expr, loop_scope):
         # raise ValueError(f"Unsupported expression type: {type(expr)}")
         return ast.unparse(expr)
 
+
 # Recursively execute a block of statements, updating the symbolic state
 def execute_block(block, loop_scope):
     for stmt in block:
-        
+
         print("Expression: ", ast.unparse(stmt))
         print("Type: ", type(stmt))
 
@@ -139,25 +161,52 @@ def execute_block(block, loop_scope):
 
         # Handle for-loops (possibly nested)
         elif isinstance(stmt, ast.For):
-            loop_var = stmt.target.id
+            iter_values = []
 
-            # Extract loop bounds (assumes range(start, end))
-            start = stmt.iter.args[0].value
-            end = stmt.iter.args[1].value
+            # Regular: for t in range(start, end)
+            if isinstance(stmt.iter, ast.Call) and isinstance(stmt.iter.func, ast.Name):
+                if stmt.iter.func.id == "range":
+                    start = stmt.iter.args[0].value
+                    end = stmt.iter.args[1].value
+                    iter_values = list(range(start, end))
+                    loop_vars = [stmt.target.id]
 
-            # Simulate each iteration
-            for v in range(start, end):
+                elif stmt.iter.func.id == "enumerate" and isinstance(stmt.iter.args[0], ast.List):
+                    values = [elt.value for elt in stmt.iter.args[0].elts]
+                    iter_values = list(enumerate(values))
+                    loop_vars = [elt.id for elt in stmt.target.elts]  # e.g. [i, x]
+
+                else:
+                    raise ValueError(f"Unsupported loop iterator: {ast.unparse(stmt.iter)}")
+
+            elif isinstance(stmt.iter, ast.List):
+                iter_values = [elt.value for elt in stmt.iter.elts]
+                loop_vars = [stmt.target.id]
+
+            else:
+                raise ValueError(f"Unsupported loop iterator: {ast.unparse(stmt.iter)}")
+
+            for item in iter_values:
                 new_scope = loop_scope.copy()
-                new_scope[loop_var] = v  # Track current value of loop variable
-                execute_block(stmt.body, new_scope)  # Recurse on body
+                if isinstance(item, tuple):
+                    for name, val in zip(loop_vars, item):
+                        new_scope[name] = val
+                else:
+                    new_scope[loop_vars[0]] = item
+                execute_block(stmt.body, new_scope)
 
+
+
+        # Handle if-statements
         elif isinstance(stmt, ast.If):
             cond_expr = rewrite_expr(stmt.test, loop_scope)
             pre_branch_index = variable_index.copy()
 
             # Run both branches
-            branch_if_constraints, index_after_if = execute_branch(stmt.body, loop_scope, pre_branch_index)
-            branch_else_constraints, index_after_else = execute_branch(stmt.orelse or [], loop_scope, pre_branch_index)
+            branch_if_constraints, index_after_if = \
+                execute_branch(stmt.body, loop_scope, pre_branch_index)
+            branch_else_constraints, index_after_else = \
+                execute_branch(stmt.orelse or [], loop_scope, pre_branch_index)
 
             # Merge all variables that changed
             all_vars = set(index_after_if) | set(index_after_else)
@@ -165,22 +214,35 @@ def execute_block(block, loop_scope):
                 idx_before = pre_branch_index.get(var, 0)
                 idx_if = index_after_if.get(var, idx_before)
                 idx_else = index_after_else.get(var, idx_before)
-                if_constraint, else_constraint = merge_variable(var, idx_if, idx_else)
+                if_constraint, else_constraint = \
+                    merge_variable(var, idx_if, idx_else)
                 branch_if_constraints.append(if_constraint)
                 branch_else_constraints.append(else_constraint)
             print(f"Branch IF constraints: {branch_if_constraints}")
             print(f"Branch ELSE constraints: {branch_else_constraints}")
 
-            new_if_constraints = [Constraint(c.expression, c.conditions + [cond_expr]) for c in branch_if_constraints if c is not None]
+            new_if_constraints = [
+                Constraint(c.expression, c.conditions + [cond_expr])
+                for c in branch_if_constraints if c is not None
+                ]
             constraints.extend(new_if_constraints)
-            new_else_constraints = [Constraint(c.expression, c.conditions + [f"(not {cond_expr})"]) for c in branch_else_constraints if c is not None]
+            new_else_constraints = [
+                Constraint(c.expression, c.conditions + [f"(not {cond_expr})"])
+                for c in branch_else_constraints if c is not None
+            ]
             constraints.extend(new_else_constraints)
+
+        # Handle assert statements
+        elif isinstance(stmt, ast.Assert):
+            test_expr = rewrite_expr(stmt.test, loop_scope)
+            constraints.append(Constraint(test_expr))
 
 
 execute_block(tree.body, {})
 
 # Declare MiniZinc arrays for each variable
-decls = [f"array[0..{variable_index[var]}] of var int: {var};" for var in variable_index]
+decls = [f"array[0..{variable_index[var]}] of var int: {var};"
+         for var in variable_index]
 
 text_constraints = [str(c) for c in constraints if c is not None]
 
