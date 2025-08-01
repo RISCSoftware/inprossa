@@ -1,3 +1,17 @@
-*~
+# Python cache and temp files
 *.pyc
+*.pyo
+*~
+__pycache__/
+
+# Compiled/intermediate files
 *.ilp
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Common editor/IDE folders
+.vscode/
+.idea/

@@ -28,13 +28,13 @@ MAX_LENGTH = 10
 MAX_DEPTH = 5
 MAX_N_LENGTH = 5
 MIN_DIST = 1
-PIECES = [2,5,3,1,9,5,3,2]
+PIECES = [2,5,3,1] # ,9,5,3,2
 depth = 0
 length = 0
 n_length = 0
 n_prev_layer = 0
-new_beam = True
-for piece in PIECES:
+new_beam = 1
+for current_index, piece in enumerate(PIECES):
     length = length + piece
     n_length = n_length + 1
     assert length <= MAX_LENGTH
@@ -43,24 +43,24 @@ for piece in PIECES:
         n_prev_layer = n_length
         n_length = 0
         length = 0
-        if depth == MAX_DEPTH:
-            new_beam = True
-            depth = 0
+        # if depth == MAX_DEPTH:
+        #     new_beam = 1
+        #     depth = 0
     else:
-        new_beam = False
-        for i in range(1, MAX_N_LENGTH):
-            if i < n_prev_layer:
-                start = current_index - n_length - n_prev_layer + 1
-                end = start + i - 1
-                s = 0
-                for j in range(1, MAX_N_LENGTH):
-                    # right now, we need to do the for in this way
-                    # in  the future we can do range(start, end + 1)
-                    # if we know lower and upper bounds for start and end
-                    if j >= start and j <= end:
-                        s = s + PIECES[j]
-                assert (s - length) >= MIN_DIST
-                assert (length - s) >= MIN_DIST
+        # if new_beam != 1:
+            for i in range(1, MAX_N_LENGTH):
+                if i < n_prev_layer:
+                    start = current_index - n_length - n_prev_layer + 1
+                    end = start + i - 1
+                    s = 0
+                    for j in range(1, MAX_N_LENGTH):
+                        # right now, we need to do the for in this way
+                        # in  the future we can do range(start, end + 1)
+                        # if we know lower and upper bounds for start and end
+                        if j >= start and j <= end:
+                            s = s + PIECES[j]
+                    assert abs(s - length) >= MIN_DIST
+        # new_beam = 0
 """
 
 
@@ -88,6 +88,8 @@ class MiniZincTranslator:
         # Tracks the current version (index)
         # of each variable (e.g., x[0], x[1], ...)
         self.variable_index = {}
+        # Tracks the variable declarations
+        self.variable_declarations = {}
         # Tracks the set of constant (symbolic) names,
         # identified by being all uppercase
         self.symbol_table = {}
@@ -110,10 +112,10 @@ class MiniZincTranslator:
             if isinstance(val, int):
                 symbol_decls.append(f"int: {name} = {val};")
             elif isinstance(val, list):
-                symbol_decls.append(f"array[0..{len(val)-1}] of int: {name} = [{', '.join(map(str, val))}];")
+                symbol_decls.append(f"array[1..{len(val)}] of int: {name} = [{', '.join(map(str, val))}];")
 
         # Declare variables as arrays of versioned values
-        decls = [f"array[0..{self.variable_index[var]}] of var int: {var};"
+        decls = [f"array[1..{self.variable_index[var]}] of var int: {var};"
                 for var in self.variable_index]
 
         # Combine constraints into MiniZinc syntax
@@ -129,10 +131,27 @@ class MiniZincTranslator:
         merged_idx = max(idx_if, idx_else)
         self.variable_index[var] = merged_idx
         constraints = dict()
+
         if idx_if != merged_idx:
-            constraints["if"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}]")
+            if idx_if == 0:
+                # If the variable was not assigned in the if-branch,
+                # we can use a special UNDEFINED value
+                # self.symbol_table["UNDEFINED"] = -99999
+                # constraints["if"] = Constraint(f"{var}[{merged_idx}] = UNDEFINED")
+                print(f"Warning: Variable '{var}' not assigned in if-branch; using UNDEFINED.")
+            else:
+                constraints["if"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}]")
+
         if idx_else != merged_idx:
-            constraints["else"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}]")
+            if idx_else == 0:
+                # If the variable was not assigned in the else-branch,
+                # we can use a special UNDEFINED value
+                # self.symbol_table["UNDEFINED"] = -99999
+                # constraints["else"] = Constraint(f"{var}[{merged_idx}] = UNDEFINED")
+                print(f"Warning: Variable '{var}' not assigned in else-branch; using UNDEFINED.")
+            else:
+                constraints["else"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}]")
+
         return constraints
 
     # Executes a code block (body of if or else) independently
@@ -202,6 +221,19 @@ class MiniZincTranslator:
             # Handle literals: numbers, booleans
             return str(expr.value)
 
+        elif isinstance(expr, ast.Subscript):
+            # Handle array access like VALUES[i]
+            base = self.rewrite_expr(expr.value, loop_scope)
+
+            # Get the index expression, which can be a Name, Constant, or BinOp
+            if isinstance(expr.slice, ast.Index):  # for Python <3.9
+                index = expr.slice.value
+            else:  # for Python 3.9+
+                index = expr.slice
+
+            index_str = self.rewrite_expr(index, loop_scope)
+            return f"{base}[{index_str}]"
+
         else:
             # Fallback: use source-like syntax
             return ast.unparse(expr)
@@ -262,6 +294,8 @@ class MiniZincTranslator:
                         loop_vars = [stmt.target.id]
 
                     # enumerate([...]) or enumerate(PIECES)
+                    # e.g. PIECES = [2, 5, 3]
+                    # for current_index, piece in enumerate(PIECES):
                     elif func_id == "enumerate":
                         arg = stmt.iter.args[0]
 
@@ -274,8 +308,10 @@ class MiniZincTranslator:
                         else:
                             raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
 
-                        iter_values = list(enumerate(values))
-                        loop_vars = [elt.id for elt in stmt.target.elts]  # e.g. for i, x in enumerate(...)
+                        iter_values = list(enumerate(values, start=1))
+                        # iter_values: [(1, 2), (2, 5), (3, 3)]
+                        loop_vars = [elt.id for elt in stmt.target.elts]
+                        # loop_vars: ['current_index', 'piece']
 
                     else:
                         raise ValueError(f"Unsupported function call iterator: {ast.unparse(stmt.iter)}")
@@ -289,7 +325,7 @@ class MiniZincTranslator:
                 elif isinstance(stmt.iter, ast.Name):
                     const_name = stmt.iter.id
                     if const_name in self.symbol_table:
-                        iter_values = [f"{const_name}[{i}]" for i in range(len(self.symbol_table[const_name]))]
+                        iter_values = [f"{const_name}[{i}]" for i in range(1, len(self.symbol_table[const_name]) + 1)]
                         loop_vars = [stmt.target.id]
                     else:
                         raise ValueError(f"Unknown constant array: {const_name}")
@@ -346,5 +382,5 @@ class MiniZincTranslator:
 
 if __name__ == "__main__":
     # Test the MiniZinc translation with the provided code
-    translator = MiniZincTranslator(code)
+    translator = MiniZincTranslator(code_check_machine)
     print(translator.unroll_translation())
