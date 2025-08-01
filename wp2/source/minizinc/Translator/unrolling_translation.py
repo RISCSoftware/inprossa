@@ -28,7 +28,7 @@ MAX_LENGTH = 10
 MAX_DEPTH = 5
 MAX_N_LENGTH = 5
 MIN_DIST = 1
-PIECES = [2,5,3,1] # ,9,5,3,2
+PIECES = [2,5,3,1,9,5,3,2] # 
 depth = 0
 length = 0
 n_length = 0
@@ -89,6 +89,7 @@ class MiniZincTranslator:
         # of each variable (e.g., x[0], x[1], ...)
         self.variable_index = {}
         # Tracks the variable declarations
+        # varname → (type, domain), e.g. ('float', None)
         self.variable_declarations = {}
         # Tracks the set of constant (symbolic) names,
         # identified by being all uppercase
@@ -115,8 +116,14 @@ class MiniZincTranslator:
                 symbol_decls.append(f"array[1..{len(val)}] of int: {name} = [{', '.join(map(str, val))}];")
 
         # Declare variables as arrays of versioned values
-        decls = [f"array[1..{self.variable_index[var]}] of var int: {var};"
-                for var in self.variable_index]
+        decls = []
+        for var, size in self.variable_index.items():
+            var_type, domain = self.variable_declarations.get(var, ("int", None))  # default int if explicitly assigned
+            if domain:
+                decls.append(f"array[1..{size}] of var {var_type}:{domain}: {var};")
+            else:
+                decls.append(f"array[1..{size}] of var {var_type}: {var};")
+
 
         # Combine constraints into MiniZinc syntax
         text_constraints = [str(c) for c in self.constraints if c is not None]
@@ -138,7 +145,7 @@ class MiniZincTranslator:
                 # we can use a special UNDEFINED value
                 # self.symbol_table["UNDEFINED"] = -99999
                 # constraints["if"] = Constraint(f"{var}[{merged_idx}] = UNDEFINED")
-                print(f"Warning: Variable '{var}' not assigned in if-branch; using UNDEFINED.")
+                print(f"Warning: Variable '{var}' not assigned in if-branch") #; using UNDEFINED.")
             else:
                 constraints["if"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}]")
 
@@ -148,7 +155,7 @@ class MiniZincTranslator:
                 # we can use a special UNDEFINED value
                 # self.symbol_table["UNDEFINED"] = -99999
                 # constraints["else"] = Constraint(f"{var}[{merged_idx}] = UNDEFINED")
-                print(f"Warning: Variable '{var}' not assigned in else-branch; using UNDEFINED.")
+                print(f"Warning: Variable '{var}' not assigned in else-branch") #; using UNDEFINED.")
             else:
                 constraints["else"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}]")
 
@@ -207,15 +214,24 @@ class MiniZincTranslator:
 
         elif isinstance(expr, ast.Name):
             name = expr.id
+
             # Loop variable
             if name in loop_scope:
                 return str(loop_scope[name])
+
             # Constant (e.g., MAX_LENGTH)
             if name.isupper():
                 self.is_constant.add(name)
                 return name
-            # Evolving variable: versioned reference
-            return f"{name}[{self.variable_index.get(name, 0)}]"
+
+            # Not constant, not loop var — must be a normal variable
+            if name not in self.variable_index:
+                # First-time reference (e.g., used in an expression before assignment)
+                print(f"Warning: Variable '{name}' used without assignment: assuming type 'float'")
+                self.variable_index[name] = 1
+                self.variable_declarations[name] = ("float", None)  # default type: float
+
+            return f"{name}[{self.variable_index[name]}]"
 
         elif isinstance(expr, ast.Constant):
             # Handle literals: numbers, booleans
@@ -233,6 +249,16 @@ class MiniZincTranslator:
 
             index_str = self.rewrite_expr(index, loop_scope)
             return f"{base}[{index_str}]"
+
+        elif isinstance(expr, ast.Call):
+            func_name = expr.func.id if isinstance(expr.func, ast.Name) else ast.unparse(expr.func)
+
+            # Only support known functions like abs, max, min
+            if func_name in {"abs", "max", "min"}:
+                args = [self.rewrite_expr(arg, loop_scope) for arg in expr.args]
+                return f"{func_name}({', '.join(args)})"
+            else:
+                raise ValueError(f"Unsupported function call: {func_name}")
 
         else:
             # Fallback: use source-like syntax

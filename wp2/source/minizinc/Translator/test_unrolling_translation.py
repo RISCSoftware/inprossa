@@ -207,10 +207,8 @@ if I == 0:
     x = 1
 """,
         "expected_translation": """int: I = 0;
-int: UNDEFINED = -99999;
 array[1..1] of var int: x;
 constraint (I = 0) -> x[1] = 1;
-constraint (not (I = 0)) -> x[1] = UNDEFINED;
 solve satisfy;"""
     },
     {
@@ -220,8 +218,19 @@ I = 0
 assert abs(x - I) == 1
 """,
         "expected_translation": """int: I = 0;
-var float: x;
-constraint (abs(x - I) = 1);
+array[1..1] of var float: x;
+constraint (abs((x[1] - I)) = 1);
+solve satisfy;"""
+    },
+    {
+        "name": "test_not_declared_variable",
+        "code": """
+I = 0
+assert x > I
+""",
+        "expected_translation": """int: I = 0;
+array[1..1] of var float: x;
+constraint (x[1] > I);
 solve satisfy;"""
     }
 ]
