@@ -2,8 +2,11 @@
 include "checking_machine.mzn";
 
 
-array[1..40] of float: original_lengths;
-
+array[1..40] of var float: original_lengths;
+constraint layer_lengths[3] > 0.0;
+constraint forall(i in 1..40)(
+    original_lengths[i] < layer_length
+  );
 solve satisfy;
 
 output [

@@ -364,10 +364,21 @@ class MiniZincTranslator:
                 for item in iter_values:
                     new_scope = loop_scope.copy()
                     if isinstance(item, tuple):
-                        for name, val in zip(loop_vars, item):
-                            new_scope[name] = val
+                        # enumerate(array): item = (index, value)
+                        index_val = item[0]
+                        array_name = stmt.iter.args[0].id if isinstance(stmt.iter.args[0], ast.Name) else None
+                        index_var, element_var = loop_vars
+                        new_scope[index_var] = index_val
+                        new_scope[element_var] = f"{array_name}[{index_val}]"
                     else:
-                        new_scope[loop_vars[0]] = item
+                        # for x in ARRAY or for x in [list]
+                        array_name = stmt.iter.id if isinstance(stmt.iter, ast.Name) else None
+                        loop_var = loop_vars[0]
+                        index_val = iter_values.index(item) + 1
+                        if array_name is None: # For constants
+                            new_scope[loop_var] = index_val
+                        else:
+                            new_scope[loop_var] = f"{array_name}[{index_val}]"
                     self.execute_block(stmt.body, new_scope)
 
             # Handle if-statements with symbolic branching
@@ -405,6 +416,7 @@ class MiniZincTranslator:
             elif isinstance(stmt, ast.Assert):
                 test_expr = self.rewrite_expr(stmt.test, loop_scope)
                 self.constraints.append(Constraint(test_expr))
+
 
 if __name__ == "__main__":
     # Test the MiniZinc translation with the provided code

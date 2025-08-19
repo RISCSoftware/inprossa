@@ -12,7 +12,7 @@ int: total_slots = n_layers * max_pieces_per_layer;
 int: n_padding_zeros = total_slots - n_pieces;
 
 % Create an array to hold the padded pieces
-array[1..total_slots] of float: padded_pieces = 
+array[1..total_slots] of var float: padded_pieces = 
   [ original_lengths[i] | i in 1..n_pieces ] ++ [ 0.0 | i in 1..n_padding_zeros ];
 
 % This ensures that piece_lengths is an array of variables
