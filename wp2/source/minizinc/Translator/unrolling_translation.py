@@ -263,159 +263,190 @@ class MiniZincTranslator:
         else:
             # Fallback: use source-like syntax
             return ast.unparse(expr)
+        
+    def execute_block_assign(self, stmt, loop_scope):
+        
+        var = stmt.targets[0].id
 
-    # Recursively execute a block of Python statements, updating symbolic state
+        # Detect and record constant definitions (uppercase names)
+        if var.isupper():
+            if isinstance(stmt.value, ast.Constant):
+                self.symbol_table[var] = stmt.value.value
+            elif isinstance(stmt.value, ast.List):
+                self.symbol_table[var] = [elt.value for elt in stmt.value.elts]
+            self.is_constant.add(var)
+            return  # Don't emit constraint for constants
+
+        # For evolving variables, emit a versioned constraint
+        rhs = self.rewrite_expr(stmt.value, loop_scope)
+        idx = self.variable_index.get(var, 0) + 1
+        self.variable_index[var] = idx
+        self.constraints.append(Constraint(f"{var}[{idx}] = {rhs}"))
+
+    def _resolve_range_iter(self, stmt):
+        # range(start, end)
+        start_node = stmt.iter.args[0]
+        end_node = stmt.iter.args[1]
+
+        # Evaluate start
+        if isinstance(start_node, ast.Constant):
+            start_val = start_node.value
+        elif isinstance(start_node, ast.Name) and start_node.id in self.symbol_table:
+            start_val = self.symbol_table[start_node.id]
+        else:
+            raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
+
+        # Evaluate end
+        if isinstance(end_node, ast.Constant):
+            end_val = end_node.value
+        elif isinstance(end_node, ast.Name) and end_node.id in self.symbol_table:
+            end_val = self.symbol_table[end_node.id]
+        else:
+            raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
+
+        # Now unroll the loop using resolved values
+        iter_values = list(range(start_val, end_val))
+        loop_vars = [stmt.target.id]
+        return iter_values, loop_vars
+
+    def _resolve_enumerate_iter(self, stmt):
+        # enumerate([...]) or enumerate(PIECES)
+        # e.g. PIECES = [2, 5, 3]
+        # for current_index, piece in enumerate(PIECES):
+        arg = stmt.iter.args[0]
+
+        # enumerate over list literal
+        if isinstance(arg, ast.List):
+            values = [elt.value for elt in arg.elts]
+        # enumerate over constant array like PIECES
+        elif isinstance(arg, ast.Name) and arg.id in self.symbol_table:
+            values = self.symbol_table[arg.id]
+        else:
+            raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
+
+        iter_values = list(enumerate(values, start=1))
+        # iter_values: [(1, 2), (2, 5), (3, 3)]
+        loop_vars = [elt.id for elt in stmt.target.elts]
+        # loop_vars: ['current_index', 'piece']
+        return iter_values, loop_vars
+
+    def execute_block_for(self, stmt, loop_scope):
+        iter_values = []
+        loop_vars = []
+
+        # Case 1: call-based iterables (range, enumerate)
+        if isinstance(stmt.iter, ast.Call) and isinstance(stmt.iter.func, ast.Name):
+            func_id = stmt.iter.func.id
+
+            if func_id == "range":
+                # range(start, end)
+                iter_values, loop_vars = self._resolve_range_iter(stmt)
+
+            elif func_id == "enumerate":
+                # enumerate([...]) or enumerate(PIECES)
+                # e.g. PIECES = [2, 5, 3]
+                # for current_index, piece in enumerate(PIECES):
+                iter_values, loop_vars = self._resolve_enumerate_iter(stmt)
+
+            else:
+                raise ValueError(f"Unsupported function call iterator: {ast.unparse(stmt.iter)}")
+
+        # Case 2: list literal
+        elif isinstance(stmt.iter, ast.List):
+            iter_values = [elt.value for elt in stmt.iter.elts]  # literal values
+            loop_vars = [stmt.target.id]
+
+        # Case 3: constant name
+        elif isinstance(stmt.iter, ast.Name):
+            const_name = stmt.iter.id
+            if const_name in self.symbol_table:
+                # Keep symbolic reference (CONST[i]) to preserve constraints
+                iter_values = [f"{const_name}[{i}]" for i in range(1, len(self.symbol_table[const_name]) + 1)]
+                loop_vars = [stmt.target.id]
+            else:
+                raise ValueError(f"Unknown constant array: {const_name}")
+
+        else:
+            raise ValueError(f"Unsupported loop iterator: {ast.unparse(stmt.iter)}")
+
+        # Execute body with bound loop variables
+        for item in iter_values:
+            new_scope = loop_scope.copy()
+
+            if isinstance(item, tuple):
+                # enumerate(...): (index, element_value)
+                index_val, element_val = item
+                index_var, element_var = loop_vars
+
+                # Determine if enumerate(NAME) or enumerate([…])
+                arg0 = stmt.iter.args[0]
+                array_name = arg0.id if (isinstance(stmt.iter, ast.Call)
+                                        and isinstance(stmt.iter.func, ast.Name)
+                                        and stmt.iter.func.id == "enumerate"
+                                        and isinstance(arg0, ast.Name)) else None
+
+                new_scope[index_var] = index_val
+                if array_name:
+                    # symbolic element for constant array
+                    new_scope[element_var] = f"{array_name}[{index_val}]"
+                else:
+                    # literal element for list literal
+                    new_scope[element_var] = element_val
+
+            else:
+                # Non-enumerate: either CONST array (symbolic) or list literal (value)
+                loop_var = loop_vars[0]
+                if isinstance(stmt.iter, ast.Name):
+                    array_name = stmt.iter.id
+                    index_val = iter_values.index(item) + 1
+                    new_scope[loop_var] = f"{array_name}[{index_val}]"
+                else:
+                    # list literal → bind the actual value
+                    new_scope[loop_var] = item
+
+            self.execute_block(stmt.body, new_scope)
+
+    def execute_block_if(self, stmt, loop_scope):
+        cond_expr = self.rewrite_expr(stmt.test, loop_scope)
+        pre_branch_index = self.variable_index.copy()
+
+        branch_if_constraints, index_after_if = self.execute_branch(stmt.body, loop_scope, pre_branch_index)
+        branch_else_constraints, index_after_else = self.execute_branch(stmt.orelse or [], loop_scope, pre_branch_index)
+
+        all_vars = set(index_after_if) | set(index_after_else)
+        for var in all_vars:
+            idx_before = pre_branch_index.get(var, 0)
+            idx_if = index_after_if.get(var, idx_before)
+            idx_else = index_after_else.get(var, idx_before)
+            constraints = self.merge_variable(var, idx_if, idx_else)
+            if "if" in constraints:
+                branch_if_constraints.append(constraints["if"])
+            if "else" in constraints:
+                branch_else_constraints.append(constraints["else"])
+
+        self.constraints.extend([
+            Constraint(c.expression, c.conditions + [cond_expr]) for c in branch_if_constraints
+        ])
+        self.constraints.extend([
+            Constraint(c.expression, c.conditions + [f"(not {cond_expr})"]) for c in branch_else_constraints
+        ])
+
+    def execute_block_assert(self, stmt, loop_scope):
+        test_expr = self.rewrite_expr(stmt.test, loop_scope)
+        self.constraints.append(Constraint(test_expr))
+
     def execute_block(self, block, loop_scope):
         for stmt in block:
-            # Handle assignment statements
             if isinstance(stmt, ast.Assign):
-                var = stmt.targets[0].id
-
-                # Detect and record constant definitions (uppercase names)
-                if var.isupper():
-                    if isinstance(stmt.value, ast.Constant):
-                        self.symbol_table[var] = stmt.value.value
-                    elif isinstance(stmt.value, ast.List):
-                        self.symbol_table[var] = [elt.value for elt in stmt.value.elts]
-                    self.is_constant.add(var)
-                    continue  # Don't emit constraint for constants
-
-                # For evolving variables, emit a versioned constraint
-                rhs = self.rewrite_expr(stmt.value, loop_scope)
-                idx = self.variable_index.get(var, 0) + 1
-                self.variable_index[var] = idx
-                self.constraints.append(Constraint(f"{var}[{idx}] = {rhs}"))
-
-            # Handle for-loops, including range and enumerate
+                self.execute_block_assign(stmt, loop_scope)
             elif isinstance(stmt, ast.For):
-                iter_values = []
-
-                # Case 1: range(start, end)
-                if isinstance(stmt.iter, ast.Call) and isinstance(stmt.iter.func, ast.Name):
-                    func_id = stmt.iter.func.id
-
-                    # range(start, end)
-                    if func_id == "range":
-                        start_node = stmt.iter.args[0]
-                        end_node = stmt.iter.args[1]
-
-                        # Evaluate start
-                        if isinstance(start_node, ast.Constant):
-                            start_val = start_node.value
-                        elif isinstance(start_node, ast.Name) and start_node.id in self.symbol_table:
-                            start_val = self.symbol_table[start_node.id]
-                        else:
-                            raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
-
-                        # Evaluate end
-                        if isinstance(end_node, ast.Constant):
-                            end_val = end_node.value
-                        elif isinstance(end_node, ast.Name) and end_node.id in self.symbol_table:
-                            end_val = self.symbol_table[end_node.id]
-                        else:
-                            raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
-
-                        # Now unroll the loop using resolved values
-                        iter_values = list(range(start_val, end_val))
-                        loop_vars = [stmt.target.id]
-
-                    # enumerate([...]) or enumerate(PIECES)
-                    # e.g. PIECES = [2, 5, 3]
-                    # for current_index, piece in enumerate(PIECES):
-                    elif func_id == "enumerate":
-                        arg = stmt.iter.args[0]
-
-                        # enumerate over list literal
-                        if isinstance(arg, ast.List):
-                            values = [elt.value for elt in arg.elts]
-                        # enumerate over constant array like PIECES
-                        elif isinstance(arg, ast.Name) and arg.id in self.symbol_table:
-                            values = self.symbol_table[arg.id]
-                        else:
-                            raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
-
-                        iter_values = list(enumerate(values, start=1))
-                        # iter_values: [(1, 2), (2, 5), (3, 3)]
-                        loop_vars = [elt.id for elt in stmt.target.elts]
-                        # loop_vars: ['current_index', 'piece']
-
-                    else:
-                        raise ValueError(f"Unsupported function call iterator: {ast.unparse(stmt.iter)}")
-
-                # Case 2: iterate over list literal: for x in [1, 2, 3]
-                elif isinstance(stmt.iter, ast.List):
-                    iter_values = [elt.value for elt in stmt.iter.elts]
-                    loop_vars = [stmt.target.id]
-
-                # Case 3: iterate over constant name: for x in PIECES
-                elif isinstance(stmt.iter, ast.Name):
-                    const_name = stmt.iter.id
-                    if const_name in self.symbol_table:
-                        iter_values = [f"{const_name}[{i}]" for i in range(1, len(self.symbol_table[const_name]) + 1)]
-                        loop_vars = [stmt.target.id]
-                    else:
-                        raise ValueError(f"Unknown constant array: {const_name}")
-
-                # Anything else is unsupported
-                else:
-                    raise ValueError(f"Unsupported loop iterator: {ast.unparse(stmt.iter)}")
-
-                # Iterate through values and execute body with updated loop variable bindings
-                for item in iter_values:
-                    new_scope = loop_scope.copy()
-                    if isinstance(item, tuple):
-                        # enumerate(array): item = (index, value)
-                        index_val = item[0]
-                        array_name = stmt.iter.args[0].id if isinstance(stmt.iter.args[0], ast.Name) else None
-                        index_var, element_var = loop_vars
-                        new_scope[index_var] = index_val
-                        new_scope[element_var] = f"{array_name}[{index_val}]"
-                    else:
-                        # for x in ARRAY or for x in [list]
-                        array_name = stmt.iter.id if isinstance(stmt.iter, ast.Name) else None
-                        loop_var = loop_vars[0]
-                        index_val = iter_values.index(item) + 1
-                        if array_name is None: # For constants
-                            new_scope[loop_var] = index_val
-                        else:
-                            new_scope[loop_var] = f"{array_name}[{index_val}]"
-                    self.execute_block(stmt.body, new_scope)
-
-            # Handle if-statements with symbolic branching
+                self.execute_block_for(stmt, loop_scope)
             elif isinstance(stmt, ast.If):
-                cond_expr = self.rewrite_expr(stmt.test, loop_scope)
-                pre_branch_index = self.variable_index.copy()
-
-                # Run both if and else branches independently
-                branch_if_constraints, index_after_if = self.execute_branch(stmt.body, loop_scope, pre_branch_index)
-                branch_else_constraints, index_after_else = self.execute_branch(stmt.orelse or [], loop_scope, pre_branch_index)
-
-                # Merge variable versions from both branches
-                all_vars = set(index_after_if) | set(index_after_else)
-                for var in all_vars:
-                    idx_before = pre_branch_index.get(var, 0)
-                    idx_if = index_after_if.get(var, idx_before)
-                    idx_else = index_after_else.get(var, idx_before)
-                    constraints = self.merge_variable(var, idx_if, idx_else)
-                    if "if" in constraints:
-                        branch_if_constraints.append(constraints["if"])
-                    if "else" in constraints:
-                        branch_else_constraints.append(constraints["else"])
-
-                # Add conditional constraints for both branches
-                self.constraints.extend([
-                    Constraint(c.expression, c.conditions + [cond_expr])
-                    for c in branch_if_constraints
-                ])
-                self.constraints.extend([
-                    Constraint(c.expression, c.conditions + [f"(not {cond_expr})"])
-                    for c in branch_else_constraints
-                ])
-
-            # Handle assert statements
+                self.execute_block_if(stmt, loop_scope)
             elif isinstance(stmt, ast.Assert):
-                test_expr = self.rewrite_expr(stmt.test, loop_scope)
-                self.constraints.append(Constraint(test_expr))
+                self.execute_block_assert(stmt, loop_scope)
+            else:
+                raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")
 
 
 if __name__ == "__main__":
