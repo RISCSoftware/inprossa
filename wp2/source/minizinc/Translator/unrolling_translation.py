@@ -85,19 +85,22 @@ class Constraint:
 
 class MiniZincTranslator:
     def __init__(self, code):
-        # Tracks the current version (index)
-        # of each variable (e.g., x[0], x[1], ...)
-        self.variable_index = {}
-        # Tracks the variable declarations
-        # varname → (type, domain), e.g. ('float', None)
-        self.variable_declarations = {}
-        # Tracks the set of constant (symbolic) names,
-        # identified by being all uppercase
-        self.symbol_table = {}
-        self.is_constant = set()
-        # List of accumulated constraints generated during symbolic execution
-        self.constraints = []
         self.code = code
+
+    def extract_functions_to_predicates(self):
+        """
+        Extracts functions from the provided Python code.
+        This method should parse the code and identify function definitions
+        that can be translated into MiniZinc predicates.
+        """
+        # Parse the code into an Abstract Syntax Tree (AST)
+        tree = ast.parse(self.code)
+        functions = {}
+        for stmt in tree.body:
+            if isinstance(stmt, ast.FunctionDef):
+                func_name = stmt.name
+                args = [arg.arg for arg in stmt.args.args]
+                functions[func_name] = (args, stmt.body)
 
     def unroll_translation(self):
 
@@ -131,35 +134,24 @@ class MiniZincTranslator:
         # Output the final MiniZinc model
         minizinc_code = "\n".join(symbol_decls + decls + text_constraints + ["solve satisfy;"])
         return minizinc_code
+    
 
-    # Merges variable versions after an if-else branch
-    # by creating a new unified version
-    def merge_variable(self, var, idx_if, idx_else):
-        merged_idx = max(idx_if, idx_else)
-        self.variable_index[var] = merged_idx
-        constraints = dict()
+class CodeBlock:
+    def __init__(self, code):
+        # Tracks the current version (index)
+        # of each variable (e.g., x[0], x[1], ...)
+        self.variable_index = {}
+        # Tracks the variable declarations
+        # varname → (type, domain), e.g. ('float', None)
+        self.variable_declarations = {}
+        # Tracks the set of constant (symbolic) names,
+        # identified by being all uppercase
+        self.symbol_table = {}
+        self.is_constant = set()
+        # List of accumulated constraints generated during symbolic execution
+        self.constraints = []
+        self.code = code
 
-        if idx_if != merged_idx:
-            if idx_if == 0:
-                # If the variable was not assigned in the if-branch,
-                # we can use a special UNDEFINED value
-                # self.symbol_table["UNDEFINED"] = -99999
-                # constraints["if"] = Constraint(f"{var}[{merged_idx}] = UNDEFINED")
-                print(f"Warning: Variable '{var}' not assigned in if-branch") #; using UNDEFINED.")
-            else:
-                constraints["if"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}]")
-
-        if idx_else != merged_idx:
-            if idx_else == 0:
-                # If the variable was not assigned in the else-branch,
-                # we can use a special UNDEFINED value
-                # self.symbol_table["UNDEFINED"] = -99999
-                # constraints["else"] = Constraint(f"{var}[{merged_idx}] = UNDEFINED")
-                print(f"Warning: Variable '{var}' not assigned in else-branch") #; using UNDEFINED.")
-            else:
-                constraints["else"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}]")
-
-        return constraints
 
     # Executes a code block (body of if or else) independently
     # and returns resulting state
@@ -263,9 +255,9 @@ class MiniZincTranslator:
         else:
             # Fallback: use source-like syntax
             return ast.unparse(expr)
-        
+
     def execute_block_assign(self, stmt, loop_scope):
-        
+
         var = stmt.targets[0].id
 
         # Detect and record constant definitions (uppercase names)
@@ -447,6 +439,42 @@ class MiniZincTranslator:
                 self.execute_block_assert(stmt, loop_scope)
             else:
                 raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")
+
+
+class Predicate(CodeBlock):
+    def __init__(self,
+                 code,
+                 n_inputs=0,
+                 n_outputs=0,
+                 function_name=""):
+        super().__init__(code)
+        self.n_inputs = n_inputs
+        self.n_outputs = n_outputs
+        self.function_name = function_name
+        self.execute_block(ast.parse(code).body, {})
+        self.constraints = [str(c) for c in self.constraints if c is not None]
+
+    def predicate_definition(self):
+        pred_def = f"predicate {self.function_name}("
+        if self.n_inputs > 0:
+            pred_def += ", ".join([f"int: input_{i+1}" for i in range(self.n_inputs)])
+        if self.n_outputs > 0:
+            pred_def += ", ".join([f"var int: output_{i+1}" for i in range(self.n_outputs)])
+        if len(self.variable_declarations) > 0:
+            pred_def += ", ".join(self.variable_declarations)
+        pred_def += ")"
+        conditions = ' /\\ '.join(self.constraints)
+        return f"{pred_def} =\n    (\n    {conditions}\n    );"
+
+    def predicate_call(self, inputs, outputs, n_call=1):
+        if len(inputs) != self.n_inputs:
+            raise ValueError(f"Expected {self.n_inputs} inputs, got {len(inputs)}")
+        if len(outputs) != self.n_outputs:
+            raise ValueError(f"Expected {self.n_outputs} outputs, got {len(outputs)}")
+        call_args = [f"{inputs[i]}" for i in range(self.n_inputs)]
+        call_args += [f"{outputs[i]}" for i in range(self.n_outputs)]
+        call_args += [f"{var}{n_call}" for var in self.variable_declarations]
+
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 """Contains tests for the unrolling translation module."""
 
 import unittest
-from unrolling_translation import MiniZincTranslator
+from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 
 translation_tests = [
     {
@@ -252,10 +252,13 @@ class TestMiniZincTranslation(unittest.TestCase):
                     print("Expected:")
                     print(expected)
 
+failed = 0
 for test in translation_tests:
+    print(f"Test {test['name']}")
     translator = MiniZincTranslator(test["code"])
     result = translator.unroll_translation()
     if result != test["expected_translation"]:
+        failed += 1
         print(f"Test {test['name']} failed:")
         print("Code:")
         print(test["code"])
@@ -263,6 +266,7 @@ for test in translation_tests:
         print(test["expected_translation"])
         print("Got:")
         print(result)
+print(f"Total failed tests: {failed}")
 
 # if __name__ == "__main__":
 #     unittest.main()
