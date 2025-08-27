@@ -12,7 +12,6 @@ class CodeBlock:
       - variable_index (versioning x[1], x[2], ...)
       - variable_declarations (var type/domain)
       - constraints (generated Constraint objects)
-      - scalar_vars (simple 'var int:' scalars, used for predicate outputs)
       - extra_array_decls (arrays needed for predicate calls, e.g., a1,b1,c1,d1)
       - predicate_call_counts (for unique array suffixes per predicate)
 
@@ -33,8 +32,6 @@ class CodeBlock:
         self.constraints = []
         # Extra declarations created by predicate calls (array params per call)
         self.extra_array_decls = []
-        # Scalars (non-versioned) introduced by predicate outputs
-        self.scalar_vars = set()
         # Predicate registry: name -> Predicate
         self.predicates = {} if predicates is None else dict(predicates)
         # Counter per predicate for unique call arrays (a1,b1,...) then (a2,b2,...)
@@ -55,6 +52,11 @@ class CodeBlock:
             elif isinstance(val, list):
                 decls.append(f"array[1..{len(val)}] of int: {name} = [{', '.join(map(str, val))}];")
         return decls
+    
+    def get_all_vars_declrs(self):
+        """Get all variable declarations (evolving and non-evolving)."""
+        print(self.all_variable_declarations)
+        return [declr.to_minizinc() for declr in self.all_variable_declarations.values()]
 
     def evolving_vars_declaration(self):
         """Declare versioned arrays for evolving variables in this block."""
@@ -65,25 +67,8 @@ class CodeBlock:
             var_declr = self.evolving_vars_declrs.get(var, Declaration(var, type_="int"))
             # default int if explicitly assigned
             var_declr.define_size(size)
-            self.evolving_vars_declrs[var] = var_declr
+            self.all_variable_declarations[var] = var_declr
         return decls
-
-    def get_var_array_decls(self):
-        """Declare versioned arrays for evolving variables in this block."""
-        decls = []
-        for var, size in self.variable_index.items():
-            if var not in self.evolving_vars_declrs:
-                raise Warning(f"Variable '{var}' used but not declared: assuming type 'int'")
-            var_declr = self.evolving_vars_declrs.get(var, Declaration(var, type_="int"))
-            # default int if explicitly assigned
-            var_declr.define_size(size)
-            self.evolving_vars_declrs[var] = var_declr
-            decls.append(var_declr.to_minizinc())
-        return decls
-
-    def get_scalar_decls(self):
-        """Declare scalar decision variables (from predicate outputs)."""
-        return [Declaration(v).to_minizinc() for v in self.scalar_vars]
 
     # Merge the declarations and run the get?... in minizinc translator
 
@@ -131,6 +116,13 @@ class CodeBlock:
         result_index = self.variable_index.copy()
         self.constraints = constraints_backup
         return result_constraints, result_index
+
+    def new_evolving_variable(self, name, type_=None, lower=None, upper=None):
+        if type_ is None:
+            print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
+            type_ = "int"
+        self.variable_index[name] = 1
+        self.evolving_vars_declrs[name] = Declaration(name, type_=type_)
 
     def rewrite_expr(self, expr, loop_scope):
         """
@@ -188,9 +180,7 @@ class CodeBlock:
             # Not constant, not loop var — must be a normal variable
             if name not in self.variable_index:
                 # First-time reference (e.g., used in an expression before assignment)
-                print(f"Warning: Variable '{name}' used without assignment: assuming type 'float'")
-                self.variable_index[name] = 1
-                self.evolving_vars_declrs[name] = Declaration(name, type_="float")  # default type: float
+                self.new_evolving_variable(name)
 
             return f"{name}[{self.variable_index[name]}]"
 
@@ -250,24 +240,22 @@ class CodeBlock:
 
         # For evolving variables, emit a versioned constraint
         rhs = self.rewrite_expr(stmt.value, loop_scope)
-        idx = self.variable_index.get(var, 0) + 1
-        self.variable_index[var] = idx
-        self.constraints.append(Constraint(f"{var}[{idx}] = {rhs}"))
+        if var not in self.variable_index:
+            self.new_evolving_variable(var)
+        else:
+            self.variable_index[var] += 1
+        self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {rhs}"))
 
     def _handle_predicate_call_assign(self, stmt, loop_scope, pred):
         """Handle assignments like: e, g = f(c, d)."""
         # Outputs on LHS
         if isinstance(stmt.targets[0], ast.Tuple):
-            outputs = [elt.id for elt in stmt.targets[0].elts]
+            out_exprs = [self.rewrite_expr(elt, loop_scope) for elt in stmt.targets[0].elts]
         else:
-            outputs = [stmt.targets[0].id]
+            out_exprs = [self.rewrite_expr(stmt.targets[0].id, loop_scope)]
 
-        if len(outputs) != pred.n_outputs:
-            raise ValueError(f"Predicate '{pred.name}': expected {pred.n_outputs} outputs, got {len(outputs)}")
-
-        # Declare scalar outputs
-        for out in outputs:
-            self.scalar_vars.add(out)
+        if len(out_exprs) != pred.n_outputs:
+            raise ValueError(f"Predicate '{pred.name}': expected {pred.n_outputs} outputs, got {len(out_exprs)}")
 
         # Inputs on RHS call
         call = stmt.value
@@ -287,10 +275,11 @@ class CodeBlock:
             array_arg_names.append(arr_name)
             # Declare arrays needed for this call
             self.all_variable_declarations[arr_name] = Declaration(arr_name, dims=size, type_="int")
+            print(f"DEBUG: Declared array {arr_name} of size {size}")
             self.extra_array_decls.append(f"array[1..{size}] of var int: {arr_name};")
 
         # Emit the predicate call as a constraint
-        call_line = pred.emit_call_line(in_exprs, outputs, array_arg_names)
+        call_line = pred.emit_call_line(in_exprs, out_exprs, array_arg_names)
         self.constraints.append(Constraint(call_line))
 
     def _resolve_range_iter(self, stmt):

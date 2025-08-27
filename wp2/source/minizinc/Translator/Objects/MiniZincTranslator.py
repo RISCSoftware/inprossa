@@ -41,14 +41,8 @@ class MiniZincTranslator:
         # 2) Constants (symbols)
         parts += block.get_symbol_declarations()
 
-        # 3) Scalars (from predicate outputs)
-        parts += block.get_scalar_decls()
-
-        # 4) Arrays needed for predicate calls
-        parts += block.get_extra_array_decls()
-
         # 5) Arrays for versioned variables in top-level code
-        parts += block.get_var_array_decls()
+        parts += block.get_all_vars_declrs()
 
         # 6) Constraints from top-level code (incl. predicate calls as 'constraint f(...)')
         parts += block.get_constraints()
