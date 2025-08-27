@@ -51,7 +51,7 @@ class Predicate(CodeBlock):
         # Parameters: inputs, outputs, then arrays in arrays_order
         params = []
         # inputs
-        params += [f"int: input_{i+1}" for i in range(self.n_inputs)]
+        params += [f"var int: input_{i+1}" for i in range(self.n_inputs)]
         # outputs
         params += [f"var int: output_{i+1}" for i in range(self.n_outputs)]
         # arrays (as var int arrays)

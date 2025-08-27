@@ -55,7 +55,6 @@ class CodeBlock:
     
     def get_all_vars_declrs(self):
         """Get all variable declarations (evolving and non-evolving)."""
-        print(self.all_variable_declarations)
         return [declr.to_minizinc() for declr in self.all_variable_declarations.values()]
 
     def evolving_vars_declaration(self):
@@ -122,7 +121,8 @@ class CodeBlock:
             print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
             type_ = "int"
         self.variable_index[name] = 1
-        self.evolving_vars_declrs[name] = Declaration(name, type_=type_)
+        if name not in self.evolving_vars_declrs:
+            self.evolving_vars_declrs[name] = Declaration(name, type_=type_)
 
     def rewrite_expr(self, expr, loop_scope):
         """
@@ -252,7 +252,7 @@ class CodeBlock:
         if isinstance(stmt.targets[0], ast.Tuple):
             out_exprs = [self.rewrite_expr(elt, loop_scope) for elt in stmt.targets[0].elts]
         else:
-            out_exprs = [self.rewrite_expr(stmt.targets[0].id, loop_scope)]
+            out_exprs = [self.rewrite_expr(stmt.targets[0], loop_scope)]
 
         if len(out_exprs) != pred.n_outputs:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_outputs} outputs, got {len(out_exprs)}")
@@ -271,12 +271,10 @@ class CodeBlock:
         # Use the same order as predicate arrays_order
         for v in pred.arrays_order:
             size = pred.local_array_sizes[v]
-            arr_name = f"{v}{call_idx}"
+            arr_name = f"{v}__{call_idx}"
             array_arg_names.append(arr_name)
             # Declare arrays needed for this call
             self.all_variable_declarations[arr_name] = Declaration(arr_name, dims=size, type_="int")
-            print(f"DEBUG: Declared array {arr_name} of size {size}")
-            self.extra_array_decls.append(f"array[1..{size}] of var int: {arr_name};")
 
         # Emit the predicate call as a constraint
         call_line = pred.emit_call_line(in_exprs, out_exprs, array_arg_names)
@@ -464,6 +462,12 @@ class CodeBlock:
         test_expr = self.rewrite_expr(stmt.test, loop_scope)
         self.constraints.append(Constraint(test_expr))
 
+    def execute_block_annassign(self, stmt, loop_scope):
+        self.evolving_vars_declrs[stmt.target.id] = Declaration(stmt.target.id, type_=stmt.annotation.id)
+        if stmt.value is not None:
+            self.new_evolving_variable(stmt.target.id, loop_scope)
+            self.constraints.append(Constraint(f"{stmt.target.id}[{self.variable_index[stmt.target.id]}] = {stmt.value.value}"))
+
     # Recursively execute a block of Python statements, updating symbolic state
     def execute_block(self, block, loop_scope):
         for stmt in block:
@@ -480,8 +484,12 @@ class CodeBlock:
             elif isinstance(stmt, ast.Assert):
                 self.execute_block_assert(stmt, loop_scope)
 
+            elif isinstance(stmt, ast.AnnAssign):
+                self.execute_block_annassign(stmt, loop_scope)
+
             elif isinstance(stmt, ast.FunctionDef):
                 # ignore: functions handled by MiniZincTranslator/Predicate
                 continue
             else:
+                print(type(stmt))
                 raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")

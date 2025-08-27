@@ -260,69 +260,69 @@ def f(a, b):
 
 c = f(1, 2)
 """,
-        "expected_translation": """predicate f(int: input_1, int: input_2, var int: output_1, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c) =
+        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c) =
     (
-    a[1] = input_1 /\
-    b[1] = input_2 /\
-    c[1] = (a[1] + b[1]) /\
+    a[1] = input_1 /\\
+    b[1] = input_2 /\\
+    c[1] = (a[1] + b[1]) /\\
     output_1 = c[1]
     );
+array[1..1] of var int: a__1;
+array[1..1] of var int: b__1;
+array[1..1] of var int: c__1;
 array[1..1] of var int: c;
-array[1..1] of var int: a1;
-array[1..1] of var int: b1;
-array[1..1] of var int: c1;
-constraint f(1, 2, c[1], a1, b1, c1);
+constraint f(1, 2, c[1], a__1, b__1, c__1);
+solve satisfy;"""
+    },
+    {
+        "name": "test_predicate",
+        "code": """
+def f(a, b):
+    c = a + b
+    d = a * b
+    c = c * d
+    return c, d
+
+x = 0
+for t in [3, 1, 5]:
+    x = x + t
+
+c, d = f(x, 2)
+e, g = f(c, d)
+assert c > d
+""",
+        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, var int: output_2, array[1..1] of var int: a, array[1..1] of var int: b, array[1..2] of var int: c, array[1..1] of var int: d) =
+    (
+    a[1] = input_1 /\\
+    b[1] = input_2 /\\
+    c[1] = (a[1] + b[1]) /\\
+    d[1] = (a[1] * b[1]) /\\
+    c[2] = (c[1] * d[1]) /\\
+    output_1 = c[2] /\\
+    output_2 = d[1]
+    );
+array[1..1] of var int: a__1;
+array[1..1] of var int: b__1;
+array[1..2] of var int: c__1;
+array[1..1] of var int: d__1;
+array[1..1] of var int: a__2;
+array[1..1] of var int: b__2;
+array[1..2] of var int: c__2;
+array[1..1] of var int: d__2;
+array[1..4] of var int: x;
+array[1..1] of var int: c;
+array[1..1] of var int: d;
+array[1..1] of var int: e;
+array[1..1] of var int: g;
+constraint x[1] = 0;
+constraint x[2] = (x[1] + 3);
+constraint x[3] = (x[2] + 1);
+constraint x[4] = (x[3] + 5);
+constraint f(x[4], 2, c[1], d[1], a__1, b__1, c__1, d__1);
+constraint f(c[1], d[1], e[1], g[1], a__2, b__2, c__2, d__2);
+constraint (c[1] > d[1]);
 solve satisfy;"""
     }
-#     {
-#         "name": "test_predicate",
-#         "code": """
-# def f(a, b):
-#     c = a + b
-#     d = a * b
-#     c = c * d
-#     return c, d
-
-# x = 0
-# for t in [3, 1, 5]:
-#     x = x + t
-
-# c, d = f(x, 2)
-# e, g = f(c, d)
-# assert c > d
-# """,
-#         "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, var int: output_2, array[1..1] of var int: a, array[1..1] of var int: b, array[1..2] of var int: c, array[1..1] of var int: d) =
-#     (
-#     a[1] = input_1 /\
-#     b[1] = input_2 /\
-#     c[1] = (a[1] + b[1]) /\
-#     d[1] = (a[1] * b[1]) /\
-#     c[2] = (c[1] * d[1]) /\
-#     output_1 = c[2] /\
-#     output_2 = d[1]
-#     );
-# array[1..1] of var int: a1;
-# array[1..1] of var int: b1;
-# array[1..2] of var int: c1;
-# array[1..1] of var int: d1;
-# array[1..1] of var int: a2;
-# array[1..1] of var int: b2;
-# array[1..2] of var int: c2;
-# array[1..1] of var int: d2;
-# array[1..4] of var int: x;
-# array[1..1] of var int: c;
-# array[1..1] of var int: d;
-# array[1..1] of var int: e;
-# array[1..1] of var int: g;
-# constraint x[1] = 0;
-# constraint x[2] = (x[1] + 3);
-# constraint x[3] = (x[2] + 1);
-# constraint x[4] = (x[3] + 5);
-# constraint f(x[4], 2, c[1], d[1], a1, b1, c1, d1);
-# constraint f(c[1], d[1], e[1], g[1], a2, b2, c2, d2);
-# constraint (c[1] > d[1]);
-# solve satisfy;"""
-#     }
 ]
 
 
