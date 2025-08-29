@@ -30,8 +30,6 @@ class CodeBlock:
         self.is_constant = set(self.symbol_table.keys())
         # List of accumulated constraints generated during symbolic execution
         self.constraints = []
-        # Extra declarations created by predicate calls (array params per call)
-        self.extra_array_decls = []
         # Predicate registry: name -> Predicate
         self.predicates = {} if predicates is None else dict(predicates)
         # Counter per predicate for unique call arrays (a1,b1,...) then (a2,b2,...)
@@ -40,11 +38,12 @@ class CodeBlock:
     def run(self, block, loop_scope=None):
         """Execute an AST statement list (block)."""
         self.execute_block(block, {} if loop_scope is None else loop_scope)
+        # Add declarations of the evolving variables now that we know their length
         self.evolving_vars_declaration()
         return self
 
     def get_symbol_declarations(self):
-        """Declare constants as MiniZinc symbols (not versioned)."""
+        """Declare constants as MiniZinc symbols (not evolving)."""
         decls = []
         for name, val in self.symbol_table.items():
             if isinstance(val, int):
@@ -58,7 +57,7 @@ class CodeBlock:
         return [declr.to_minizinc() for declr in self.all_variable_declarations.values()]
 
     def evolving_vars_declaration(self):
-        """Declare versioned arrays for evolving variables in this block."""
+        """Declare arrays for evolving variables in this block."""
         decls = []
         for var, size in self.variable_index.items():
             if var not in self.evolving_vars_declrs:
@@ -69,54 +68,13 @@ class CodeBlock:
             self.all_variable_declarations[var] = var_declr
         return decls
 
-    # Merge the declarations and run the get?... in minizinc translator
-
-    def get_extra_array_decls(self):
-        """Arrays needed for predicate call instances (e.g., a1,b1,c1,d1)."""
-        # keep insertion order; already formed as strings
-        return self.extra_array_decls[:]
+    # TODO Merge the declarations and run the get?... in minizinc translator
 
     def get_constraints(self):
         return [str(c) for c in self.constraints if c is not None]
 
-    def merge_variable(self, var, idx_if, idx_else):
-        """
-        Merges variable versions after an if-else branch by using the highest index
-        """
-        merged_idx = max(idx_if, idx_else)
-        self.variable_index[var] = merged_idx
-        constraints = dict()
-
-        if idx_if != merged_idx:
-            if idx_if == 0:
-                # If the variable was not assigned in the if-branch,
-                # we can use a special UNDEFINED value (skipped here)
-                print(f"Warning: Variable '{var}' not assigned in if-branch")
-            else:
-                constraints["if"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}]")
-
-        if idx_else != merged_idx:
-            if idx_else == 0:
-                print(f"Warning: Variable '{var}' not assigned in else-branch")
-            else:
-                constraints["else"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}]")
-
-        return constraints
-
-    def execute_branch(self, block, loop_scope, pre_index):
-        """
-        Executes a code block (body of if or else) independently and returns resulting state
-        """
-        constraints_backup = self.constraints.copy()
-        self.constraints.clear()
-        self.variable_index = pre_index.copy()
-        self.execute_block(block, loop_scope)
-        result_constraints = self.constraints[:]
-        result_index = self.variable_index.copy()
-        self.constraints = constraints_backup
-        return result_constraints, result_index
-
     def new_evolving_variable(self, name, type_=None, lower=None, upper=None):
+        """New variable is detected, we add it to the variable index and create its declaration."""
         if type_ is None:
             print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
             type_ = "int"
@@ -215,7 +173,35 @@ class CodeBlock:
             # Fallback: use source-like syntax
             return ast.unparse(expr)
 
-    # --- Statement handlers -------------------------------------------------
+    # --- Execute blocks (assignments, for, if, functions, type declarations, asserts...) ---
+
+    def execute_block(self, block, loop_scope):
+        """Recursively execute a block of Python statements, updating symbolic state"""
+        for stmt in block:
+            # Handle assignment statements
+            if isinstance(stmt, ast.Assign):
+                self.execute_block_assign(stmt, loop_scope)
+
+            elif isinstance(stmt, ast.For):
+                self.execute_block_for(stmt, loop_scope)
+
+            elif isinstance(stmt, ast.If):
+                self.execute_block_if(stmt, loop_scope)
+
+            elif isinstance(stmt, ast.Assert):
+                self.execute_block_assert(stmt, loop_scope)
+
+            elif isinstance(stmt, ast.AnnAssign):
+                self.execute_block_annassign(stmt, loop_scope)
+
+            elif isinstance(stmt, ast.FunctionDef):
+                # ignore: functions handled by MiniZincTranslator/Predicate
+                continue
+            else:
+                print(type(stmt))
+                raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")
+
+    # --- ASSIGNMENTS ---
 
     def execute_block_assign(self, stmt, loop_scope):
         """
@@ -280,52 +266,7 @@ class CodeBlock:
         call_line = pred.emit_call_line(in_exprs, out_exprs, array_arg_names)
         self.constraints.append(Constraint(call_line))
 
-    def _resolve_range_iter(self, stmt):
-        # range(start, end)
-        start_node = stmt.iter.args[0]
-        end_node = stmt.iter.args[1]
-
-        # Evaluate start
-        if isinstance(start_node, ast.Constant):
-            start_val = start_node.value
-        elif isinstance(start_node, ast.Name) and start_node.id in self.symbol_table:
-            start_val = self.symbol_table[start_node.id]
-        else:
-            raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
-
-        # Evaluate end
-        if isinstance(end_node, ast.Constant):
-            end_val = end_node.value
-        elif isinstance(end_node, ast.Name) and end_node.id in self.symbol_table:
-            end_val = self.symbol_table[end_node.id]
-        else:
-            raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
-
-        # Now unroll the loop using resolved values
-        iter_values = list(range(start_val, end_val))
-        loop_vars = [stmt.target.id]
-        return iter_values, loop_vars
-
-    def _resolve_enumerate_iter(self, stmt):
-        # enumerate([...]) or enumerate(PIECES)
-        # e.g. PIECES = [2, 5, 3]
-        # for current_index, piece in enumerate(PIECES):
-        arg = stmt.iter.args[0]
-
-        # enumerate over list literal
-        if isinstance(arg, ast.List):
-            values = [elt.value for elt in arg.elts]
-        # enumerate over constant array like PIECES
-        elif isinstance(arg, ast.Name) and arg.id in self.symbol_table:
-            values = self.symbol_table[arg.id]
-        else:
-            raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
-
-        iter_values = list(enumerate(values, start=1))
-        # iter_values: [(1, 2), (2, 5), (3, 3)]
-        loop_vars = [elt.id for elt in stmt.target.elts]
-        # loop_vars: ['current_index', 'piece']
-        return iter_values, loop_vars
+    # --- FOR LOOPS---
 
     def execute_block_for(self, stmt, loop_scope):
         iter_values = []
@@ -377,6 +318,53 @@ class CodeBlock:
             new_scope = self._bind_loop_variables(stmt, loop_scope, loop_vars, meta, k, item)
             self.execute_block(stmt.body, new_scope)
 
+    def _resolve_range_iter(self, stmt):
+        # range(start, end)
+        start_node = stmt.iter.args[0]
+        end_node = stmt.iter.args[1]
+
+        # Evaluate start
+        if isinstance(start_node, ast.Constant):
+            start_val = start_node.value
+        elif isinstance(start_node, ast.Name) and start_node.id in self.symbol_table:
+            start_val = self.symbol_table[start_node.id]
+        else:
+            raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
+
+        # Evaluate end
+        if isinstance(end_node, ast.Constant):
+            end_val = end_node.value
+        elif isinstance(end_node, ast.Name) and end_node.id in self.symbol_table:
+            end_val = self.symbol_table[end_node.id]
+        else:
+            raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
+
+        # Now unroll the loop using resolved values
+        iter_values = list(range(start_val, end_val))
+        loop_vars = [stmt.target.id]
+        return iter_values, loop_vars
+
+    def _resolve_enumerate_iter(self, stmt):
+        # enumerate([...]) or enumerate(PIECES)
+        # e.g. PIECES = [2, 5, 3]
+        # for current_index, piece in enumerate(PIECES):
+        arg = stmt.iter.args[0]
+
+        # enumerate over list literal
+        if isinstance(arg, ast.List):
+            values = [elt.value for elt in arg.elts]
+        # enumerate over constant array like PIECES
+        elif isinstance(arg, ast.Name) and arg.id in self.symbol_table:
+            values = self.symbol_table[arg.id]
+        else:
+            raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
+
+        iter_values = list(enumerate(values, start=1))
+        # iter_values: [(1, 2), (2, 5), (3, 3)]
+        loop_vars = [elt.id for elt in stmt.target.elts]
+        # loop_vars: ['current_index', 'piece']
+        return iter_values, loop_vars
+
     def _bind_loop_variables(self, stmt, loop_scope, loop_vars, meta, k, item):
         """
         Bind loop variables for this iteration.
@@ -424,7 +412,47 @@ class CodeBlock:
             return new_scope
 
         # default (should not happen)
-        return new_scope
+        raise Exception("Kind of loop unknown")
+    
+    # --- IF ---
+
+    def merge_variable(self, var, idx_if, idx_else):
+        """
+        Merges variable versions after an if-else branch by using the highest index
+        """
+        merged_idx = max(idx_if, idx_else)
+        self.variable_index[var] = merged_idx
+        constraints = dict()
+
+        if idx_if != merged_idx:
+            if idx_if == 0:
+                # If the variable was not assigned in the if-branch,
+                # we can use a special UNDEFINED value (skipped here)
+                # TODO think about whether this is the behavior we want
+                print(f"Warning: Variable '{var}' not assigned in if-branch")
+            else:
+                constraints["if"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}]")
+
+        if idx_else != merged_idx:
+            if idx_else == 0:
+                print(f"Warning: Variable '{var}' not assigned in else-branch")
+            else:
+                constraints["else"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}]")
+
+        return constraints
+
+    def execute_branch(self, block, loop_scope, pre_index):
+        """
+        Executes a code block (body of if or else) independently and returns resulting state
+        """
+        constraints_backup = self.constraints.copy()
+        self.constraints.clear()
+        self.variable_index = pre_index.copy()
+        self.execute_block(block, loop_scope)
+        result_constraints = self.constraints[:]
+        result_index = self.variable_index.copy()
+        self.constraints = constraints_backup
+        return result_constraints, result_index
 
     def execute_block_if(self, stmt, loop_scope):
         # Handle if-statements with symbolic branching
@@ -457,10 +485,14 @@ class CodeBlock:
             for c in branch_else_constraints
         ])
 
+    # --- ASSERTIONS ---
+
     def execute_block_assert(self, stmt, loop_scope):
         # Handle assert statements
         test_expr = self.rewrite_expr(stmt.test, loop_scope)
         self.constraints.append(Constraint(test_expr))
+
+    # --- TYPE DECLARATIONS ---
 
     def execute_block_annassign(self, stmt, loop_scope):
         self.evolving_vars_declrs[stmt.target.id] = Declaration(stmt.target.id, type_=stmt.annotation.id)
@@ -468,29 +500,3 @@ class CodeBlock:
             self.new_evolving_variable(stmt.target.id, loop_scope)
             self.variable_index[stmt.target.id] += 1
             self.constraints.append(Constraint(f"{stmt.target.id}[{self.variable_index[stmt.target.id]}] = {stmt.value.value}"))
-
-    # Recursively execute a block of Python statements, updating symbolic state
-    def execute_block(self, block, loop_scope):
-        for stmt in block:
-            # Handle assignment statements
-            if isinstance(stmt, ast.Assign):
-                self.execute_block_assign(stmt, loop_scope)
-
-            elif isinstance(stmt, ast.For):
-                self.execute_block_for(stmt, loop_scope)
-
-            elif isinstance(stmt, ast.If):
-                self.execute_block_if(stmt, loop_scope)
-
-            elif isinstance(stmt, ast.Assert):
-                self.execute_block_assert(stmt, loop_scope)
-
-            elif isinstance(stmt, ast.AnnAssign):
-                self.execute_block_annassign(stmt, loop_scope)
-
-            elif isinstance(stmt, ast.FunctionDef):
-                # ignore: functions handled by MiniZincTranslator/Predicate
-                continue
-            else:
-                print(type(stmt))
-                raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")
