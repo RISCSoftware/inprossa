@@ -42,20 +42,6 @@ class CodeBlock:
         self.evolving_vars_declaration()
         return self
 
-    def get_symbol_declarations(self):
-        """Declare constants as MiniZinc symbols (not evolving)."""
-        decls = []
-        for name, val in self.symbol_table.items():
-            if isinstance(val, int):
-                decls.append(f"int: {name} = {val};")
-            elif isinstance(val, list):
-                decls.append(f"array[1..{len(val)}] of int: {name} = [{', '.join(map(str, val))}];")
-        return decls
-    
-    def get_all_vars_declrs(self):
-        """Get all variable declarations (evolving and non-evolving)."""
-        return [declr.to_minizinc() for declr in self.all_variable_declarations.values()]
-
     def evolving_vars_declaration(self):
         """Declare arrays for evolving variables in this block."""
         decls = []
@@ -69,9 +55,6 @@ class CodeBlock:
         return decls
 
     # TODO Merge the declarations and run the get?... in minizinc translator
-
-    def get_constraints(self):
-        return [str(c) for c in self.constraints if c is not None]
 
     def new_evolving_variable(self, name, type_=None, lower=None, upper=None):
         """New variable is detected, we add it to the variable index and create its declaration."""

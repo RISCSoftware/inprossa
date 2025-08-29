@@ -15,9 +15,19 @@ class MiniZincTranslator:
         self.code = code
         self.predicates = {}         # name -> Predicate
         self.top_level_stmts = []
+        # TODO think about how to handle maximising/minimising
         self.objective = None        # ('minimize', 'expr') or ('maximize', 'expr')
 
+    def unroll_translation(self):
+        """Returns the compiled MiniZinc code that corresponds to the given Python code."""
+        self.parse()
+        return self.compile()
+
     def parse(self):
+        """
+        Parse the input code collection functions as predicates
+        and creating a list of top-level statements.
+        """
         tree = ast.parse(self.code)
         for node in tree.body:
             if isinstance(node, ast.FunctionDef):
@@ -28,7 +38,7 @@ class MiniZincTranslator:
         return self
 
     def compile(self):
-        # Execute top-level block with access to registered predicates
+        """Execute top-level block with access to registered predicates"""
         block = CodeBlock(predicates=self.predicates)
         block.run(self.top_level_stmts, loop_scope={})
 
@@ -39,15 +49,15 @@ class MiniZincTranslator:
             parts.append(self.predicates[name].emit_definition())
 
         # 2) Constants (symbols)
-        parts += block.get_symbol_declarations()
+        parts += self.get_symbol_declarations(block)
 
-        # 5) Arrays for versioned variables in top-level code
-        parts += block.get_all_vars_declrs()
+        # 3) Arrays for versioned variables in top-level code
+        parts += self.get_vars_declrs(block)
 
-        # 6) Constraints from top-level code (incl. predicate calls as 'constraint f(...)')
-        parts += block.get_constraints()
+        # 4) Constraints from top-level code (incl. predicate calls as 'constraint f(...)')
+        parts += self.get_constraints(block)
 
-        # 7) Solve (default)
+        # 5) Solve (default)
         if self.objective is None:
             parts.append("solve satisfy;")
         else:
@@ -56,6 +66,19 @@ class MiniZincTranslator:
 
         return "\n".join(parts)
 
-    def unroll_translation(self):
-        self.parse()
-        return self.compile()
+    def get_symbol_declarations(self, block):
+        """Declare constants as MiniZinc symbols (not evolving)."""
+        decls = []
+        for name, val in block.symbol_table.items():
+            if isinstance(val, int):
+                decls.append(f"int: {name} = {val};")
+            elif isinstance(val, list):
+                decls.append(f"array[1..{len(val)}] of int: {name} = [{', '.join(map(str, val))}];")
+        return decls
+    
+    def get_vars_declrs(self, block):
+        """Get all variable declarations (evolving and non-evolving)."""
+        return [declr.to_minizinc() for declr in block.all_variable_declarations.values()]
+
+    def get_constraints(self, block):
+        return [str(c) for c in block.constraints if c is not None]
