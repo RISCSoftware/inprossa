@@ -20,6 +20,15 @@ for i, t in enumerate([455,1,255]):
         y = x + j
     y = x + 1 + t + i
 """
+code = """
+def cutting(length, cut1, cut2):
+    len1 = cut1
+    len2 = cut2 - cut1
+    len3 = length - cut2
+    return len1, len2, len3
+
+len1, len2, len3 = cutting(10, 2, 5)
+"""
 
 # FORBIDDEN_INTERVALS = [[3,4], [7,8]]
 # Python code to be transformed into MiniZinc

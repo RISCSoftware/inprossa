@@ -11,8 +11,9 @@ class IncrementalMachine():
     def __init__(self, pipeline: Pipeline, input_list):
         self.pipeline = pipeline
         self.input_list = input_list
+        self.waste_produced = 0
 
-    def process(self, time_per_step=100):
+    def process(self, time_per_step=5):
         """
         When time runs out, modifies the state of the machine
         and sends the current input to the next machine.
@@ -32,7 +33,7 @@ class IncrementalMachine():
                 new_input = remaining_input.pop(0)
                 self.pipeline.add_input(new_input)
 
-                best_model, machines_decisions, machines_output =\
+                best_model, machines_decisions, machines_output, optimal_waste =\
                     self.optimize_temporal(
                         time_left,
                         best_model=best_model,
@@ -44,6 +45,7 @@ class IncrementalMachine():
                 print(f"Optimization finished with {time_left} seconds left.")
             # TODO take decisions from the same place as the output
             # extract_decisions(best_model)
+            self.waste_produced += optimal_waste
             machine_changes = self.pipeline.machine_changes_per_step
             self.pipeline.process_input(best_model, machines_output)
             for machine_id, output_list in machines_output.items():
@@ -58,6 +60,8 @@ class IncrementalMachine():
                             f" - Piece {output.id}"
                             f" length {output.length.X}"
                             f" good {output.good.X}")
+        print(f"Total waste produced: {self.waste_produced}")
+        return self.waste_produced
 
     def optimize_temporal(self,
                           remaining_time,
@@ -81,8 +85,9 @@ class IncrementalMachine():
         # if this is ever changed machine_decisions and machines_output
         # should be changed accordingly
         best_model = new_model
+        optimal_waste = new_model.ObjVal
 
-        return best_model, machines_decisions, machines_output
+        return best_model, machines_decisions, machines_output, optimal_waste
 
     def optimize(self,
                  remaining_time,

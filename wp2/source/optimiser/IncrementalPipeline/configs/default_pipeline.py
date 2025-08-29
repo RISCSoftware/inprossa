@@ -67,7 +67,7 @@ machine_changes_per_step[cutting_machine.id] = (
 )
 
 pipeline_machines = [
-    reordering_machine0_board,
+    # reordering_machine0_board,
     cutting_machine,
     reordering_machine1,
     filtering_machine,
