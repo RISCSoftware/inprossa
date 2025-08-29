@@ -22,12 +22,8 @@ if __name__ == "__main__":
     code = """
 def f(a, b):
     c = a + b
-    d = a * b
     return c
-a = 0
-a: float
-a: int = 2
-c = f(a, 2)
+c = f(1, 2)
 """
 
 # code = """

@@ -466,6 +466,7 @@ class CodeBlock:
         self.evolving_vars_declrs[stmt.target.id] = Declaration(stmt.target.id, type_=stmt.annotation.id)
         if stmt.value is not None:
             self.new_evolving_variable(stmt.target.id, loop_scope)
+            self.variable_index[stmt.target.id] += 1
             self.constraints.append(Constraint(f"{stmt.target.id}[{self.variable_index[stmt.target.id]}] = {stmt.value.value}"))
 
     # Recursively execute a block of Python statements, updating symbolic state

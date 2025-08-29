@@ -252,6 +252,65 @@ constraint (x[1] > I);
 solve satisfy;"""
     },
     {
+        "name": "test_float_type",
+        "code": """
+a: float
+a = 0
+""",
+        "expected_translation": """array[1..1] of var float: a;
+constraint a[1] = 0;
+solve satisfy;"""
+    },
+    {
+        "name": "test_simple_function",
+        "code": """
+def f(a, b):
+    c = a + b
+    return c
+c = f(1, 2)
+""",
+        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c) =
+    (
+    a[1] = input_1 /\\
+    b[1] = input_2 /\\
+    c[1] = (a[1] + b[1]) /\\
+    output_1 = c[1]
+    );
+array[1..1] of var int: a__1;
+array[1..1] of var int: b__1;
+array[1..1] of var int: c__1;
+array[1..1] of var int: c;
+constraint f(1, 2, c[1], a__1, b__1, c__1);
+solve satisfy;"""
+    },
+    {
+        "name": "test_two_output_function",
+        "code": """
+def f(a, b):
+    c = a + b
+    d = a * b
+    return c, d
+c, d = f(1, 2)
+""",
+        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, var int: output_2, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c, array[1..1] of var int: d) =
+    (
+    a[1] = input_1 /\\
+    b[1] = input_2 /\\
+    c[1] = (a[1] + b[1]) /\\
+    d[1] = (a[1] * b[1]) /\\
+    output_1 = c[1] /\\
+    output_2 = d[1]
+    );
+array[1..1] of var int: a__1;
+array[1..1] of var int: b__1;
+array[1..1] of var int: c__1;
+array[1..1] of var int: d__1;
+array[1..1] of var int: c;
+array[1..1] of var int: d;
+constraint f(1, 2, c[1], d[1], a__1, b__1, c__1, d__1);
+solve satisfy;"""
+    },
+    {
         "name": "test_simple_predicate",
         "code": """
 def f(a, b):
