@@ -37,3 +37,9 @@ class Declaration:
 
     def to_minizinc(self):
         return f"{self._array_prefix()}{self._elem_type()}: {self.name};"
+
+    def __str__(self):
+        return self.to_minizinc()
+    
+    def __repr__(self):
+        return f"Declaration({self.name!r}, type_={self.type!r}, lower={self.lower}, upper={self.upper}, dims={self.dims})"

@@ -4,8 +4,8 @@ from Translator.Objects.CodeBlock import CodeBlock
     
 class Predicate(CodeBlock):
     """Translate a Python function into a MiniZinc predicate."""
-    def __init__(self, func_node: ast.FunctionDef):
-        super().__init__(symbol_table=None, predicates=None)
+    def __init__(self, func_node: ast.FunctionDef, predicates=None):
+        super().__init__(symbol_table=None, predicates=predicates)
         self.func_node = func_node
         self.name = func_node.name
         self.input_names = [a.arg for a in func_node.args.args]
@@ -24,8 +24,9 @@ class Predicate(CodeBlock):
                 self.variable_declarations[i_name] = ("int", None)
 
         # Internal arrays order and sizes (stable ordering)
-        self.arrays_order = sorted(self.variable_index.keys())
-        self.local_array_sizes = {v: self.variable_index[v] for v in self.arrays_order}
+
+        self.arrays_order = sorted(self.all_variable_declarations.keys())
+        self.local_array_sizes = {v: self.all_variable_declarations[v].dims for v in self.arrays_order}
 
     def _extract_return_names(self, func_node):
         # Find first/last return in function (use last)

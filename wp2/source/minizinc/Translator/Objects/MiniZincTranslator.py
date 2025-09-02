@@ -31,7 +31,7 @@ class MiniZincTranslator:
         tree = ast.parse(self.code)
         for node in tree.body:
             if isinstance(node, ast.FunctionDef):
-                pred = Predicate(node)
+                pred = Predicate(node, predicates=self.predicates)
                 self.predicates[pred.name] = pred
             else:
                 self.top_level_stmts.append(node)

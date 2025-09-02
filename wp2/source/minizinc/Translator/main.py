@@ -5,14 +5,19 @@ from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 # ===== Example usage =====
 if __name__ == "__main__":
     code = """
-if a > 0:
-    b = 1
-else:
-    c = 0
-if a > 1:
-    b = 2
-else:
-    b = 0
+def f(a):
+    if a > 0:
+        a = 1
+    else:
+        a = 0
+    return a
+
+def g(a, b):
+    c = f(a)
+    c = c + b
+    return c
+
+c = g(2, 2)
 """
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
