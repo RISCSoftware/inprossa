@@ -381,7 +381,47 @@ constraint f(x[4], 2, c[1], d[1], a__1, b__1, c__1, d__1);
 constraint f(c[1], d[1], e[1], g[1], a__2, b__2, c__2, d__2);
 constraint (c[1] > d[1]);
 solve satisfy;"""
-    }
+    },
+    {
+        "name": "test_nested_function",
+        "code": """
+def f(a):
+    if a > 0:
+        a = 1
+    else:
+        a = 0
+    return a
+
+def g(a, b):
+    c = f(a)
+    c = c + b
+    return c
+
+c = g(2, 2)
+""",
+        "expected_translation": """predicate f(var int: input_1, var int: output_1, array[1..2] of var int: a) =
+    (
+    a[1] = input_1 /\\
+    ((a[1] > 0) -> a[2] = 1) /\\
+    ((not (a[1] > 0)) -> a[2] = 0) /\\
+    output_1 = a[2]
+    );
+predicate g(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..2] of var int: a__1, array[1..1] of var int: b, array[1..2] of var int: c) =
+    (
+    a[1] = input_1 /\\
+    b[1] = input_2 /\\
+    f(a[1], c[1], a__1) /\\
+    c[2] = (c[1] + b[1]) /\\
+    output_1 = c[2]
+    );
+array[1..1] of var int: a__1;
+array[1..2] of var int: a__1__1;
+array[1..1] of var int: b__1;
+array[1..2] of var int: c__1;
+array[1..1] of var int: c;
+constraint g(2, 2, c[1], a__1, a__1__1, b__1, c__1);
+solve satisfy;"""
+    },
 ]
 
 

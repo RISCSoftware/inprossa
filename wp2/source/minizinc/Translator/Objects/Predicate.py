@@ -14,19 +14,17 @@ class Predicate(CodeBlock):
         self.n_outputs = len(self.return_names)
 
         # Execute function body to collect constraints and versioning
-        body_wo_return = [s for s in func_node.body if not isinstance(s, ast.Return)]
-        self.run(body_wo_return, loop_scope={})
+        func_body = [s for s in func_node.body if not isinstance(s, ast.Return)]
+        self.run(func_body, loop_scope={})
 
         # Ensure inputs have at least one version and will be tied to input_i
         for i_name in self.input_names:
             if i_name not in self.variable_index:
-                self.variable_index[i_name] = 1
-                self.variable_declarations[i_name] = ("int", None)
+                self.new_evolving_variable(i_name)
 
         # Internal arrays order and sizes (stable ordering)
 
         self.arrays_order = sorted(self.all_variable_declarations.keys())
-        self.local_array_sizes = {v: self.all_variable_declarations[v].dims for v in self.arrays_order}
 
     def _extract_return_names(self, func_node):
         # Find first/last return in function (use last)
@@ -49,7 +47,7 @@ class Predicate(CodeBlock):
 
     def emit_definition(self):
         """Return the MiniZinc predicate definition string."""
-        # Parameters: inputs, outputs, then arrays in arrays_order
+        # Parameters: inputs, outputs, then arrays in variable declarations
         params = []
         # inputs
         params += [f"var int: input_{i+1}" for i in range(self.n_inputs)]
@@ -57,8 +55,7 @@ class Predicate(CodeBlock):
         params += [f"var int: output_{i+1}" for i in range(self.n_outputs)]
         # arrays (as var int arrays)
         for v in self.arrays_order:
-            size = self.local_array_sizes[v]
-            params += [f"array[1..{size}] of var int: {v}"]
+            params += [self.all_variable_declarations[v].to_minizinc()[:-1]]  # remove trailing ';'
 
         # Build boolean body: input inits, function constraints, output bindings
         exprs = []

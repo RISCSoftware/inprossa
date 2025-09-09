@@ -239,11 +239,14 @@ class CodeBlock:
         array_arg_names = []
         # Use the same order as predicate arrays_order
         for v in pred.arrays_order:
-            size = pred.local_array_sizes[v]
+            declr = pred.all_variable_declarations[v]
             arr_name = f"{v}__{call_idx}"
             array_arg_names.append(arr_name)
             # Declare arrays needed for this call
-            self.all_variable_declarations[arr_name] = Declaration(arr_name, dims=size, type_="int")
+            self.all_variable_declarations[arr_name] = Declaration(arr_name,
+                                                                   dims=declr.dims,
+                                                                   type_="int")
+            
 
         # Emit the predicate call as a constraint
         call_line = pred.emit_call_line(in_exprs, out_exprs, array_arg_names)

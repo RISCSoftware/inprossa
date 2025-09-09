@@ -18,6 +18,7 @@ def g(a, b):
     return c
 
 c = g(2, 2)
+d = g(3, 3)
 """
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
