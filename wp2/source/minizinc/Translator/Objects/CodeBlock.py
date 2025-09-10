@@ -45,27 +45,26 @@ class CodeBlock:
     def evolving_vars_declaration(self):
         """Declare arrays for evolving variables in this block."""
         decls = []
-        for var, size in self.variable_index.items():
+        for var, versions in self.variable_index.items():
             if var not in self.evolving_vars_declrs:
                 print(f"Variable '{var}' used but not declared: assuming type 'int'")
-            var_declr = self.evolving_vars_declrs.get(var, Declaration(var, type_="int"))
-            # default int if explicitly assigned
-            var_declr.define_size(size)
+            var_declr = self.evolving_vars_declrs.get(var, Declaration(var))
+            var_declr.define_versions(versions)
             self.all_variable_declarations[var] = var_declr
         return decls
 
     # TODO Merge the declarations and run the get?... in minizinc translator
 
-    def new_evolving_variable(self, name, type_=None, lower=None, upper=None):
+    def new_evolving_variable(self, name, type_=None, lower=None, upper=None, dims=None):
         """New variable is detected, we add it to the variable index and create its declaration."""
         if type_ is None:
             print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
             type_ = "int"
         self.variable_index[name] = 1
         if name not in self.evolving_vars_declrs:
-            self.evolving_vars_declrs[name] = Declaration(name, type_=type_)
+            self.evolving_vars_declrs[name] = Declaration(name, type_=type_, dims=dims)
 
-    def rewrite_expr(self, expr, loop_scope):
+    def rewrite_expr(self, expr, loop_scope, return_dimensions=False):
         """
         Converts a Python expression AST into a MiniZinc-compatible string
         """
@@ -145,15 +144,48 @@ class CodeBlock:
         elif isinstance(expr, ast.Call):
             func_name = expr.func.id if isinstance(expr.func, ast.Name) else ast.unparse(expr.func)
 
-            # Only support known functions like abs, max, min (not user-defined here)
+            # Only supports abs, max, min (not user-defined here)
             if func_name in {"abs", "max", "min"}:
                 args = [self.rewrite_expr(arg, loop_scope) for arg in expr.args]
                 return f"{func_name}({', '.join(args)})"
             else:
                 raise ValueError(f"Unsupported function call in expression: {func_name}")
+            
+        elif isinstance(expr, ast.List):
+            # Elements rewritten recursively so Names/Calls/etc. are handled
+            elts = expr.elts
+            contents = []
+            dims = []
+            for e in elts:
+                if isinstance(e, ast.List) and return_dimensions:
+                    # Nested list: get dimensions of inner list
+                    new_content, dim = self.rewrite_expr(e, loop_scope, return_dimensions=True)
+                else:
+                    new_content = self.rewrite_expr(e, loop_scope)
+                    dim = []
+                dims.append(dim)
+                contents.append(new_content)
+            # Join elements with commas
+            inner = ", ".join(self.rewrite_expr(e, loop_scope) for e in elts)
+            list_str = f"[{inner}]"
+            if return_dimensions:
+                # Check all dimensions are the same
+                print(dims)
+                for d in dims:
+                    if d != dims[0]:
+                        raise ValueError(f"List elements have inconsistent dimensions: {dims}")
+                else:
+                    old_dims = dims[0] if dims else []
+                    dims = [len(elts)] + old_dims
+                    return list_str, dims
+            else:
+                return list_str
+
+            
 
         else:
             # Fallback: use source-like syntax
+            print(expr, type(expr))
             return ast.unparse(expr)
 
     # --- Execute blocks (assignments, for, if, functions, type declarations, asserts...) ---
@@ -194,6 +226,28 @@ class CodeBlock:
             fname = stmt.value.func.id
             if fname in self.predicates:
                 return self._handle_predicate_call_assign(stmt, loop_scope, self.predicates[fname])
+            
+        # Subscript assignment: e.g., a[1] = 5
+        if isinstance(stmt.targets[0], ast.Subscript):
+            base = stmt.targets[0].value.id
+            # ensure version counter exists
+            if base not in self.variable_index:
+                self.new_evolving_variable(base, type_="int")  # or infer
+            # index expr
+            if isinstance(stmt.targets[0].slice, ast.Index):  # Py < 3.9
+                index_node = stmt.targets[0].slice.value
+            else:  # Py 3.9+
+                index_node = stmt.targets[0].slice
+            idx = self.rewrite_expr(index_node, loop_scope)
+            if isinstance(index_node, int):
+                idx_str = f"{int(idx)}"
+            elif isinstance(index_node, (ast.List, ast.Tuple)):
+                print("Index is a list/tuple")
+                idx_str = ']['.join(self.rewrite_expr(elt, loop_scope) for elt in index_node.elts)
+            print(f"Index string: {index_node}, type: {type(index_node)}")
+            # access with leading version dimension
+            self.constraints.append(Constraint(f"{base}[{self.variable_index[base]}][{idx_str}] = {self.rewrite_expr(stmt.value, loop_scope)}"))
+            return f"{base}[{self.variable_index[base]}][{idx_str}]"
 
         # Normal assignment
         var = stmt.targets[0].id
@@ -210,7 +264,13 @@ class CodeBlock:
         # For evolving variables, emit a versioned constraint
         rhs = self.rewrite_expr(stmt.value, loop_scope)
         if var not in self.variable_index:
-            self.new_evolving_variable(var)
+            print(type(rhs))
+            if isinstance(stmt.value, ast.List):
+                print(len(rhs))
+                _, dims = self.rewrite_expr(stmt.value, loop_scope, return_dimensions=True)
+                self.new_evolving_variable(var, dims=dims)
+            else:
+                self.new_evolving_variable(var)
         else:
             self.variable_index[var] += 1
         self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {rhs}"))
@@ -244,7 +304,7 @@ class CodeBlock:
             array_arg_names.append(arr_name)
             # Declare arrays needed for this call
             self.all_variable_declarations[arr_name] = Declaration(arr_name,
-                                                                   dims=declr.dims,
+                                                                   versions=declr.versions,
                                                                    type_="int")
             
 

@@ -6,12 +6,13 @@ class Declaration:
       - lower/upper: optional bounds
       - dims: None (scalar), int/str (1D length), or tuple[int|str,...] (multi-dim)
     """
-    def __init__(self, name, type_="int", lower=None, upper=None, dims=None, domain=None):
+    def __init__(self, name, type_="int", lower=None, upper=None, dims=None, versions=None, domain=None):
         self.name = name
         self.type = type_
         self.lower = lower
         self.upper = upper
         self.dims = dims
+        self.versions = versions
         if domain is not None:
             self.lower, self.upper = domain
 
@@ -25,15 +26,21 @@ class Declaration:
         return f"1..{d}" if isinstance(d, (int, str)) else str(d)
 
     def _array_prefix(self):
-        if self.dims is None:
-            return ""
+        prefix = ""
+        if self.versions is not None:
+            prefix += f"array[{self._index_expr(self.versions)}] of "
         if isinstance(self.dims, (int, str)):
-            return f"array[{self._index_expr(self.dims)}] of "
-        idxs = ", ".join(self._index_expr(d) for d in self.dims)
-        return f"array[{idxs}] of "
+            prefix += f"array[{self._index_expr(self.dims)}] of "
+        elif isinstance(self.dims, (list, tuple)):
+            idxs = "] of array[".join(self._index_expr(d) for d in self.dims)
+            prefix += f"array[{idxs}] of "
+        return prefix
 
-    def define_size(self, size):
-        self.dims = size
+    def define_versions(self, versions):
+        self.versions = versions
+
+    def define_dims(self, dims):
+        self.dims = dims
 
     def to_minizinc(self):
         return f"{self._array_prefix()}{self._elem_type()}: {self.name};"
