@@ -2,6 +2,7 @@ import ast
 from collections import defaultdict
 from Translator.Objects.Constraint import Constraint
 from Translator.Objects.Declaration import Declaration
+from itertools import product
 
 
 class CodeBlock:
@@ -170,7 +171,6 @@ class CodeBlock:
             list_str = f"[{inner}]"
             if return_dimensions:
                 # Check all dimensions are the same
-                print(dims)
                 for d in dims:
                     if d != dims[0]:
                         raise ValueError(f"List elements have inconsistent dimensions: {dims}")
@@ -233,18 +233,18 @@ class CodeBlock:
             # ensure version counter exists
             if base not in self.variable_index:
                 self.new_evolving_variable(base, type_="int")  # or infer
+            else:
+                self.variable_index[base] += 1
             # index expr
             if isinstance(stmt.targets[0].slice, ast.Index):  # Py < 3.9
                 index_node = stmt.targets[0].slice.value
             else:  # Py 3.9+
                 index_node = stmt.targets[0].slice
             idx = self.rewrite_expr(index_node, loop_scope)
-            if isinstance(index_node, int):
+            if isinstance(index_node, ast.Constant):
                 idx_str = f"{int(idx)}"
             elif isinstance(index_node, (ast.List, ast.Tuple)):
-                print("Index is a list/tuple")
                 idx_str = ']['.join(self.rewrite_expr(elt, loop_scope) for elt in index_node.elts)
-            print(f"Index string: {index_node}, type: {type(index_node)}")
             # access with leading version dimension
             self.constraints.append(Constraint(f"{base}[{self.variable_index[base]}][{idx_str}] = {self.rewrite_expr(stmt.value, loop_scope)}"))
             return f"{base}[{self.variable_index[base]}][{idx_str}]"
@@ -254,26 +254,34 @@ class CodeBlock:
 
         # Detect and record constant definitions (uppercase names)
         if var.isupper():
-            if isinstance(stmt.value, ast.Constant):
-                self.symbol_table[var] = stmt.value.value
-            elif isinstance(stmt.value, ast.List):
-                self.symbol_table[var] = [elt.value for elt in stmt.value.elts]
+            self.symbol_table[var] = self.record_constant_definition(stmt.value)
             self.is_constant.add(var)
             return  # Don't emit constraint for constants
 
         # For evolving variables, emit a versioned constraint
         rhs = self.rewrite_expr(stmt.value, loop_scope)
         if var not in self.variable_index:
-            print(type(rhs))
             if isinstance(stmt.value, ast.List):
-                print(len(rhs))
                 _, dims = self.rewrite_expr(stmt.value, loop_scope, return_dimensions=True)
                 self.new_evolving_variable(var, dims=dims)
+                for index in all_indices(dims):
+                    idx_str = ']['.join(str(i) for i in index)
+                    self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}][{idx_str}] = {rhs}[{idx_str}]"))
+                return
             else:
                 self.new_evolving_variable(var)
         else:
             self.variable_index[var] += 1
         self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {rhs}"))
+
+    def record_constant_definition(self, value_node):
+        """Extracts the value of a constant definition from its AST node."""
+        if isinstance(value_node, ast.Constant):
+            return value_node.value
+        elif isinstance(value_node, ast.List):
+            return [self.record_constant_definition(elt) for elt in value_node.elts]
+        else:
+            raise ValueError(f"Unsupported constant definition: {ast.dump(value_node, include_attributes=False)}")
 
     def _handle_predicate_call_assign(self, stmt, loop_scope, pred):
         """Handle assignments like: e, g = f(c, d)."""
@@ -546,3 +554,10 @@ class CodeBlock:
             self.new_evolving_variable(stmt.target.id, loop_scope)
             self.variable_index[stmt.target.id] += 1
             self.constraints.append(Constraint(f"{stmt.target.id}[{self.variable_index[stmt.target.id]}] = {stmt.value.value}"))
+
+
+def all_indices(shape):
+    """Yield 1-based index tuples for an n-D array of given sizes."""
+    # e.g. shape=[2,4] -> (1..2)×(1..4)
+    for idx in product(*(range(1, n+1) for n in shape)):
+        yield idx

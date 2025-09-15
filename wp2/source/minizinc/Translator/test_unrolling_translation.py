@@ -422,6 +422,22 @@ array[1..1] of var int: c;
 constraint g(2, 2, c[1], a__1, a__1__1, b__1, c__1);
 solve satisfy;"""
     },
+    {
+        "name": "test_assign_list",
+        "code": """
+pieces = [[2,1,5],[2,12,53]]
+pieces[1] = pieces[1]
+""",
+        "expected_translation": """array[1..2] of array[1..2] of array[1..3] of var int: pieces;
+constraint pieces[1][1][1] = [[2, 1, 5], [2, 12, 53]][1][1];
+constraint pieces[1][1][2] = [[2, 1, 5], [2, 12, 53]][1][2];
+constraint pieces[1][1][3] = [[2, 1, 5], [2, 12, 53]][1][3];
+constraint pieces[1][2][1] = [[2, 1, 5], [2, 12, 53]][2][1];
+constraint pieces[1][2][2] = [[2, 1, 5], [2, 12, 53]][2][2];
+constraint pieces[1][2][3] = [[2, 1, 5], [2, 12, 53]][2][3];
+constraint pieces[2][1] = pieces[2][1];
+solve satisfy;"""
+    },
 ]
 
 
