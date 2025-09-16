@@ -4,10 +4,10 @@ from Translator.Objects.CodeBlock import CodeBlock
     
 class Predicate(CodeBlock):
     """Translate a Python function into a MiniZinc predicate."""
-    def __init__(self, func_node: ast.FunctionDef, predicates=None):
+    def __init__(self, func_node: ast.FunctionDef, predicates=None, name_override: str | None = None):
         super().__init__(symbol_table=None, predicates=predicates)
         self.func_node = func_node
-        self.name = func_node.name
+        self.name = name_override if name_override is not None else func_node.name
         self.input_names = [a.arg for a in func_node.args.args]
         self.n_inputs = len(self.input_names)
         self.return_names = self._extract_return_names(func_node)
@@ -15,11 +15,14 @@ class Predicate(CodeBlock):
 
         # Execute function body to collect constraints and versioning
         func_body = [s for s in func_node.body if not isinstance(s, ast.Return)]
+        print("Processing predicate:", self.name)
         self.run(func_body, loop_scope={})
+        print("Finished processing predicate:", self.name)
 
         # Ensure inputs have at least one version and will be tied to input_i
         for i_name in self.input_names:
             if i_name not in self.variable_index:
+                print("Input", i_name, "not assigned in body, adding initial version.")
                 self.new_evolving_variable(i_name)
 
         # Internal arrays order and sizes (stable ordering)

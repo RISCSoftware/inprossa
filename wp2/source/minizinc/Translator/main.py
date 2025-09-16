@@ -5,9 +5,47 @@ from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 # ===== Example usage =====
 if __name__ == "__main__":
     code = """
-pieces = [[2,1,5],[2,12,53]]
-pieces[1] = pieces[1]
+class Accum:
+    def __init__(self, x, y):
+        self.BASE = 10
+        self.x = x
+        self.y = y
+
+    def add(self):
+        z = self.x + self.y + self.BASE
+        return z
 """
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
     print(model)
+
+
+
+
+class Interval:
+    def __init__(self, start:int, end:int):
+        self.start = start
+        self.end = end
+
+    def impose_ordered(self):
+        assert self.start <= self.end
+
+    def impose_contained(self, length):
+        assert self.start <= length
+        assert self.end <= length
+
+N_BAD_INTERVALS = 5
+
+class Board:
+    def __init__(self, length: int, bad_intervals: list[Interval]):
+        self.length = length
+        self.bad_intervals = bad_intervals
+
+    def impose_ordered(self):
+        for interval in self.bad_intervals:
+            interval.impose_ordered()
+
+    def impose_contained(self):
+        for interval in self.bad_intervals:
+            interval.impose_contained(self.length)
+

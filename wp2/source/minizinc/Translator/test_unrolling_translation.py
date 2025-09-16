@@ -435,7 +435,7 @@ constraint pieces[1][1][3] = [[2, 1, 5], [2, 12, 53]][1][3];
 constraint pieces[1][2][1] = [[2, 1, 5], [2, 12, 53]][2][1];
 constraint pieces[1][2][2] = [[2, 1, 5], [2, 12, 53]][2][2];
 constraint pieces[1][2][3] = [[2, 1, 5], [2, 12, 53]][2][3];
-constraint pieces[2][1] = pieces[2][1];
+constraint pieces[2][1] = pieces[1][1];
 solve satisfy;"""
     },
 ]

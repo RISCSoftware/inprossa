@@ -1,6 +1,8 @@
 import ast
 from Translator.Objects.Predicate import Predicate
 from Translator.Objects.CodeBlock import CodeBlock
+from Translator.Objects.MiniZincObject import MiniZincObject
+from Translator.Objects.Constant import Constant
 
 
 class MiniZincTranslator:
@@ -14,6 +16,7 @@ class MiniZincTranslator:
     def __init__(self, code):
         self.code = code
         self.predicates = {}         # name -> Predicate
+        self.objects = {}            # class_name -> MiniZincObject
         self.top_level_stmts = []
         # TODO think about how to handle maximising/minimising
         self.objective = None        # ('minimize', 'expr') or ('maximize', 'expr')
@@ -30,7 +33,10 @@ class MiniZincTranslator:
         """
         tree = ast.parse(self.code)
         for node in tree.body:
-            if isinstance(node, ast.FunctionDef):
+            if isinstance(node, ast.ClassDef):
+                mz_obj = MiniZincObject(node, predicates_registry=self.predicates)
+                self.objects[mz_obj.name] = mz_obj
+            elif isinstance(node, ast.FunctionDef):
                 pred = Predicate(node, predicates=self.predicates)
                 self.predicates[pred.name] = pred
             else:
@@ -70,10 +76,8 @@ class MiniZincTranslator:
         """Declare constants as MiniZinc symbols (not evolving)."""
         decls = []
         for name, val in block.symbol_table.items():
-            if isinstance(val, int):
-                decls.append(f"int: {name} = {val};")
-            elif isinstance(val, list):
-                decls.append(f"array[1..{len(val)}] of int: {name} = [{', '.join(map(str, val))}];")
+            constant = Constant(name, val)
+            decls.append(constant.to_minizinc())
         return decls
     
     def get_vars_declrs(self, block):
@@ -82,3 +86,5 @@ class MiniZincTranslator:
 
     def get_constraints(self, block):
         return [str(c) for c in block.constraints if c is not None]
+    
+    

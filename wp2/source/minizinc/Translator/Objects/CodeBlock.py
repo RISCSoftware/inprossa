@@ -222,10 +222,14 @@ class CodeBlock:
         """
         Handle tuple assignment from predicate call: e.g., c, d = f(a, b)
         """
+
         if isinstance(stmt.value, ast.Call) and isinstance(stmt.value.func, ast.Name):
             fname = stmt.value.func.id
             if fname in self.predicates:
                 return self._handle_predicate_call_assign(stmt, loop_scope, self.predicates[fname])
+            
+        
+        rhs = self.rewrite_expr(stmt.value, loop_scope)
             
         # Subscript assignment: e.g., a[1] = 5
         if isinstance(stmt.targets[0], ast.Subscript):
@@ -246,11 +250,18 @@ class CodeBlock:
             elif isinstance(index_node, (ast.List, ast.Tuple)):
                 idx_str = ']['.join(self.rewrite_expr(elt, loop_scope) for elt in index_node.elts)
             # access with leading version dimension
-            self.constraints.append(Constraint(f"{base}[{self.variable_index[base]}][{idx_str}] = {self.rewrite_expr(stmt.value, loop_scope)}"))
+            self.constraints.append(Constraint(f"{base}[{self.variable_index[base]}][{idx_str}] = {rhs}"))
             return f"{base}[{self.variable_index[base]}][{idx_str}]"
+        
+    
 
-        # Normal assignment
-        var = stmt.targets[0].id
+        
+        print("stmt.targets[0]", stmt.targets[0], type(stmt.targets[0]))
+        if isinstance(stmt.targets[0], ast.Attribute):
+            var = stmt.targets[0].attr
+        else:
+            # Normal assignment
+            var = stmt.targets[0].id
 
         # Detect and record constant definitions (uppercase names)
         if var.isupper():
@@ -259,7 +270,6 @@ class CodeBlock:
             return  # Don't emit constraint for constants
 
         # For evolving variables, emit a versioned constraint
-        rhs = self.rewrite_expr(stmt.value, loop_scope)
         if var not in self.variable_index:
             if isinstance(stmt.value, ast.List):
                 _, dims = self.rewrite_expr(stmt.value, loop_scope, return_dimensions=True)
