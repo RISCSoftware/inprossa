@@ -1,0 +1,40 @@
+bgo
+cut 10 510 640
+discard
+keep
+keep
+discard
+pgo
+pgo
+assemble
+assemble
+bgo
+cut 10 380 640
+discard
+keep
+keep
+discard
+pgo
+pgo
+assemble
+assemble
+bgo
+cut 10 250 640
+discard
+keep
+keep
+discard
+pgo
+pgo
+assemble
+assemble
+bgo
+cut 10 120 620
+discard
+keep
+keep
+pgo
+pgo
+assemble
+assemble
+end

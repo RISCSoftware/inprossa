@@ -783,7 +783,7 @@ public class WoodCutter
         " leads to a too long layer of length " + blen);
     int blen_ = blen;
     boolean forbidden = beamConfiguration.staticForbiddenZones.stream().anyMatch(
-        (Interval interval)-> interval.from <= blen_ && blen_ <= interval.to);
+        (Interval interval)-> interval.from < blen_ && blen_ < interval.to);
     check(!forbidden, "assembling piece " + piece.id +
         " leads to end position " + blen + 
         " which is in a forbidden zone");
