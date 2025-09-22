@@ -1,17 +1,9 @@
-from typing import Annotated
-
 code_pipeline = f"""
 
-MAX_N_CUTS_PER_BOARD = 10
-N_BOARDS = 5
-N_PIECES = N_BOARDS * (MAX_N_CUTS_PER_BOARD - 1) # First and last cuts are fixed
-BEAM_LENGTH = 10
-BEAM_DEPTH = 5
-MAX_PIECES_PER_BEAM = 5
-MIN_DIST_BETWEEN_PIECES = 1
-FORBIDDEN_INTERVALS = [[3,4], [7,8]]
-initial_boards: list[Board] = GIVEN_BOARDS
+
+initial_boards: list[Board] = GIVEN_INITIAL_BOARDS
 N_BOARDS = len(initial_boards)
+N_PIECES = N_BOARDS * (MAX_N_CUTS_PER_BOARD - 1) # First and last cuts are fixed
 
 
 # Swapping boards
@@ -22,7 +14,7 @@ swapped_boards = reordering_machine(initial_boards, swapping_decisions, N_BOARDS
 
 # Cutting boards
 
-cuts_list_list: Annotated[list[Cuts(MAX_N_CUTS)], "len = N_BOARDS"]
+cuts_list_list: Annotated[list[CutList(MAX_N_CUTS)], "len = N_BOARDS"]
 pieces = cutting_machine(swapped_boards, cuts_list_list)
 
 

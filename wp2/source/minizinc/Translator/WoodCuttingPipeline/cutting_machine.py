@@ -1,13 +1,13 @@
 code_cutting_machine = f"""
 def cutting_machine(board_list: list[Board],
-                    cuts_list_list: list[list[int]]):
-    pieces: list[int] = [0] * N_PIECES
+                    cuts_list_list: list[CutList(MAX_N_CUTS_PER_BOARD)]):
+    pieces: Annotated[list[int], "len = N_PIECES"]
     for board_index, board in enumerate(board_list):
         cut_list = cuts_list_list[board_index]
         assert cut_list[0] == 0
         assert cut_list[MAX_N_CUTS_PER_BOARD] == board.length
         for interval in board.curved_intervals:
-            any(interval.start <= cut and cut <= interval.end for cut in cut_list)
+            assert any(interval.start <= cut and cut <= interval.end for cut in cut_list)
         for cut_index in range(len(cut_list)):
             # Impose ordered cuts
             if cut_index > 1:

@@ -31,6 +31,9 @@ def checking_machine(pieces: list[Piece]):
                             if j <= end:
                                 s = s + pieces[j].length
                     assert abs(s - length) >= MIN_DIST_BETWEEN_PIECES
+            # Check forbidden intervals
+            for interval in FORBIDDEN_INTERVALS:
+                assert not (interval[0] <= length and length <= interval[1])
 
 
 """

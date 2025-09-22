@@ -1,3 +1,4 @@
+code_objects = f"""
 class Interval:
     def __init__(self, start: int, end: int):
         self.start = start
@@ -21,5 +22,7 @@ class Piece:
 
 class CutList:
     def __init__(self,
-                 position_list: list[int]):
-        self.position_list = position_list
+                 MAX_N_CUTS: int):
+        position_list: Annotated[list[int], "len" = MAX_N_CUTS]
+"""
+
