@@ -213,22 +213,28 @@ class CodeBlock:
                 # ignore: functions handled by MiniZincTranslator/Predicate
                 continue
             else:
-                print(type(stmt))
                 raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")
 
     # --- ASSIGNMENTS ---
 
     def execute_block_assign(self, stmt, loop_scope):
         """
-        Handle tuple assignment from predicate call: e.g., c, d = f(a, b)
+        Handle assignment statements, including:
+            - predicate call assignments: c, d = f(a, b)
+            - simple assignments: x = expr
+            - subscript assignments: a[i] = expr
+            - constant definitions: MAX_LENGTH = 10
+            - array assignments: A = [1,2,3]
         """
 
+        # Assignment from a predicate call: e.g., c, d = f(a, b)
+        # These are handled separetely because it's translated to a predicate call
         if isinstance(stmt.value, ast.Call) and isinstance(stmt.value.func, ast.Name):
             fname = stmt.value.func.id
             if fname in self.predicates:
                 return self._handle_predicate_call_assign(stmt, loop_scope, self.predicates[fname])
             
-        
+        # For any other assignment, rewrite the RHS expression
         rhs = self.rewrite_expr(stmt.value, loop_scope)
             
         # Subscript assignment: e.g., a[1] = 5
@@ -255,8 +261,6 @@ class CodeBlock:
         
     
 
-        
-        print("stmt.targets[0]", stmt.targets[0], type(stmt.targets[0]))
         if isinstance(stmt.targets[0], ast.Attribute):
             var = stmt.targets[0].attr
         else:
@@ -295,22 +299,24 @@ class CodeBlock:
 
     def _handle_predicate_call_assign(self, stmt, loop_scope, pred):
         """Handle assignments like: e, g = f(c, d)."""
+
         # Outputs on LHS
         if isinstance(stmt.targets[0], ast.Tuple):
+            # Multiple outputs
             out_exprs = [self.rewrite_expr(elt, loop_scope) for elt in stmt.targets[0].elts]
         else:
+            # Single output
             out_exprs = [self.rewrite_expr(stmt.targets[0], loop_scope)]
 
         if len(out_exprs) != pred.n_outputs:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_outputs} outputs, got {len(out_exprs)}")
 
         # Inputs on RHS call
-        call = stmt.value
-        in_exprs = [self.rewrite_expr(arg, loop_scope) for arg in call.args]
+        in_exprs = [self.rewrite_expr(arg, loop_scope) for arg in stmt.value.args]
         if len(in_exprs) != pred.n_inputs:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_inputs} inputs, got {len(in_exprs)}")
 
-        # Unique arrays for this call (a1,b1,c1,d1), (a2,b2,c2,d2), ...
+        # Unique arrays for this call (a__1,b__1,c__1,d__1), (a__2,b__2,c__2,d__2), ...
         self.predicate_call_counts[pred.name] += 1
         call_idx = self.predicate_call_counts[pred.name]
 

@@ -1,14 +1,11 @@
 code_cutting_machine = f"""
 def cutting_machine(board_list: list[Board],
                     cuts_list_list: list[list[int]]):
-    MAX_N_CUTS = 10
-    N_BOARDS = 5
-    MAX_N_PIECES = N_BOARDS * (MAX_N_CUTS - 1) # First and last cuts are fixed
-    pieces: list[int] = [0] * MAX_N_PIECES
+    pieces: list[int] = [0] * N_PIECES
     for board_index, board in enumerate(board_list):
         cut_list = cuts_list_list[board_index]
         assert cut_list[0] == 0
-        assert cut_list[MAX_N_CUTS] == board.length
+        assert cut_list[MAX_N_CUTS_PER_BOARD] == board.length
         for interval in board.curved_intervals:
             any(interval.start <= cut and cut <= interval.end for cut in cut_list)
         for cut_index in range(len(cut_list)):
@@ -25,6 +22,6 @@ def cutting_machine(board_list: list[Board],
                     # If the piece intersects a bad interval, it is not of quality
                     if interval.start <= cut_list[cut_index] and cut_list[cut_index - 1] <= interval.end:
                         quality = False
-                pieces[(board_index - 1) * (MAX_N_CUTS - 1) + cut_index - 1] = Piece(piece_length, quality)
+                pieces[(board_index - 1) * (MAX_N_CUTS_PER_BOARD - 1) + cut_index - 1] = Piece(piece_length, quality)
     return pieces
 """

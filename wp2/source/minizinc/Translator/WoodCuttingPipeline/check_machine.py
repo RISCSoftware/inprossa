@@ -1,12 +1,6 @@
 
 code_check_machine = f"""
 def checking_machine(pieces: list[Piece]):
-    MAX_LENGTH = 10
-    MAX_DEPTH = 5
-    MAX_N_LENGTH = 5
-    MIN_DIST = 1
-    TRY = [0,1,2,3,4,5,6,7]
-    FORBIDDEN_INTERVALS = [[3,4], [7,8]]
     depth = 0
     length = 0
     n_length = 0
@@ -15,28 +9,28 @@ def checking_machine(pieces: list[Piece]):
     for piece in pieces:
         length = length + piece.length
         n_length = n_length + 1
-        assert length <= MAX_LENGTH
-        if length == MAX_LENGTH:
+        assert length <= BEAM_LENGTH
+        if length == BEAM_LENGTH:
             depth = depth + 1
             n_prev_layer = n_length
             n_length = 0
             length = 0
-            if depth == MAX_DEPTH:
+            if depth == BEAM_DEPTH:
                 new_beam = True
                 depth = 0
         else:
             new_beam = False
-            for i in range(1, MAX_N_LENGTH):
+            for i in range(1, MAX_PIECES_PER_BEAM):
                 if i < n_prev_layer:
                     start = current_index - n_length - n_prev_layer + 1
                     end = start + i - 1
                     s = 0
-                    for j in range(1, MAX_N_LENGTH):
+                    for j in range(1, MAX_PIECES_PER_BEAM):
+                        # the language can be made more elegant taking in for from i to j, and automatically translating into this if lower and upper bounds are known
                         if start <= j:
                             if j <= end:
                                 s = s + pieces[j].length
-                    assert s - length >= MIN_DIST
-                    assert length - s >= MIN_DIST
+                    assert abs(s - length) >= MIN_DIST_BETWEEN_PIECES
 
 
 """
