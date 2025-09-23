@@ -18,10 +18,11 @@ def cutting_machine(board_list: list[Board],
                     # No piece of length 0 unless it is the last piece
                     # This reduces the spaces of solutions
                     # But also removes valid solutions if there is more than one reordering machine (unless the filtering machine puts all the empty pieces at the end, instead of just replacing discarded pieces with empty pieces)
-                for interval in board.bad_intervals:
-                    # If the piece intersects a bad interval, it is not of quality
-                    if interval.start <= cut_list[cut_index] and cut_list[cut_index - 1] <= interval.end:
-                        quality = False
+                quality = all(
+                   interval.start <= cut_list[cut_index] and
+                   cut_list[cut_index - 1] <= interval.end
+                   for interval in board.bad_intervals
+                   )
                 pieces[(board_index - 1) * (MAX_N_CUTS_PER_BOARD - 1) + cut_index - 1] = Piece(piece_length, quality)
     return pieces
 """

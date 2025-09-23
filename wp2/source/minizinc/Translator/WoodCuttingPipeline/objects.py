@@ -20,9 +20,9 @@ class Piece:
         self.length = length
         self.quality = quality
 
-class CutList:
+CutList:
     def __init__(self,
                  MAX_N_CUTS: int):
-        position_list: Annotated[list[int], "len" = MAX_N_CUTS]
+        position_list: Annotated[list[int], "len = MAX_N_CUTS"]
 """
 

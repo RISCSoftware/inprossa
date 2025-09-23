@@ -1,7 +1,8 @@
 code_reordering_machine = f"""
 def reordering_machine(list_to_reorder: list[Piece, Board],
                        swapping_decisions: list[bool],
-                       N_ELEMENTS: int):
+                       N_ELEMENTS: int
+                       ) -> list[Piece, Board]:
     new_list = list_to_reorder
     for i in range(N_ELEMENTS - 1): # Number of swapping decisions
         if swapping_decisions[i]:

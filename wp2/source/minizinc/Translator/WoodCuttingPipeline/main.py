@@ -5,5 +5,6 @@ from filtering_machine import code_filtering_machine
 from check_machine import code_check_machine
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from objects import code_objects
-full_code = code_pipeline + code_reordering_machine + code_cutting_machine + code_filtering_machine + code_check_machine
+from constants import code_constants
+full_code = code_constants + code_objects + code_pipeline + code_reordering_machine + code_cutting_machine + code_filtering_machine + code_check_machine
 MiniZincTranslator(full_code).unroll_translation()
