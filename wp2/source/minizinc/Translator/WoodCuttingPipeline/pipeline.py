@@ -8,27 +8,26 @@ N_PIECES = N_BOARDS * (MAX_N_CUTS_PER_BOARD - 1) # First and last cuts are fixed
 
 # Swapping boards
 
-swapping_decisions_boards: Annotated[list[bool], "len = N_BOARDS - 1"]
-swapped_boards = reordering_machine(initial_boards, swapping_decisions_boards, N_BOARDS) # It's necessary to specify the length if we want to use it for boards and pieces
+swapping_decisions_boards: DSList(N_BOARDS - 1, bool)
+swapped_boards = reordering_machine(N_BOARDS, initial_boards, swapping_decisions_boards) # It's necessary to specify the length if we want to use it for boards and pieces
 
 
 # Cutting boards
 
-cuts_list_list: Annotated[list[CutList(MAX_N_CUTS)], "len = N_BOARDS"]
+cuts_list_list: DSList(N_BOARDS, CutList(MAX_N_CUTS_PER_BOARD))
 pieces = cutting_machine(swapped_boards, cuts_list_list)
 
 
 # Filtering pieces
 
-N_PIECES = N_BOARDS * (MAX_N_CUTS - 1) # First and last cuts are fixed
-keep_decisions: Annotated[list[bool], "len = N_PIECES"]
-filtered_pieces = filtering_machine(pieces, keep_decisions, N_PIECES)
+N_PIECES = N_BOARDS * (MAX_N_CUTS_PER_BOARD - 1) # First and last cuts are fixed
+keep_decisions: DSList(N_PIECES, bool)
+filtered_pieces = filtering_machine(N_PIECES, pieces, keep_decisions)
 
-TypeLength = Annotated[int, "lb = 1, ub = 30"]
 # Reordering pieces
 
-swapping_decisions: Annotated[list[bool], "len = N_PIECES - 1"]
-reordered_pieces = reordering_machine(filtered_pieces, swapping_decisions, N_PIECES)
+swapping_decisions: DSList(N_PIECES - 1, bool)
+reordered_pieces = reordering_machine(N_PIECES, filtered_pieces, swapping_decisions)
 
 
 # Checking pieces

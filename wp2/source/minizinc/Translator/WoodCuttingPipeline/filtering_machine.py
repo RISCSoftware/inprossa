@@ -1,9 +1,10 @@
 code_filtering_machine = f"""
-def filtering_machine(list_to_filter: list[Piece],
-                      keep_decisions: list[bool],
-                      N_ELEMENTS: int):
+def filtering_machine(N_ELEMENTS: int,
+                      list_to_filter: DSList(N_ELEMENTS, Piece),
+                      keep_decisions: DSList(N_ELEMENTS, bool),
+                      ):
     # Initialize filtered list with empty pieces
-    filtered_list : Annotated[list[Piece], "len = N_ELEMENTS"]
+    filtered_list : DSList(N_ELEMENTS, Piece)
     for i in range(N_ELEMENTS):
         if keep_decisions[i]:
             assert list_to_filter[i].quality == True

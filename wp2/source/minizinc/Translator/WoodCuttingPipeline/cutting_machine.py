@@ -1,7 +1,7 @@
 code_cutting_machine = f"""
-def cutting_machine(board_list: list[Board],
-                    cuts_list_list: list[CutList(MAX_N_CUTS_PER_BOARD)]):
-    pieces: Annotated[list[int], "len = N_PIECES"]
+def cutting_machine(board_list: DSList(N_BOARDS, Board),
+                    cuts_list_list: DSList(N_BOARDS, CutList)):
+    pieces: DSList(N_PIECES, Piece)
     for board_index, board in enumerate(board_list):
         cut_list = cuts_list_list[board_index]
         assert cut_list[0] == 0

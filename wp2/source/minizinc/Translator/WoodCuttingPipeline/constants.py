@@ -13,8 +13,16 @@ GIVEN_INITIAL_BOARDS = [
           curved_intervals=[Interval(5,7), Interval(12,14)]
     )
 ]
+
+# The following can be deduced from GIVEN_INITIAL_BOARDS
+N_BOARDS = 3
+MAX_BOARD_LENGTH = 30
+MAX_N_INTERVALS = 5
+# Maximum number of bad (or curved) intervals per board
 MAX_N_CUTS_PER_BOARD = 10
 # Maximum number of cuts per board (including the two fixed cuts at the start and end of the board)
+
+
 BEAM_LENGTH = 10
 # Length of the beams to be produced
 BEAM_DEPTH = 5
