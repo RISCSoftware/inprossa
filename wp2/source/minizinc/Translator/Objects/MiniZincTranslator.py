@@ -3,6 +3,7 @@ from Translator.Objects.Predicate import Predicate
 from Translator.Objects.CodeBlock import CodeBlock
 from Translator.Objects.MiniZincObject import MiniZincObject
 from Translator.Objects.Constant import Constant
+from Translator.Objects.typesDS import DSRecord, DSType
 
 
 class MiniZincTranslator:
@@ -15,8 +16,9 @@ class MiniZincTranslator:
     """
     def __init__(self, code):
         self.code = code
-        self.predicates = {}         # name -> Predicate
-        self.objects = {}            # class_name -> MiniZincObject
+        self.types = dict()              # name -> DS... type
+        self.predicates = dict()         # name -> Predicate
+        self.records = dict()            # class_name -> MiniZincRecord
         self.top_level_stmts = []
         # TODO think about how to handle maximising/minimising
         self.objective = None        # ('minimize', 'expr') or ('maximize', 'expr')
@@ -33,9 +35,18 @@ class MiniZincTranslator:
         """
         tree = ast.parse(self.code)
         for node in tree.body:
-            if isinstance(node, ast.ClassDef):
+            # 1) type definitions -> MiniZinc type definitions
+            if isinstance(node, ast.Assign):
+                if isinstance(node.value, ast.Call):  # right-hand side is a call
+                    if isinstance(node.value.func, ast.Name) and node.value.func.id.startswith("DS"):
+                        type_name = node.targets[0].id
+                        mz_type = DSType(node.value).return_type()
+                        self.types[type_name] = mz_type
+            # 2) class definitions -> MiniZincObject
+            elif isinstance(node, ast.ClassDef):
                 mz_obj = MiniZincObject(node, predicates_registry=self.predicates)
                 self.objects[mz_obj.name] = mz_obj
+            # 3) function definitions -> Predicates
             elif isinstance(node, ast.FunctionDef):
                 pred = Predicate(node, predicates=self.predicates)
                 self.predicates[pred.name] = pred
@@ -49,6 +60,13 @@ class MiniZincTranslator:
         block.run(self.top_level_stmts, loop_scope={})
 
         parts = []
+
+        # 0) Type definitions
+        for name, _type in self.types.items():
+            if isinstance(_type, DSRecord):
+                parts.append(_type.emit_definition(name, self.types.keys()))
+            else:
+                parts.append(_type.emit_definition(name))
 
         # 1) Predicate definitions
         for name in sorted(self.predicates.keys()):
@@ -70,7 +88,7 @@ class MiniZincTranslator:
             sense, expr = self.objective
             parts.append(f"solve {sense} {expr};")
 
-        return "\n".join(parts)
+        return ";\n".join(parts)
 
     def get_symbol_declarations(self, block):
         """Declare constants as MiniZinc symbols (not evolving)."""

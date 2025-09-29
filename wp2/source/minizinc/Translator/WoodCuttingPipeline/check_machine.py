@@ -1,6 +1,6 @@
 
 code_check_machine = f"""
-def checking_machine(pieces: list[Piece]):
+def checking_machine(pieces: DSList(elem_type = Piece)):
     depth = 0
     length = 0
     n_length = 0

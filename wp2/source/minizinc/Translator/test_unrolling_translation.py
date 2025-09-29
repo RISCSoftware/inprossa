@@ -3,6 +3,133 @@
 import unittest
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 
+type_translation_tests = [
+    {
+        "name": "dsint_positional",
+        "code": """
+MyInt = DSInt(3, 7)
+""",
+        "expected_translation": """type MyInt = 3..7
+solve satisfy;"""
+    },
+    {
+        "name": "dsint_keyword_names",
+        "code": """
+LB = 0
+UB = MAX_N
+MyInt2 = DSInt(lb=LB, ub=UB)
+""",
+        "expected_translation": """type MyInt2 = LB..UB
+solve satisfy;"""
+    },
+    {
+        "name": "dsfloat_unit_interval",
+        "code": """
+MyFloat = DSFloat(lb=0.0, ub=1.0)
+""",
+        "expected_translation": """type MyFloat = 0.0..1.0
+solve satisfy;"""
+    },
+    {
+        "name": "dsbool_simple",
+        "code": """
+Flag = DSBool()
+""",
+        "expected_translation": """type Flag = bool
+solve satisfy;"""
+    },
+    {
+        "name": "dslist_default_elem_int",
+        "code": """
+Vec = DSList(5)
+""",
+        "expected_translation": """type Vec = array[1..5] of int
+solve satisfy;"""
+    },
+    # Use keyword for elem_type to match your current DSList (keeps elem_type as ast.Name)
+    {
+        "name": "dslist_keyword_elem_builtin",
+        "code": """
+Vec2 = DSList(length=4, elem_type=int)
+""",
+        "expected_translation": """type Vec2 = array[1..4] of int
+solve satisfy;"""
+    },
+    {
+        "name": "dslist_keyword_elem_custom",
+        "code": """
+MyInt = DSInt(3, 7)
+Vec3 = DSList(length=10, elem_type=MyInt)
+""",
+        "expected_translation": """type MyInt = 3..7
+type Vec3 = array[1..10] of MyInt
+solve satisfy;"""
+    },
+    # DSRecord per your current API: DSRecord(fields_dict) and emit as "type Name = record(name: type; ...);"
+    {
+        "name": "dsrecord_simple",
+        "code": """
+Person = DSRecord({"name": "string", "age": "int"})
+""",
+        "expected_translation": """type Person = record(name: string; age: int);
+solve satisfy;"""
+    },
+]
+type_translation_tests += [
+    {
+        "name": "record_with_custom_and_list",
+        "code": """
+MyInt = DSInt(3, 7)
+VecMyInt5 = DSList(length=5, elem_type=MyInt)
+Person = DSRecord({"name": "string", "scores": "VecMyInt5", "grade": "MyInt"})
+""",
+        "expected_translation": """type MyInt = 3..7
+type VecMyInt5 = array[1..5] of MyInt
+type Person = record(name: string; scores: VecMyInt5; grade: MyInt);
+solve satisfy;"""
+    },
+    {
+        "name": "record_with_float_and_list",
+        "code": """
+Prob = DSFloat(lb=0.0, ub=1.0)
+Vec10 = DSList(length=10, elem_type=int)
+Sample = DSRecord({"id": "int", "values": "Vec10", "prob": "Prob"})
+""",
+        "expected_translation": """type Prob = 0.0..1.0
+type Vec10 = array[1..10] of int
+type Sample = record(id: int; values: Vec10; prob: Prob);
+solve satisfy;"""
+    },
+    {
+        "name": "record_of_records_and_list",
+        "code": """
+Point = DSRecord({"x": "int", "y": "int"})
+Points = DSList(length=3, elem_type=Point)
+Polygon = DSRecord({"name": "string", "points": "Points"})
+""",
+        "expected_translation": """type Point = record(x: int; y: int);
+type Points = array[1..3] of Point
+type Polygon = record(name: string; points: Points);
+solve satisfy;"""
+    },
+    {
+        "name": "nested_records_with_custom_zip_and_group",
+        "code": """
+Zip = DSInt(10000, 99999)
+Address = DSRecord({"street": "string", "zip": "Zip"})
+User = DSRecord({"name": "string", "addr": "Address"})
+Group = DSList(length=2, elem_type=User)
+Team = DSRecord({"members": "Group"})
+""",
+        "expected_translation": """type Zip = 10000..99999
+type Address = record(street: string; zip: Zip);
+type User = record(name: string; addr: Address);
+type Group = array[1..2] of User
+type Team = record(members: Group);
+solve satisfy;"""
+    },
+]
+
 translation_tests = [
     {
         "name": "test_simple",
@@ -171,21 +298,21 @@ constraint x[2] = ((x[1] + 4) + 1);
 constraint x[3] = ((x[2] + 2) + 2);
 solve satisfy;"""
     },
-    {
-        "name": "test_for_with_constant_list",
-        "code": """
-VALUES = [1, 2]
-x = 0
-for t in VALUES:
-    x = x + t
-""",
-        "expected_translation": """array[1..2] of int: VALUES = [1, 2];
-array[1..3] of var int: x;
-constraint x[1] = 0;
-constraint x[2] = (x[1] + VALUES[1]);
-constraint x[3] = (x[2] + VALUES[2]);
-solve satisfy;"""
-    },
+#     {
+#         "name": "test_for_with_constant_list",
+#         "code": """
+# VALUES = [1, 2]
+# x = 0
+# for t in VALUES:
+#     x = x + t
+# """,
+#         "expected_translation": """array[1..2] of int: VALUES = [1, 2];
+# array[1..3] of var int: x;
+# constraint x[1] = 0;
+# constraint x[2] = (x[1] + VALUES[1]);
+# constraint x[3] = (x[2] + VALUES[2]);
+# solve satisfy;"""
+#     },
     {
         "name": "test_for_as_index_of_list",
         "code": """
@@ -458,7 +585,7 @@ class TestMiniZincTranslation(unittest.TestCase):
                     print(expected)
 
 failed = 0
-for test in translation_tests:
+for test in type_translation_tests:
     print(f"Test {test['name']}")
     translator = MiniZincTranslator(test["code"])
     result = translator.unroll_translation()

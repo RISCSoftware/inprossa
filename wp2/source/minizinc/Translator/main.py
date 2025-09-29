@@ -5,15 +5,12 @@ from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 # ===== Example usage =====
 if __name__ == "__main__":
     code = """
-class Accum:
-    def __init__(self, x, y):
-        self.BASE = 10
-        self.x = x
-        self.y = y
-
-    def add(self):
-        z = self.x + self.y + self.BASE
-        return z
+MyInt = DSInt(7, 0)
+Len = 10
+namee = "length"
+MyVec = DSList(Len, elem_type = int)
+MyyVec = DSList(length = namee, elem_type = MyInt)
+PersonRec = DSRecord({"name":string,"age":MyVec})
 """
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

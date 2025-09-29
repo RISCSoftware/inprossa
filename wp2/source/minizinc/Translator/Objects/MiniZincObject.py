@@ -4,16 +4,6 @@ from Translator.Objects import Declaration
 from Translator.Objects.CodeBlock import CodeBlock
 from Translator.Objects.Constant import Constant
 
-class Record:
-    def __init__(self, name: str, declarations: list[Declaration], constants: list[Constant]):
-        self.name = name
-        self.declarations = declarations
-        self.constants = constants
-
-    def emit_definition(self) -> str:
-        decls_str = ",\n    ".join(d.to_minizinc()[:-1] for d in self.declarations)
-
-        return f"type {self.name} = record( \n    {decls_str}\n);"
 
 class MiniZincObject:
     """
@@ -68,10 +58,6 @@ class MiniZincObject:
         if isinstance(node, ast.List) and all(isinstance(elt, ast.Constant) and isinstance(elt.value, int) for elt in node.elts):
             return [elt.value for elt in node.elts]
         return None
-
-    def emit_definitions(self) -> list[str]:
-        """Emit all method predicates (already namespaced)."""
-        return [pred.emit_definition() for pred in self.methods.values()]
 
     def emit_symbol_declarations(self) -> list[str]:
         """Emit MiniZinc declarations for class-level constants."""
