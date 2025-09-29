@@ -43,7 +43,7 @@ class Declaration:
         self.dims = dims
 
     def to_minizinc(self):
-        return f"{self._array_prefix()}{self._elem_type()}: {self.name};"
+        return f"{self._array_prefix()}{self._elem_type()}: {self.name}"
 
     def __str__(self):
         return self.to_minizinc()

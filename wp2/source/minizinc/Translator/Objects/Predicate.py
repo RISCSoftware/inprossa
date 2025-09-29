@@ -58,7 +58,7 @@ class Predicate(CodeBlock):
         params += [f"var int: output_{i+1}" for i in range(self.n_outputs)]
         # arrays (as var int arrays)
         for v in self.arrays_order:
-            params += [self.all_variable_declarations[v].to_minizinc()[:-1]]  # remove trailing ';'
+            params += [self.all_variable_declarations[v].to_minizinc()]
 
         # Build boolean body: input inits, function constraints, output bindings
         exprs = []
@@ -77,7 +77,7 @@ class Predicate(CodeBlock):
             exprs.append(f"output_{k} = {ret_name}[{last}]")
 
         expr_joined = " /\\\n    ".join(exprs)
-        return f"predicate {self.name}({', '.join(params)}) =\n    (\n    {expr_joined}\n    );"
+        return f"predicate {self.name}({', '.join(params)}) =\n    (\n    {expr_joined}\n    )"
 
     def emit_call_line(self, input_exprs, output_names, array_param_names):
         """Return 'f(in..., out..., arrs...)' suitable for 'constraint ...;' usage."""

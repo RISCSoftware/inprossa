@@ -23,8 +23,8 @@ class Constraint:
 
     def __str__(self):
         if self.conditions == []:
-            return f"constraint {self.expression};"
+            return f"constraint {self.expression}"
         else:
             # Join conditions with '/\' (and) for MiniZinc syntax
             conditions_str = " /\\ ".join(self.conditions)
-            return f"constraint {conditions_str} -> {self.expression};"
+            return f"constraint {conditions_str} -> {self.expression}"

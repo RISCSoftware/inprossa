@@ -36,9 +36,10 @@ class MiniZincTranslator:
         tree = ast.parse(self.code)
         for node in tree.body:
             # 1) type definitions -> MiniZinc type definitions
-            if isinstance(node, ast.Assign):
-                if isinstance(node.value, ast.Call):  # right-hand side is a call
-                    if isinstance(node.value.func, ast.Name) and node.value.func.id.startswith("DS"):
+            if (isinstance(node, ast.Assign) and
+                isinstance(node.value, ast.Call) and  # right-hand side is a call
+                isinstance(node.value.func, ast.Name) and
+                node.value.func.id.startswith("DS")):
                         type_name = node.targets[0].id
                         mz_type = DSType(node.value).return_type()
                         self.types[type_name] = mz_type
