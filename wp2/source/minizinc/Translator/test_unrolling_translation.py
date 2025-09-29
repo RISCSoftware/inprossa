@@ -9,7 +9,7 @@ type_translation_tests = [
         "code": """
 MyInt = DSInt(3, 7)
 """,
-        "expected_translation": """type MyInt = 3..7
+        "expected_translation": """type MyInt = 3..7;
 solve satisfy;"""
     },
     {
@@ -19,7 +19,7 @@ LB = 0
 UB = MAX_N
 MyInt2 = DSInt(lb=LB, ub=UB)
 """,
-        "expected_translation": """type MyInt2 = LB..UB
+        "expected_translation": """type MyInt2 = LB..UB;
 solve satisfy;"""
     },
     {
@@ -27,7 +27,7 @@ solve satisfy;"""
         "code": """
 MyFloat = DSFloat(lb=0.0, ub=1.0)
 """,
-        "expected_translation": """type MyFloat = 0.0..1.0
+        "expected_translation": """type MyFloat = 0.0..1.0;
 solve satisfy;"""
     },
     {
@@ -35,7 +35,7 @@ solve satisfy;"""
         "code": """
 Flag = DSBool()
 """,
-        "expected_translation": """type Flag = bool
+        "expected_translation": """type Flag = bool;
 solve satisfy;"""
     },
     {
@@ -43,16 +43,16 @@ solve satisfy;"""
         "code": """
 Vec = DSList(5)
 """,
-        "expected_translation": """type Vec = array[1..5] of int
+        "expected_translation": """type Vec = array[1..5] of int;
 solve satisfy;"""
     },
-    # Use keyword for elem_type to match your current DSList (keeps elem_type as ast.Name)
+    # Use keyword for elem_type to match your current DSList (elem_type kept as ast.Name)
     {
         "name": "dslist_keyword_elem_builtin",
         "code": """
 Vec2 = DSList(length=4, elem_type=int)
 """,
-        "expected_translation": """type Vec2 = array[1..4] of int
+        "expected_translation": """type Vec2 = array[1..4] of int;
 solve satisfy;"""
     },
     {
@@ -61,17 +61,20 @@ solve satisfy;"""
 MyInt = DSInt(3, 7)
 Vec3 = DSList(length=10, elem_type=MyInt)
 """,
-        "expected_translation": """type MyInt = 3..7
-type Vec3 = array[1..10] of MyInt
+        "expected_translation": """type MyInt = 3..7;
+type Vec3 = array[1..10] of MyInt;
 solve satisfy;"""
     },
-    # DSRecord per your current API: DSRecord(fields_dict) and emit as "type Name = record(name: type; ...);"
+    # DSRecord per your current emitter: multi-line record(...) with "type: name" fields
     {
         "name": "dsrecord_simple",
         "code": """
 Person = DSRecord({"name": "string", "age": "int"})
 """,
-        "expected_translation": """type Person = record(name: string; age: int);
+        "expected_translation": """type Person = record(
+    string: name,
+    int: age
+);
 solve satisfy;"""
     },
 ]
@@ -83,9 +86,13 @@ MyInt = DSInt(3, 7)
 VecMyInt5 = DSList(length=5, elem_type=MyInt)
 Person = DSRecord({"name": "string", "scores": "VecMyInt5", "grade": "MyInt"})
 """,
-        "expected_translation": """type MyInt = 3..7
-type VecMyInt5 = array[1..5] of MyInt
-type Person = record(name: string; scores: VecMyInt5; grade: MyInt);
+        "expected_translation": """type MyInt = 3..7;
+type VecMyInt5 = array[1..5] of MyInt;
+type Person = record(
+    string: name,
+    VecMyInt5: scores,
+    MyInt: grade
+);
 solve satisfy;"""
     },
     {
@@ -95,9 +102,13 @@ Prob = DSFloat(lb=0.0, ub=1.0)
 Vec10 = DSList(length=10, elem_type=int)
 Sample = DSRecord({"id": "int", "values": "Vec10", "prob": "Prob"})
 """,
-        "expected_translation": """type Prob = 0.0..1.0
-type Vec10 = array[1..10] of int
-type Sample = record(id: int; values: Vec10; prob: Prob);
+        "expected_translation": """type Prob = 0.0..1.0;
+type Vec10 = array[1..10] of int;
+type Sample = record(
+    int: id,
+    Vec10: values,
+    Prob: prob
+);
 solve satisfy;"""
     },
     {
@@ -107,9 +118,15 @@ Point = DSRecord({"x": "int", "y": "int"})
 Points = DSList(length=3, elem_type=Point)
 Polygon = DSRecord({"name": "string", "points": "Points"})
 """,
-        "expected_translation": """type Point = record(x: int; y: int);
-type Points = array[1..3] of Point
-type Polygon = record(name: string; points: Points);
+        "expected_translation": """type Point = record(
+    int: x,
+    int: y
+);
+type Points = array[1..3] of Point;
+type Polygon = record(
+    string: name,
+    Points: points
+);
 solve satisfy;"""
     },
     {
@@ -121,11 +138,19 @@ User = DSRecord({"name": "string", "addr": "Address"})
 Group = DSList(length=2, elem_type=User)
 Team = DSRecord({"members": "Group"})
 """,
-        "expected_translation": """type Zip = 10000..99999
-type Address = record(street: string; zip: Zip);
-type User = record(name: string; addr: Address);
-type Group = array[1..2] of User
-type Team = record(members: Group);
+        "expected_translation": """type Zip = 10000..99999;
+type Address = record(
+    string: street,
+    Zip: zip
+);
+type User = record(
+    string: name,
+    Address: addr
+);
+type Group = array[1..2] of User;
+type Team = record(
+    Group: members
+);
 solve satisfy;"""
     },
 ]
@@ -585,7 +610,7 @@ class TestMiniZincTranslation(unittest.TestCase):
                     print(expected)
 
 failed = 0
-for test in type_translation_tests:
+for test in translation_tests:
     print(f"Test {test['name']}")
     translator = MiniZincTranslator(test["code"])
     result = translator.unroll_translation()
