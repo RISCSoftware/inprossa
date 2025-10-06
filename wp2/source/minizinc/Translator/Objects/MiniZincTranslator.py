@@ -3,7 +3,7 @@ from Translator.Objects.Predicate import Predicate
 from Translator.Objects.CodeBlock import CodeBlock
 from Translator.Objects.MiniZincObject import MiniZincObject
 from Translator.Objects.Constant import Constant
-from Translator.Objects.typesDS import DSRecord, DSType
+from Translator.Objects.DSTypes import DSRecord, DSType
 
 
 class MiniZincTranslator:
@@ -41,7 +41,7 @@ class MiniZincTranslator:
                 isinstance(node.value.func, ast.Name) and
                 node.value.func.id.startswith("DS")):
                         type_name = node.targets[0].id
-                        mz_type = DSType(node.value).return_type()
+                        mz_type = DSType(node.value, type_name).return_type()
                         self.types[type_name] = mz_type
             # 2) class definitions -> MiniZincObject
             elif isinstance(node, ast.ClassDef):
@@ -65,9 +65,9 @@ class MiniZincTranslator:
         # 0) Type definitions
         for name, _type in self.types.items():
             if isinstance(_type, DSRecord):
-                parts.append(_type.emit_definition(name, self.types.keys()))
+                parts.append(_type.emit_definition(self.types.keys()))
             else:
-                parts.append(_type.emit_definition(name))
+                parts.append(_type.emit_definition())
 
         # 1) Predicate definitions
         for name in sorted(self.predicates.keys()):
@@ -88,22 +88,18 @@ class MiniZincTranslator:
         else:
             sense, expr = self.objective
             parts.append(f"solve {sense} {expr};")
-
         return ";\n".join(parts)
 
     def get_symbol_declarations(self, block):
         """Declare constants as MiniZinc symbols (not evolving)."""
         decls = []
-        for name, val in block.symbol_table.items():
-            constant = Constant(name, val)
+        for constant in block.symbol_table.values():
             decls.append(constant.to_minizinc())
         return decls
-    
+
     def get_vars_declrs(self, block):
         """Get all variable declarations (evolving and non-evolving)."""
         return [declr.to_minizinc() for declr in block.all_variable_declarations.values()]
 
     def get_constraints(self, block):
         return [str(c) for c in block.constraints if c is not None]
-    
-    

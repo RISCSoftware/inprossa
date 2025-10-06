@@ -1,9 +1,9 @@
 import ast
 from collections import defaultdict
 from Translator.Objects.Constraint import Constraint
-from Translator.Objects.Declaration import Declaration
+from Translator.Objects.Variable import Variable
 from itertools import product
-
+from Translator.Objects.Constant import Constant
 
 class CodeBlock:
     """
@@ -49,7 +49,7 @@ class CodeBlock:
         for var, versions in self.variable_index.items():
             if var not in self.evolving_vars_declrs:
                 print(f"Variable '{var}' used but not declared: assuming type 'int'")
-            var_declr = self.evolving_vars_declrs.get(var, Declaration(var))
+            var_declr = self.evolving_vars_declrs.get(var, Variable(var))
             var_declr.define_versions(versions)
             self.all_variable_declarations[var] = var_declr
         return decls
@@ -63,7 +63,7 @@ class CodeBlock:
             type_ = "int"
         self.variable_index[name] = 1
         if name not in self.evolving_vars_declrs:
-            self.evolving_vars_declrs[name] = Declaration(name, type_=type_, dims=dims)
+            self.evolving_vars_declrs[name] = Variable(name, type_=type_, dims=dims)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False):
         """
@@ -151,7 +151,7 @@ class CodeBlock:
                 return f"{func_name}({', '.join(args)})"
             else:
                 raise ValueError(f"Unsupported function call in expression: {func_name}")
-            
+
         elif isinstance(expr, ast.List):
             # Elements rewritten recursively so Names/Calls/etc. are handled
             elts = expr.elts
@@ -269,9 +269,7 @@ class CodeBlock:
 
         # Detect and record constant definitions (uppercase names)
         if var.isupper():
-            self.symbol_table[var] = self.record_constant_definition(stmt.value)
-            self.is_constant.add(var)
-            return  # Don't emit constraint for constants
+            raise Exception("Constant definitions should indicate their type")
 
         # For evolving variables, emit a versioned constraint
         if var not in self.variable_index:
@@ -290,11 +288,10 @@ class CodeBlock:
 
     def record_constant_definition(self, value_node):
         """Extracts the value of a constant definition from its AST node."""
-        if isinstance(value_node, ast.Constant):
-            return value_node.value
-        elif isinstance(value_node, ast.List):
+        if isinstance(value_node, ast.List):
             return [self.record_constant_definition(elt) for elt in value_node.elts]
         else:
+            return self.rewrite_expr(value_node, {})
             raise ValueError(f"Unsupported constant definition: {ast.dump(value_node, include_attributes=False)}")
 
     def _handle_predicate_call_assign(self, stmt, loop_scope, pred):
@@ -327,7 +324,7 @@ class CodeBlock:
             arr_name = f"{v}__{call_idx}"
             array_arg_names.append(arr_name)
             # Declare arrays needed for this call
-            self.all_variable_declarations[arr_name] = Declaration(arr_name,
+            self.all_variable_declarations[arr_name] = Variable(arr_name,
                                                                    versions=declr.versions,
                                                                    type_="int")
             
@@ -565,11 +562,18 @@ class CodeBlock:
     # --- TYPE DECLARATIONS ---
 
     def execute_block_annassign(self, stmt, loop_scope):
-        self.evolving_vars_declrs[stmt.target.id] = Declaration(stmt.target.id, type_=stmt.annotation.id)
+        print(stmt.target, stmt.annotation, stmt.value)
+        self.evolving_vars_declrs[stmt.target.id] = Variable(stmt.target.id, annotation=stmt.annotation)
+        var = stmt.target.id
+        if var.isupper():
+            # Save in constants; name, value and type
+            constant_value = self.record_constant_definition(stmt.value)
+            self.symbol_table[var] = Constant(var, constant_value, type_=stmt.annotation.id)
+            self.is_constant.add(var)
+            return  # Don't emit constraint for constants
         if stmt.value is not None:
-            self.new_evolving_variable(stmt.target.id, loop_scope)
-            self.variable_index[stmt.target.id] += 1
-            self.constraints.append(Constraint(f"{stmt.target.id}[{self.variable_index[stmt.target.id]}] = {stmt.value.value}"))
+            self.new_evolving_variable(var, loop_scope)
+            self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {stmt.value.value}"))
 
 
 def all_indices(shape):

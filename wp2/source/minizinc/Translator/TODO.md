@@ -1,8 +1,7 @@
 Figure information to save about:
-- objects (distinguishing between types and classes?)
-- constants
 - predicates
 - variables : [diccionary names to types/classes]
+(Why variables not being displayed)
 
 
 To give the type of a variable we use

@@ -3,7 +3,7 @@
 import unittest
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 
-type_translation_tests = [
+translation_tests = [
     {
         "name": "dsint_positional",
         "code": """
@@ -15,8 +15,8 @@ solve satisfy;"""
     {
         "name": "dsint_keyword_names",
         "code": """
-LB = 0
-UB = MAX_N
+LB : int = 0
+UB : int = MAX_N
 MyInt2 = DSInt(lb=LB, ub=UB)
 """,
         "expected_translation": """type MyInt2 = LB..UB;
@@ -28,6 +28,14 @@ solve satisfy;"""
 MyFloat = DSFloat(lb=0.0, ub=1.0)
 """,
         "expected_translation": """type MyFloat = 0.0..1.0;
+solve satisfy;"""
+    },
+    {
+        "name": "dsfloat_unit_interval",
+        "code": """
+MyFloatList = DSList(5, elem_type=DSFloat(lb=0.0, ub=1.0))
+""",
+        "expected_translation": """type MyFloatList = array[1..5] of 0.0..1.0;
 solve satisfy;"""
     },
     {
@@ -78,7 +86,7 @@ Person = DSRecord({"name": "string", "age": "int"})
 solve satisfy;"""
     },
 ]
-type_translation_tests += [
+translation_tests += [
     {
         "name": "record_with_custom_and_list",
         "code": """
@@ -155,7 +163,7 @@ solve satisfy;"""
     },
 ]
 
-translation_tests = [
+translation_tests += [
     {
         "name": "test_simple",
         "code": """
@@ -341,7 +349,8 @@ solve satisfy;"""
     {
         "name": "test_for_as_index_of_list",
         "code": """
-VALUES = [1, 2, 4]
+ValueType = DSList(3, int)
+VALUES : ValueType = [1, 2, 4]
 x = 0
 for i in range(1, 4):
     x = x + VALUES[i]
@@ -357,8 +366,9 @@ solve satisfy;"""
     {
         "name": "test_constant_as_index_of_list",
         "code": """
-VALUES = [1, 2, 4]
-I = 3
+MyList = DSList(3, int)
+VALUES : MyList = [1, 2, 4]
+I : int = 3
 x = 0
 x = x + VALUES[I]
 """,

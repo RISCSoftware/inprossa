@@ -5,12 +5,14 @@ from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 # ===== Example usage =====
 if __name__ == "__main__":
     code = """
-MyInt = DSInt(7, 0)
-Len = 10
-namee = "length"
-MyVec = DSList(Len, elem_type = int)
-MyyVec = DSList(length = namee, elem_type = MyInt)
+a : DSList(7, DSInt(0, 10))
+MyInt = DSList(7, DSList(7, DSInt(0, 10)))
+LEN : int = 10
+NAMEE : int = LEN + 3
+MyVec = DSList(LEN, elem_type = int)
+MyyVec = DSList(length = NAMEE, elem_type = MyInt)
 PersonRec = DSRecord({"name":string,"age":MyVec})
+oneofmyints : MyInt = 3
 """
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

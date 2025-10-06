@@ -9,7 +9,8 @@ def checking_machine(pieces: list[Piece]):
     all_lengths : Annotated[list[int], "len = N_PIECES"]
     for piece_index, piece in enumerate(pieces):
         length = length + piece.length
-        all_lengths[piece_index] = length
+        assert all_lengths[piece_index] == length
+        # TODO ASSERTION HERE IS BEETER
         n_length = n_length + 1
         assert length <= BEAM_LENGTH
         if length == BEAM_LENGTH:
