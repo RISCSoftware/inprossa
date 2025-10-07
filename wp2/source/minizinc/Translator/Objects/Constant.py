@@ -1,14 +1,18 @@
 from typing import Union
-from Translator.Objects.DSTypes import DSList
+from Translator.Objects.DSTypes import DSList, compute_type
 
 class Constant:
     def __init__(self,
                  name: str,
                  value: str,
-                 type_: Union[int, float, bool, DSList]):
+                 type_: Union[int, float, bool, DSList] = "int",
+                 annotation = None):
         self.name = name
         self.value = value
-        self.type = type_
+        if annotation is not None:
+            self.type = compute_type(annotation)
+        else:
+            self.type = type_
 
     def to_minizinc(self) -> str:
         if isinstance(self.value, list):

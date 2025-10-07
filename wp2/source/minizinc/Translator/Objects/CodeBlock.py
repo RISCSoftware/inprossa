@@ -56,14 +56,14 @@ class CodeBlock:
 
     # TODO Merge the declarations and run the get?... in minizinc translator
 
-    def new_evolving_variable(self, name, type_=None, lower=None, upper=None, dims=None):
+    def new_evolving_variable(self, name, type_=None):
         """New variable is detected, we add it to the variable index and create its declaration."""
         if type_ is None:
             print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
             type_ = "int"
         self.variable_index[name] = 1
         if name not in self.evolving_vars_declrs:
-            self.evolving_vars_declrs[name] = Variable(name, type_=type_, dims=dims)
+            self.evolving_vars_declrs[name] = Variable(name, type_=type_)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False):
         """
@@ -369,7 +369,8 @@ class CodeBlock:
             const_name = stmt.iter.id
             if const_name in self.symbol_table:
                 # iterate by 1-based index to keep symbolic access
-                n = len(self.symbol_table[const_name])
+                print("K", self.symbol_table[const_name].type)
+                n = self.symbol_table[const_name].type.length
                 iter_values = list(range(1, n + 1))  # positions
                 loop_vars = [stmt.target.id]
                 meta.update(kind="const", array_name=const_name)
@@ -386,9 +387,15 @@ class CodeBlock:
             self.execute_block(stmt.body, new_scope)
 
     def _resolve_range_iter(self, stmt):
-        # range(start, end)
-        start_node = stmt.iter.args[0]
-        end_node = stmt.iter.args[1]
+        
+        if len(stmt.iter.args) == 1:
+            # range(end) → start=1, end=arg0
+            start_node = ast.Constant(value=1)
+            end_node = stmt.iter.args[0]
+        else:
+            # range(start, end)
+            start_node = stmt.iter.args[0]
+            end_node = stmt.iter.args[1]
 
         # Evaluate start
         if isinstance(start_node, ast.Constant):
@@ -568,7 +575,7 @@ class CodeBlock:
         if var.isupper():
             # Save in constants; name, value and type
             constant_value = self.record_constant_definition(stmt.value)
-            self.symbol_table[var] = Constant(var, constant_value, type_=stmt.annotation.id)
+            self.symbol_table[var] = Constant(var, constant_value, annotation=stmt.annotation)
             self.is_constant.add(var)
             return  # Don't emit constraint for constants
         if stmt.value is not None:

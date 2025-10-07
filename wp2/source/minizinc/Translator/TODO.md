@@ -1,6 +1,7 @@
 Figure information to save about:
 - predicates
 - variables : [diccionary names to types/classes]
+Try for the type not to be the str but rather the type itself
 (Why variables not being displayed)
 
 

@@ -331,21 +331,22 @@ constraint x[2] = ((x[1] + 4) + 1);
 constraint x[3] = ((x[2] + 2) + 2);
 solve satisfy;"""
     },
-#     {
-#         "name": "test_for_with_constant_list",
-#         "code": """
-# VALUES = [1, 2]
-# x = 0
-# for t in VALUES:
-#     x = x + t
-# """,
-#         "expected_translation": """array[1..2] of int: VALUES = [1, 2];
-# array[1..3] of var int: x;
-# constraint x[1] = 0;
-# constraint x[2] = (x[1] + VALUES[1]);
-# constraint x[3] = (x[2] + VALUES[2]);
-# solve satisfy;"""
-#     },
+    {
+        "name": "test_for_with_constant_list",
+        "code": """
+ValueType = DSList(2, int)
+VALUES: ValueType = [1, 2];
+x = 0
+for t in VALUES:
+    x = x + t
+""",
+        "expected_translation": """array[1..2] of int: VALUES = [1, 2];
+array[1..3] of var int: x;
+constraint x[1] = 0;
+constraint x[2] = (x[1] + VALUES[1]);
+constraint x[3] = (x[2] + VALUES[2]);
+solve satisfy;"""
+    },
     {
         "name": "test_for_as_index_of_list",
         "code": """
