@@ -15,8 +15,7 @@ PersonRec = DSRecord({"name":string,"age":MyVec})
 oneofmyints : MyInt = 3
 """
     code = """
-for i in range(5):
-    a = a + 1
+assert a > 3
 """
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

@@ -71,6 +71,67 @@ constraint a[1] = 5;
 constraint a[2] = (a[1] + 4);
 ```
 
+### Constraints
+To add extra constraints that are not indicated by equalities, assert can be used
+Example:
+```python
+assert a > 3
+```
+Stored internally as
+
+```python
+Constraint("a[1] > 3")
+```
+Translated as
+```
+array[1..1] of int: a;
+constraint (a[1] > 3);
+```
+
+### If
+To handle ifs in our translation, we add the precondition to all constraints generated inside the if statement. Plus, in the branches in which the value doesn't change, we force values to equal those at the beginning
+
+Example
+```python
+if a > 3:
+    a = a + 1
+```
+Stored internally as
+
+```python
+Constraint("a[2] = a[1] + 1", conditions=["a > 3"])
+Constraint("a[2] = a[1]", conditions=["not(a > 3)"])
+```
+Translated as
+```
+array[1..2] of int: a;
+constraint (a[1] > 3) -> a[2] = (a[1] + 1);
+constraint (not (a[1] > 3)) -> a[2] = a[1];
+```
+
+Else branches are also possible, and they can be nested as many times as desired.
+
+### For
+When reaching a for (or enumerate) we simply translate each of the runs of the loop
+
+Example:
+```python
+for i in range(3):
+    a = a + 1
+```
+Stored internally as
+
+```python
+Constraint("a[2] = a[1] + 1")
+Constraint("a[3] = a[2] + 1")
+```
+Translated as
+```
+array[1..3] of int: a;
+constraint a[2] = (a[1] + 1);
+constraint a[3] = (a[2] + 1);
+```
+
 ### Functions -> Predicates
 Functions in the DSL turn into predicates in MiniZinc.  
 Both inputs and outputs of the function become inputs of the predicates.  
@@ -121,47 +182,4 @@ array[1..1] of int: e;
 constraint my_fun(3, 4, d[1], a__1, b__1, c__1, d__1);
 constraint my_fun(5, 6, e[1], a__2, b__2, c__2, d__2);
 solve satisfy;
-```
-### If
-To handle ifs in our translation, we add the precondition to all constraints generated inside the if statement. Plus, in the branches in which the value doesn't change, we force values to equal those at the beginning
-
-Example
-```python
-if a > 3:
-    a = a + 1
-```
-Stored internally as
-
-```python
-Constraint("a[2] = a[1] + 1", conditions=["a > 3"])
-Constraint("a[2] = a[1]", conditions=["not(a > 3)"])
-```
-Translated as
-```
-array[1..2] of int: a;
-constraint (a[1] > 3) -> a[2] = (a[1] + 1);
-constraint (not (a[1] > 3)) -> a[2] = a[1];
-```
-
-Else branches are also possible, and they can be nested as many times as desired.
-
-### For
-When reaching a for (or enumerate) we simply translate each of the runs of the loop
-
-Example:
-```python
-for i in range(3):
-    a = a + 1
-```
-Stored internally as
-
-```python
-Constraint("a[2] = a[1] + 1")
-Constraint("a[3] = a[2] + 1")
-```
-Translated as
-```
-array[1..3] of int: a;
-constraint a[2] = (a[1] + 1);
-constraint a[3] = (a[2] + 1);
 ```
