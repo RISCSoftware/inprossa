@@ -15,7 +15,10 @@ PersonRec = DSRecord({"name":string,"age":MyVec})
 oneofmyints : MyInt = 3
 """
     code = """
-assert a > 3
+b = 3
+a : DSInt(3,5) = 5
+def is_valid_cut_position(cut_position: int = FAS, board: Board = None) -> bool:
+    pass
 """
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

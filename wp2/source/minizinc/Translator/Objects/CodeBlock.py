@@ -1,6 +1,7 @@
 import ast
 from collections import defaultdict
 from Translator.Objects.Constraint import Constraint
+from Translator.Objects.DSTypes import compute_type
 from Translator.Objects.Variable import Variable
 from itertools import product
 from Translator.Objects.Constant import Constant
@@ -226,6 +227,9 @@ class CodeBlock:
             - constant definitions: MAX_LENGTH = 10
             - array assignments: A = [1,2,3]
         """
+        # TODO receive left-hand side and right hand side separately
+        # First check if its a function, then check if lhs is a tuple (if so, multiple assignments)
+
 
         # Assignment from a predicate call: e.g., c, d = f(a, b)
         # These are handled separetely because it's translated to a predicate call
@@ -233,7 +237,9 @@ class CodeBlock:
             fname = stmt.value.func.id
             if fname in self.predicates:
                 return self._handle_predicate_call_assign(stmt, loop_scope, self.predicates[fname])
-            
+            else:
+                raise ValueError(f"Unknown predicate/function called: {fname}")
+
         # For any other assignment, rewrite the RHS expression
         rhs = self.rewrite_expr(stmt.value, loop_scope)
             
@@ -246,10 +252,7 @@ class CodeBlock:
             else:
                 self.variable_index[base] += 1
             # index expr
-            if isinstance(stmt.targets[0].slice, ast.Index):  # Py < 3.9
-                index_node = stmt.targets[0].slice.value
-            else:  # Py 3.9+
-                index_node = stmt.targets[0].slice
+            index_node = stmt.targets[0].slice
             idx = self.rewrite_expr(index_node, loop_scope)
             if isinstance(index_node, ast.Constant):
                 idx_str = f"{int(idx)}"
@@ -570,17 +573,21 @@ class CodeBlock:
 
     def execute_block_annassign(self, stmt, loop_scope):
         print(stmt.target, stmt.annotation, stmt.value)
-        self.evolving_vars_declrs[stmt.target.id] = Variable(stmt.target.id, annotation=stmt.annotation)
+        
+        type_ = compute_type(stmt.annotation)
         var = stmt.target.id
+        value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None
         if var.isupper():
             # Save in constants; name, value and type
-            constant_value = self.record_constant_definition(stmt.value)
-            self.symbol_table[var] = Constant(var, constant_value, annotation=stmt.annotation)
+            # constant_value = self.record_constant_definition(stmt.value)
+            self.symbol_table[var] = Constant(var, value, type_=type_)
             self.is_constant.add(var)
             return  # Don't emit constraint for constants
-        if stmt.value is not None:
+        
+        self.evolving_vars_declrs[var] = Variable(var, type_=type_)
+        if value is not None:
             self.new_evolving_variable(var, loop_scope)
-            self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {stmt.value.value}"))
+            self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {value}"))
 
 
 def all_indices(shape):

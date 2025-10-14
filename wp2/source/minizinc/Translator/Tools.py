@@ -1,5 +1,7 @@
 import ast
 
+from Translator.Objects.DSTypes import compute_type
+
 
 minizinc_original_types = {
     "int",
@@ -7,6 +9,7 @@ minizinc_original_types = {
     "string",
     "bool",
 }
+
 def dict_from_ast_literal(node: ast.AST,
                           known_types = set()) -> dict:
     """
@@ -28,7 +31,13 @@ def dict_from_ast_literal(node: ast.AST,
 
         if hasattr(v_node, 'id') and (v_node.id in minizinc_original_types or v_node.id in known_types):
             val = v_node.id
+        elif isinstance(v_node, ast.Call):
+            # e.g., DSInt(0, 10), DSList(7, DSInt(0, 10))
+            v_node_type = compute_type(v_node)  # validate
+            type_def = v_node_type.emit_definition(known_types)  # validate
+            val = type_def
         else:
+            print(type(v_node), ast.dump(v_node))
             try:
                 val = ast.literal_eval(v_node)   # e.g., "string", 3, True
             except Exception as e:

@@ -10,6 +10,10 @@ This language can serve as an input to a translator that generates the constrain
 - Pythonic
 - Collecting types and bounds
 
+## Example
+
+Small DSL example. Description of the example. Input --> output
+
 ## Types
 - Can be given by strings: str, float, bool, or any other internally defined type
 - Can also be descibed combining these:
@@ -36,7 +40,7 @@ This language can serve as an input to a translator that generates the constrain
             ...
             );
 ## Core concepts
-### Constants
+### Constants (declaration)
 Are always written in capital letters.  
 Their type must be given
 Example
@@ -48,7 +52,7 @@ Saved internally as `Constant(name="MIN_LEN", value=6, type_=int)`
 
 Translated to MiniZinc as `int: MIN_LEN = 6;`
 
-### Variables
+### Variables (Statement, declaration is a: int)
 Cannot be written completely in capital letters.  
 If type is not given int is assumed.  
 When variables are updated, in the single value translation, another version of the variable will be created.  
@@ -71,7 +75,7 @@ constraint a[1] = 5;
 constraint a[2] = (a[1] + 4);
 ```
 
-### Constraints
+### Constraints (Statements)
 To add extra constraints that are not indicated by equalities, assert can be used
 Example:
 ```python
@@ -88,7 +92,7 @@ array[1..1] of int: a;
 constraint (a[1] > 3);
 ```
 
-### If
+### If (statement)
 To handle ifs in our translation, we add the precondition to all constraints generated inside the if statement. Plus, in the branches in which the value doesn't change, we force values to equal those at the beginning
 
 Example
@@ -111,7 +115,7 @@ constraint (not (a[1] > 3)) -> a[2] = a[1];
 
 Else branches are also possible, and they can be nested as many times as desired.
 
-### For
+### For (Statement)
 When reaching a for (or enumerate) we simply translate each of the runs of the loop
 
 Example:
@@ -132,7 +136,7 @@ constraint a[2] = (a[1] + 1);
 constraint a[3] = (a[2] + 1);
 ```
 
-### Functions -> Predicates
+### Functions -> Predicates (declarations)
 Functions in the DSL turn into predicates in MiniZinc.  
 Both inputs and outputs of the function become inputs of the predicates.  
 As variables cannot be defined inside a predicate, any variables needed inside the predicate are given as an input.

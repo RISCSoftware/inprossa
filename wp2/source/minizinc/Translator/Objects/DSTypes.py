@@ -3,8 +3,12 @@ Types in DSL
 """
 import ast
 from typing import Optional, Union, Dict
-from Translator.Tools import dict_from_ast_literal
 
+
+# Do I need names in types?
+# Because when they're defined we do
+# type MyInt = DSInt(0,10)
+# then later we can just use MyInt
 class DSInt:
     def __init__(self,
                  lb: Union[int, str] = None,
@@ -17,11 +21,11 @@ class DSInt:
         else:
             self.name = name
 
-    def emit_definition(self):
+    def emit_definition(self, known_types: Optional[set] = None):
         declaration = f"type {self.name} = {self.representation()}"
         return declaration
 
-    def representation(self):
+    def representation(self, known_types: Optional[set] = None):
         representation = ""
         if self.lb is None and self.ub is None:
             representation += "int"
@@ -45,11 +49,11 @@ class DSFloat:
         else:
             self.name = name
 
-    def emit_definition(self):
+    def emit_definition(self, known_types: Optional[set] = None):
         declaration = f"type {self.name} = {self.representation()}"
         return declaration
     
-    def representation(self):
+    def representation(self, known_types: Optional[set] = None):
         representation = ""
         if self.lb is None and self.ub is None:
             representation += "float"
@@ -69,10 +73,10 @@ class DSBool:
         else:
             self.name = name
 
-    def emit_definition(self):
+    def emit_definition(self, known_types: Optional[set] = None):
         return f"type {self.name} = bool"
 
-    def representation(self):
+    def representation(self, known_types: Optional[set] = None):
         return "bool"
 
 class DSList:
@@ -85,7 +89,7 @@ class DSList:
         self.length = remove_ast(length)
         self.elem_type = elem_type
 
-    def representation(self):
+    def representation(self, known_types: Optional[set] = None):
         representation = f"array[1..{self.length}] of "
         if self.elem_type is not None:
             type_repr = compute_type(self.elem_type)
@@ -98,7 +102,7 @@ class DSList:
             representation += "int"
         return representation
 
-    def emit_definition(self):
+    def emit_definition(self, known_types: Optional[set] = None):
         declaration = f"type {self.name} = {self.representation()}"
         return declaration
 
@@ -117,12 +121,12 @@ class DSRecord:
         fields_str = ",\n    ".join(field_defs)
         return fields_str
     
-    def representation(self):
+    def representation(self, known_types: Optional[set] = None):
+        self.known_types = known_types if known_types is not None else set()
+        self.fields_declarations = self.fields_declarations()
         return f"record(\n    {self.fields_declarations}\n)"
 
     def emit_definition(self, known_types: Optional[set] = None):
-        self.known_types = known_types if known_types is not None else set()
-        self.fields_declarations = self.fields_declarations()
         return f"type {self.name} = {self.representation()}"
 
 class DSType:
@@ -180,3 +184,47 @@ def compute_type(
         # A DS type constructor call
         return DSType(type_node, type_name).type_obj
     raise ValueError(f"Unsupported type node: {type_node}")
+
+minizinc_original_types = {
+    "int",
+    "float",
+    "string",
+    "bool",
+}
+
+def dict_from_ast_literal(node: ast.AST,
+                          known_types = set()) -> dict:
+    """
+    Convert an ast.Dict consisting only of literal keys/values
+    into a Python dict. Raises on **unpacking and non-literals.
+    """
+    if not isinstance(node, ast.Dict):
+        raise TypeError("Expected ast.Dict")
+
+    out = {}
+    for k_node, v_node in zip(node.keys, node.values):
+        if k_node is None:  # {**something}
+            raise ValueError("Dict unpacking (**x) not supported")
+
+        try:
+            key = ast.literal_eval(k_node)   # e.g., "name", 1, (1,2)
+        except Exception as e:
+            raise ValueError(f"Non-literal dict key: {ast.dump(k_node)}") from e
+
+        if hasattr(v_node, 'id') and (v_node.id in minizinc_original_types or v_node.id in known_types):
+            val = v_node.id
+        elif isinstance(v_node, ast.Call):
+            # e.g., DSInt(0, 10), DSList(7, DSInt(0, 10))
+            v_node_type = compute_type(v_node)  # validate
+            print("KNWN", known_types)
+            type_def = v_node_type.representation(known_types)  # validate
+            val = type_def
+        else:
+            print(type(v_node), ast.dump(v_node))
+            try:
+                val = ast.literal_eval(v_node)   # e.g., "string", 3, True
+            except Exception as e:
+                raise ValueError(f"Non-literal dict value for key {key}: {ast.dump(v_node)}") from e
+
+        out[key] = val
+    return out

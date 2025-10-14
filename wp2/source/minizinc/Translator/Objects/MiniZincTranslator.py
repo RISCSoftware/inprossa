@@ -35,6 +35,8 @@ class MiniZincTranslator:
         """
         tree = ast.parse(self.code)
         for node in tree.body:
+            print(ast.dump(node, indent=4))
+        for node in tree.body:
             # 1) type definitions -> MiniZinc type definitions
             if (isinstance(node, ast.Assign) and
                 isinstance(node.value, ast.Call) and  # right-hand side is a call

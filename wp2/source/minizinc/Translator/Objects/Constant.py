@@ -5,14 +5,10 @@ class Constant:
     def __init__(self,
                  name: str,
                  value: str,
-                 type_: Union[int, float, bool, DSList] = "int",
-                 annotation = None):
+                 type_: Union[int, float, bool, DSList] = "int"):
         self.name = name
         self.value = value
-        if annotation is not None:
-            self.type = compute_type(annotation)
-        else:
-            self.type = type_
+        self.type = type_
 
     def to_minizinc(self) -> str:
         if isinstance(self.value, list):
