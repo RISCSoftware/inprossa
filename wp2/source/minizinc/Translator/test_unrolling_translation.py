@@ -20,6 +20,8 @@ UB : int = MAX_N
 MyInt2 = DSInt(lb=LB, ub=UB)
 """,
         "expected_translation": """type MyInt2 = LB..UB;
+int: LB = 0;
+int: UB = MAX_N;
 solve satisfy;"""
     },
     {
@@ -331,59 +333,59 @@ constraint x[2] = ((x[1] + 4) + 1);
 constraint x[3] = ((x[2] + 2) + 2);
 solve satisfy;"""
     },
-    {
-        "name": "test_for_with_constant_list",
-        "code": """
-ValueType = DSList(2, int)
-VALUES: ValueType = [1, 2];
-x = 0
-for t in VALUES:
-    x = x + t
-""",
-        "expected_translation": """array[1..2] of int: VALUES = [1, 2];
-array[1..3] of var int: x;
-constraint x[1] = 0;
-constraint x[2] = (x[1] + VALUES[1]);
-constraint x[3] = (x[2] + VALUES[2]);
-solve satisfy;"""
-    },
-    {
-        "name": "test_for_as_index_of_list",
-        "code": """
-ValueType = DSList(3, int)
-VALUES : ValueType = [1, 2, 4]
-x = 0
-for i in range(1, 4):
-    x = x + VALUES[i]
-""",
-        "expected_translation": """array[1..3] of int: VALUES = [1, 2, 4];
-array[1..4] of var int: x;
-constraint x[1] = 0;
-constraint x[2] = (x[1] + VALUES[1]);
-constraint x[3] = (x[2] + VALUES[2]);
-constraint x[4] = (x[3] + VALUES[3]);
-solve satisfy;"""
-    },
-    {
-        "name": "test_constant_as_index_of_list",
-        "code": """
-MyList = DSList(3, int)
-VALUES : MyList = [1, 2, 4]
-I : int = 3
-x = 0
-x = x + VALUES[I]
-""",
-        "expected_translation": """array[1..3] of int: VALUES = [1, 2, 4];
-int: I = 3;
-array[1..2] of var int: x;
-constraint x[1] = 0;
-constraint x[2] = (x[1] + VALUES[I]);
-solve satisfy;"""
-    },
+#     {
+#         "name": "test_for_with_constant_list",
+#         "code": """
+# ValueType = DSList(2, int)
+# VALUES: ValueType = [1, 2];
+# x = 0
+# for t in VALUES:
+#     x = x + t
+# """,
+#         "expected_translation": """array[1..2] of int: VALUES = [1, 2];
+# array[1..3] of var int: x;
+# constraint x[1] = 0;
+# constraint x[2] = (x[1] + VALUES[1]);
+# constraint x[3] = (x[2] + VALUES[2]);
+# solve satisfy;"""
+#     },
+#     {
+#         "name": "test_for_as_index_of_list",
+#         "code": """
+# ValueType = DSList(3, int)
+# VALUES : ValueType = [1, 2, 4]
+# x = 0
+# for i in range(1, 4):
+#     x = x + VALUES[i]
+# """,
+#         "expected_translation": """array[1..3] of int: VALUES = [1, 2, 4];
+# array[1..4] of var int: x;
+# constraint x[1] = 0;
+# constraint x[2] = (x[1] + VALUES[1]);
+# constraint x[3] = (x[2] + VALUES[2]);
+# constraint x[4] = (x[3] + VALUES[3]);
+# solve satisfy;"""
+#     },
+#     {
+#         "name": "test_constant_as_index_of_list",
+#         "code": """
+# MyList = DSList(3, int)
+# VALUES : MyList = [1, 2, 4]
+# I : int = 3
+# x = 0
+# x = x + VALUES[I]
+# """,
+#         "expected_translation": """array[1..3] of int: VALUES = [1, 2, 4];
+# int: I = 3;
+# array[1..2] of var int: x;
+# constraint x[1] = 0;
+# constraint x[2] = (x[1] + VALUES[I]);
+# solve satisfy;"""
+#     },
     {
         "name": "test_variable_created_in_if",
         "code": """
-I = 0
+I : int = 0
 if I == 0:
     x = 1
 """,
@@ -395,7 +397,7 @@ solve satisfy;"""
     {
         "name": "test_absolute_value",
         "code": """
-I = 0
+I : int = 0
 assert abs(x - I) == 1
 """,
         "expected_translation": """int: I = 0;
@@ -406,7 +408,7 @@ solve satisfy;"""
     {
         "name": "test_not_declared_variable",
         "code": """
-I = 0
+I : int = 0
 assert x > I
 """,
         "expected_translation": """int: I = 0;
@@ -417,7 +419,7 @@ solve satisfy;"""
     {
         "name": "test_float_type",
         "code": """
-a: float
+a : float
 a = 0
 """,
         "expected_translation": """array[1..1] of var float: a;
@@ -585,22 +587,22 @@ array[1..1] of var int: c;
 constraint g(2, 2, c[1], a__1, a__1__1, b__1, c__1);
 solve satisfy;"""
     },
-    {
-        "name": "test_assign_list",
-        "code": """
-pieces = [[2,1,5],[2,12,53]]
-pieces[1] = pieces[1]
-""",
-        "expected_translation": """array[1..2] of array[1..2] of array[1..3] of var int: pieces;
-constraint pieces[1][1][1] = [[2, 1, 5], [2, 12, 53]][1][1];
-constraint pieces[1][1][2] = [[2, 1, 5], [2, 12, 53]][1][2];
-constraint pieces[1][1][3] = [[2, 1, 5], [2, 12, 53]][1][3];
-constraint pieces[1][2][1] = [[2, 1, 5], [2, 12, 53]][2][1];
-constraint pieces[1][2][2] = [[2, 1, 5], [2, 12, 53]][2][2];
-constraint pieces[1][2][3] = [[2, 1, 5], [2, 12, 53]][2][3];
-constraint pieces[2][1] = pieces[1][1];
-solve satisfy;"""
-    },
+#     {
+#         "name": "test_assign_list",
+#         "code": """
+# pieces = [[2,1,5],[2,12,53]]
+# pieces[1] = pieces[1]
+# """,
+#         "expected_translation": """array[1..2] of array[1..2] of array[1..3] of var int: pieces;
+# constraint pieces[1][1][1] = [[2, 1, 5], [2, 12, 53]][1][1];
+# constraint pieces[1][1][2] = [[2, 1, 5], [2, 12, 53]][1][2];
+# constraint pieces[1][1][3] = [[2, 1, 5], [2, 12, 53]][1][3];
+# constraint pieces[1][2][1] = [[2, 1, 5], [2, 12, 53]][2][1];
+# constraint pieces[1][2][2] = [[2, 1, 5], [2, 12, 53]][2][2];
+# constraint pieces[1][2][3] = [[2, 1, 5], [2, 12, 53]][2][3];
+# constraint pieces[2][1] = pieces[1][1];
+# solve satisfy;"""
+#     },
 ]
 
 

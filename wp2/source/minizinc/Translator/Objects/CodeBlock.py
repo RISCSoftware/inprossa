@@ -24,7 +24,7 @@ class CodeBlock:
         # Tracks the current version (index) of each variable (e.g., x[0], x[1], ...)
         self.variable_index = {}
         # varname → (type, domain), e.g. ('int', [4,10]), ('float', [4.0,10.0])
-        self.evolving_vars_declrs = {}
+        self.variable_table = {}
         # varname → Declaration
         self.all_variable_declarations = {}
         # Tracks the set of constant (symbolic) names, identified by being all uppercase
@@ -48,9 +48,9 @@ class CodeBlock:
         """Declare arrays for evolving variables in this block."""
         decls = []
         for var, versions in self.variable_index.items():
-            if var not in self.evolving_vars_declrs:
+            if var not in self.variable_table:
                 print(f"Variable '{var}' used but not declared: assuming type 'int'")
-            var_declr = self.evolving_vars_declrs.get(var, Variable(var))
+            var_declr = self.variable_table.get(var, Variable(var))
             var_declr.define_versions(versions)
             self.all_variable_declarations[var] = var_declr
         return decls
@@ -63,8 +63,8 @@ class CodeBlock:
             print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
             type_ = "int"
         self.variable_index[name] = 1
-        if name not in self.evolving_vars_declrs:
-            self.evolving_vars_declrs[name] = Variable(name, type_=type_)
+        if name not in self.variable_table:
+            self.variable_table[name] = Variable(name, type_=type_)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False):
         """
@@ -186,7 +186,7 @@ class CodeBlock:
 
         else:
             # Fallback: use source-like syntax
-            print(expr, type(expr))
+            print("Fallback: use source-like syntax\n", expr, type(expr))
             return ast.unparse(expr)
 
     # --- Execute blocks (assignments, for, if, functions, type declarations, asserts...) ---
@@ -196,7 +196,7 @@ class CodeBlock:
         for stmt in block:
             # Handle assignment statements
             if isinstance(stmt, ast.Assign):
-                self.execute_block_assign(stmt, loop_scope)
+                self.execute_block_assign(stmt.targets[0], stmt.value, loop_scope)
 
             elif isinstance(stmt, ast.For):
                 self.execute_block_for(stmt, loop_scope)
@@ -218,7 +218,7 @@ class CodeBlock:
 
     # --- ASSIGNMENTS ---
 
-    def execute_block_assign(self, stmt, loop_scope):
+    def execute_block_assign(self, lhs, rhs, loop_scope):
         """
         Handle assignment statements, including:
             - predicate call assignments: c, d = f(a, b)
@@ -233,26 +233,26 @@ class CodeBlock:
 
         # Assignment from a predicate call: e.g., c, d = f(a, b)
         # These are handled separetely because it's translated to a predicate call
-        if isinstance(stmt.value, ast.Call) and isinstance(stmt.value.func, ast.Name):
-            fname = stmt.value.func.id
+        if isinstance(rhs, ast.Call) and isinstance(rhs.func, ast.Name):
+            fname = rhs.func.id
             if fname in self.predicates:
-                return self._handle_predicate_call_assign(stmt, loop_scope, self.predicates[fname])
+                return self._handle_predicate_call_assign(lhs, rhs, loop_scope, self.predicates[fname])
             else:
                 raise ValueError(f"Unknown predicate/function called: {fname}")
 
         # For any other assignment, rewrite the RHS expression
-        rhs = self.rewrite_expr(stmt.value, loop_scope)
+        rhs = self.rewrite_expr(rhs, loop_scope)
             
         # Subscript assignment: e.g., a[1] = 5
-        if isinstance(stmt.targets[0], ast.Subscript):
-            base = stmt.targets[0].value.id
+        if isinstance(lhs, ast.Subscript):
+            base = lhs.value.id
             # ensure version counter exists
             if base not in self.variable_index:
                 self.new_evolving_variable(base, type_="int")  # or infer
             else:
                 self.variable_index[base] += 1
             # index expr
-            index_node = stmt.targets[0].slice
+            index_node = lhs.slice
             idx = self.rewrite_expr(index_node, loop_scope)
             if isinstance(index_node, ast.Constant):
                 idx_str = f"{int(idx)}"
@@ -264,11 +264,11 @@ class CodeBlock:
         
     
 
-        if isinstance(stmt.targets[0], ast.Attribute):
-            var = stmt.targets[0].attr
+        if isinstance(lhs, ast.Attribute):
+            var = lhs.attr
         else:
             # Normal assignment
-            var = stmt.targets[0].id
+            var = lhs.id
 
         # Detect and record constant definitions (uppercase names)
         if var.isupper():
@@ -276,8 +276,8 @@ class CodeBlock:
 
         # For evolving variables, emit a versioned constraint
         if var not in self.variable_index:
-            if isinstance(stmt.value, ast.List):
-                _, dims = self.rewrite_expr(stmt.value, loop_scope, return_dimensions=True)
+            if isinstance(rhs, ast.List):
+                _, dims = self.rewrite_expr(rhs, loop_scope, return_dimensions=True)
                 self.new_evolving_variable(var, dims=dims)
                 for index in all_indices(dims):
                     idx_str = ']['.join(str(i) for i in index)
@@ -297,22 +297,22 @@ class CodeBlock:
             return self.rewrite_expr(value_node, {})
             raise ValueError(f"Unsupported constant definition: {ast.dump(value_node, include_attributes=False)}")
 
-    def _handle_predicate_call_assign(self, stmt, loop_scope, pred):
+    def _handle_predicate_call_assign(self, lhs, rhs, loop_scope, pred):
         """Handle assignments like: e, g = f(c, d)."""
 
         # Outputs on LHS
-        if isinstance(stmt.targets[0], ast.Tuple):
+        if isinstance(lhs, ast.Tuple):
             # Multiple outputs
-            out_exprs = [self.rewrite_expr(elt, loop_scope) for elt in stmt.targets[0].elts]
+            out_exprs = [self.rewrite_expr(elt, loop_scope) for elt in lhs.elts]
         else:
             # Single output
-            out_exprs = [self.rewrite_expr(stmt.targets[0], loop_scope)]
+            out_exprs = [self.rewrite_expr(lhs, loop_scope)]
 
         if len(out_exprs) != pred.n_outputs:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_outputs} outputs, got {len(out_exprs)}")
 
         # Inputs on RHS call
-        in_exprs = [self.rewrite_expr(arg, loop_scope) for arg in stmt.value.args]
+        in_exprs = [self.rewrite_expr(arg, loop_scope) for arg in rhs.args]
         if len(in_exprs) != pred.n_inputs:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_inputs} inputs, got {len(in_exprs)}")
 
@@ -372,7 +372,6 @@ class CodeBlock:
             const_name = stmt.iter.id
             if const_name in self.symbol_table:
                 # iterate by 1-based index to keep symbolic access
-                print("K", self.symbol_table[const_name].type)
                 n = self.symbol_table[const_name].type.length
                 iter_values = list(range(1, n + 1))  # positions
                 loop_vars = [stmt.target.id]
@@ -572,7 +571,6 @@ class CodeBlock:
     # --- TYPE DECLARATIONS ---
 
     def execute_block_annassign(self, stmt, loop_scope):
-        print(stmt.target, stmt.annotation, stmt.value)
         
         type_ = compute_type(stmt.annotation)
         var = stmt.target.id
@@ -584,7 +582,7 @@ class CodeBlock:
             self.is_constant.add(var)
             return  # Don't emit constraint for constants
         
-        self.evolving_vars_declrs[var] = Variable(var, type_=type_)
+        self.variable_table[var] = Variable(var, type_=type_)
         if value is not None:
             self.new_evolving_variable(var, loop_scope)
             self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {value}"))

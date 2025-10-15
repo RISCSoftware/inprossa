@@ -34,8 +34,8 @@ class MiniZincTranslator:
         and creating a list of top-level statements.
         """
         tree = ast.parse(self.code)
-        for node in tree.body:
-            print(ast.dump(node, indent=4))
+        # for node in tree.body:
+        #     print(ast.dump(node, indent=4))
         for node in tree.body:
             # 1) type definitions -> MiniZinc type definitions
             if (isinstance(node, ast.Assign) and

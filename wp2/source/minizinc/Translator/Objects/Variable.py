@@ -34,11 +34,10 @@ class Variable:
         self.versions = versions
 
     def to_minizinc(self):
-        print(self._array_prefix, type(self._array_prefix))
         if isinstance(self.type, str):
-            return f"{self._array_prefix()}{self.type}: {self.name}"
+            return f"{self._array_prefix()}var {self.type}: {self.name}"
         else:
-            return f"{self._array_prefix()}{self.type.representation()}: {self.name}"
+            return f"{self._array_prefix()}var {self.type.representation()}: {self.name}"
 
     def __str__(self):
             return self.to_minizinc()

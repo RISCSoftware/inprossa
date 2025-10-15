@@ -216,11 +216,10 @@ def dict_from_ast_literal(node: ast.AST,
         elif isinstance(v_node, ast.Call):
             # e.g., DSInt(0, 10), DSList(7, DSInt(0, 10))
             v_node_type = compute_type(v_node)  # validate
-            print("KNWN", known_types)
             type_def = v_node_type.representation(known_types)  # validate
             val = type_def
         else:
-            print(type(v_node), ast.dump(v_node))
+            print("Unknown value node type:", type(v_node), ast.dump(v_node))
             try:
                 val = ast.literal_eval(v_node)   # e.g., "string", 3, True
             except Exception as e:
