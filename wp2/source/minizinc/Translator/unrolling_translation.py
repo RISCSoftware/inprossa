@@ -228,7 +228,7 @@ class CodeBlock:
             # Not constant, not loop var — must be a normal variable
             if name not in self.variable_index:
                 # First-time reference (e.g., used in an expression before assignment)
-                print(f"Warning: Variable '{name}' used without assignment: assuming type 'float'")
+                # print(f"Warning: Variable '{name}' used without assignment: assuming type 'float'")
                 self.variable_index[name] = 1
                 self.variable_declarations[name] = ("float", None)  # default type: float
 

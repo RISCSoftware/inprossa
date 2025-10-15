@@ -1,5 +1,6 @@
 import ast
 from Translator.Objects.CodeBlock import CodeBlock
+from Translator.Objects.Variable import Variable
 
     
 class Predicate(CodeBlock):
@@ -21,7 +22,7 @@ class Predicate(CodeBlock):
 
         # Ensure inputs have at least one version and will be tied to input_i
         for i_name in self.input_names:
-            if i_name not in self.variable_index:
+            if i_name not in self.variable_table:
                 print("Input", i_name, "not assigned in body, adding initial version.")
                 self.new_evolving_variable(i_name)
 
@@ -73,7 +74,7 @@ class Predicate(CodeBlock):
 
         # output_k = last_version(return_name)
         for k, ret_name in enumerate(self.return_names, start=1):
-            last = self.variable_index.get(ret_name, 1)
+            last = self.variable_table.get(ret_name, Variable(name="", versions=1)).versions
             exprs.append(f"output_{k} = {ret_name}[{last}]")
 
         expr_joined = " /\\\n    ".join(exprs)

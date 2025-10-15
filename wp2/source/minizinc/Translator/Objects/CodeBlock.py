@@ -5,7 +5,7 @@ from Translator.Objects.DSTypes import compute_type
 from Translator.Objects.Variable import Variable
 from itertools import product
 from Translator.Objects.Constant import Constant
-
+import copy
 class CodeBlock:
     """
     Executes a block of Python statements, tracks:
@@ -21,11 +21,11 @@ class CodeBlock:
     """
 
     def __init__(self, *, symbol_table=None, predicates=None):
-        # Tracks the current version (index) of each variable (e.g., x[0], x[1], ...)
-        self.variable_index = {}
+        # # Tracks the current version (index) of each variable (e.g., x[0], x[1], ...)
+        # self.variable_index = {}
         # varname → (type, domain), e.g. ('int', [4,10]), ('float', [4.0,10.0])
         self.variable_table = {}
-        # varname → Declaration
+        # varname → Variable
         self.all_variable_declarations = {}
         # Tracks the set of constant (symbolic) names, identified by being all uppercase
         self.symbol_table = {} if symbol_table is None else dict(symbol_table)
@@ -47,24 +47,18 @@ class CodeBlock:
     def evolving_vars_declaration(self):
         """Declare arrays for evolving variables in this block."""
         decls = []
-        for var, versions in self.variable_index.items():
-            if var not in self.variable_table:
-                print(f"Variable '{var}' used but not declared: assuming type 'int'")
-            var_declr = self.variable_table.get(var, Variable(var))
-            var_declr.define_versions(versions)
-            self.all_variable_declarations[var] = var_declr
+        for var, var_obj in self.variable_table.items():
+            self.all_variable_declarations[var] = var_obj
         return decls
 
     # TODO Merge the declarations and run the get?... in minizinc translator
 
-    def new_evolving_variable(self, name, type_=None):
+    def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
         if type_ is None:
-            print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
+            # print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
             type_ = "int"
-        self.variable_index[name] = 1
-        if name not in self.variable_table:
-            self.variable_table[name] = Variable(name, type_=type_)
+        self.variable_table[name] = Variable(name, type_=type_, versions=versions)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False):
         """
@@ -120,11 +114,12 @@ class CodeBlock:
                 return name
 
             # Not constant, not loop var — must be a normal variable
-            if name not in self.variable_index:
+            if name not in self.variable_table:
                 # First-time reference (e.g., used in an expression before assignment)
                 self.new_evolving_variable(name)
 
-            return f"{name}[{self.variable_index[name]}]"
+            return f"{name}[{self.variable_table[name].versions}]"
+            # TODO this could be given by a proc in the object
 
         elif isinstance(expr, ast.Constant):
             # Handle literals: numbers, booleans
@@ -247,10 +242,10 @@ class CodeBlock:
         if isinstance(lhs, ast.Subscript):
             base = lhs.value.id
             # ensure version counter exists
-            if base not in self.variable_index:
+            if base not in self.variable_table:
                 self.new_evolving_variable(base, type_="int")  # or infer
             else:
-                self.variable_index[base] += 1
+                self.variable_table[base].versions += 1
             # index expr
             index_node = lhs.slice
             idx = self.rewrite_expr(index_node, loop_scope)
@@ -259,9 +254,9 @@ class CodeBlock:
             elif isinstance(index_node, (ast.List, ast.Tuple)):
                 idx_str = ']['.join(self.rewrite_expr(elt, loop_scope) for elt in index_node.elts)
             # access with leading version dimension
-            self.constraints.append(Constraint(f"{base}[{self.variable_index[base]}][{idx_str}] = {rhs}"))
-            return f"{base}[{self.variable_index[base]}][{idx_str}]"
-        
+            self.constraints.append(Constraint(f"{base}[{self.variable_table[base].version}][{idx_str}] = {rhs}"))
+            return f"{base}[{self.variable_table[base].version}][{idx_str}]"
+
     
 
         if isinstance(lhs, ast.Attribute):
@@ -275,19 +270,19 @@ class CodeBlock:
             raise Exception("Constant definitions should indicate their type")
 
         # For evolving variables, emit a versioned constraint
-        if var not in self.variable_index:
+        if var not in self.variable_table:
             if isinstance(rhs, ast.List):
                 _, dims = self.rewrite_expr(rhs, loop_scope, return_dimensions=True)
                 self.new_evolving_variable(var, dims=dims)
                 for index in all_indices(dims):
                     idx_str = ']['.join(str(i) for i in index)
-                    self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}][{idx_str}] = {rhs}[{idx_str}]"))
+                    self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}][{idx_str}] = {rhs}[{idx_str}]"))
                 return
             else:
                 self.new_evolving_variable(var)
         else:
-            self.variable_index[var] += 1
-        self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {rhs}"))
+            self.variable_table[var].versions += 1
+        self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}] = {rhs}"))
 
     def record_constant_definition(self, value_node):
         """Extracts the value of a constant definition from its AST node."""
@@ -497,7 +492,9 @@ class CodeBlock:
         Merges variable versions after an if-else branch by using the highest index
         """
         merged_idx = max(idx_if, idx_else)
-        self.variable_index[var] = merged_idx
+        if var not in self.variable_table:
+            self.new_evolving_variable(var)
+        self.variable_table[var].versions = merged_idx
         constraints = dict()
 
         if idx_if != merged_idx:
@@ -505,35 +502,37 @@ class CodeBlock:
                 # If the variable was not assigned in the if-branch,
                 # we can use a special UNDEFINED value (skipped here)
                 # TODO think about whether this is the behavior we want
-                print(f"Warning: Variable '{var}' not assigned in if-branch")
+                # print(f"Warning: Variable '{var}' not assigned in if-branch")
+                pass
             else:
                 constraints["if"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_if}]")
 
         if idx_else != merged_idx:
             if idx_else == 0:
-                print(f"Warning: Variable '{var}' not assigned in else-branch")
+                # print(f"Warning: Variable '{var}' not assigned in else-branch")
+                pass
             else:
                 constraints["else"] = Constraint(f"{var}[{merged_idx}] = {var}[{idx_else}]")
 
         return constraints
 
-    def execute_branch(self, block, loop_scope, pre_index):
+    def execute_branch(self, block, loop_scope, pre_table):
         """
         Executes a code block (body of if or else) independently and returns resulting state
         """
-        constraints_backup = self.constraints.copy()
+        constraints_backup = copy.deepcopy(self.constraints)
         self.constraints.clear()
-        self.variable_index = pre_index.copy()
+        self.variable_table = copy.deepcopy(pre_table)
         self.execute_block(block, loop_scope)
         result_constraints = self.constraints[:]
-        result_index = self.variable_index.copy()
+        result_index = copy.deepcopy(self.variable_table)
         self.constraints = constraints_backup
         return result_constraints, result_index
 
     def execute_block_if(self, stmt, loop_scope):
         # Handle if-statements with symbolic branching
         cond_expr = self.rewrite_expr(stmt.test, loop_scope)
-        pre_branch_index = self.variable_index.copy()
+        pre_branch_index = copy.deepcopy(self.variable_table)
 
         # Run both if and else branches independently
         branch_if_constraints, index_after_if = self.execute_branch(stmt.body, loop_scope, pre_branch_index)
@@ -542,9 +541,9 @@ class CodeBlock:
         # Merge variable versions from both branches
         all_vars = set(index_after_if) | set(index_after_else)
         for var in all_vars:
-            idx_before = pre_branch_index.get(var, 0)
-            idx_if = index_after_if.get(var, idx_before)
-            idx_else = index_after_else.get(var, idx_before)
+            idx_before = pre_branch_index.get(var, Variable(name="", versions=0))
+            idx_if = index_after_if.get(var, idx_before).versions
+            idx_else = index_after_else.get(var, idx_before).versions
             constraints = self.merge_variable(var, idx_if, idx_else)
             if "if" in constraints:
                 branch_if_constraints.append(constraints["if"])
@@ -582,10 +581,11 @@ class CodeBlock:
             self.is_constant.add(var)
             return  # Don't emit constraint for constants
         
-        self.variable_table[var] = Variable(var, type_=type_)
+        self.new_evolving_variable(var, type_=type_, versions=0)
+        print("type_", type_)
         if value is not None:
-            self.new_evolving_variable(var, loop_scope)
-            self.constraints.append(Constraint(f"{var}[{self.variable_index[var]}] = {value}"))
+            self.new_evolving_variable(var, type_=type_)
+            self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}] = {value}"))
 
 
 def all_indices(shape):

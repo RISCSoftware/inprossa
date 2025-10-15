@@ -427,6 +427,15 @@ constraint a[1] = 0;
 solve satisfy;"""
     },
     {
+        "name": "test_float_type2",
+        "code": """
+a : float = 0
+""",
+        "expected_translation": """array[1..1] of var float: a;
+constraint a[1] = 0;
+solve satisfy;"""
+    },
+    {
         "name": "test_simple_function",
         "code": """
 def f(a, b):
