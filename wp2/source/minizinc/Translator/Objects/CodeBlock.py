@@ -14,7 +14,6 @@ class CodeBlock:
       - variable_declarations (var type/domain)
       - constraints (generated Constraint objects)
       - extra_array_decls (arrays needed for predicate calls, e.g., a1,b1,c1,d1)
-      - predicate_call_counts (for unique array suffixes per predicate)
 
     Provides helpers to emit MiniZinc declarations and constraints for this block.
     """
@@ -28,8 +27,6 @@ class CodeBlock:
         self.constraints = []
         # Predicate registry: name -> Predicate
         self.predicates = {} if predicates is None else dict(predicates)
-        # Counter per predicate for unique call arrays (a1,b1,...) then (a2,b2,...)
-        self.predicate_call_counts = defaultdict(int)
 
     def run(self, block, loop_scope=None):
         """Execute an AST statement list (block)."""
@@ -296,8 +293,8 @@ class CodeBlock:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_inputs} inputs, got {len(in_exprs)}")
 
         # Unique arrays for this call (a__1,b__1,c__1,d__1), (a__2,b__2,c__2,d__2), ...
-        self.predicate_call_counts[pred.name] += 1
-        call_idx = self.predicate_call_counts[pred.name]
+        pred.call_count += 1
+        call_idx = pred.call_count
 
         array_arg_names = []
         # Use the same order as predicate arrays_order

@@ -101,7 +101,6 @@ class MiniZincTranslator:
 
     def get_vars_declrs(self, block):
         """Get all variable declarations (evolving and non-evolving)."""
-        print("Variables in top-level block:", block.variable_table.keys())
         return [declr.to_minizinc() for declr in block.variable_table.values()]
 
     def get_constraints(self, block):

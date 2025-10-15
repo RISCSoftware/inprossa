@@ -13,6 +13,8 @@ class Predicate(CodeBlock):
         self.n_inputs = len(self.input_names)
         self.return_names = self._extract_return_names(func_node)
         self.n_outputs = len(self.return_names)
+        # Counter per predicate for unique call arrays (a1,b1,...) then (a2,b2,...)
+        self.call_count = 0
 
         # Execute function body to collect constraints and versioning
         func_body = [s for s in func_node.body if not isinstance(s, ast.Return)]
