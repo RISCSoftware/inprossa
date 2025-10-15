@@ -10,7 +10,6 @@ class CodeBlock:
     """
     Executes a block of Python statements, tracks:
       - symbol_table (UPPERCASE constants)
-      - is_constant (set of constant names)
       - variable_index (versioning x[1], x[2], ...)
       - variable_declarations (var type/domain)
       - constraints (generated Constraint objects)
@@ -29,7 +28,6 @@ class CodeBlock:
         self.all_variable_declarations = {}
         # Tracks the set of constant (symbolic) names, identified by being all uppercase
         self.symbol_table = {} if symbol_table is None else dict(symbol_table)
-        self.is_constant = set(self.symbol_table.keys())
         # List of accumulated constraints generated during symbolic execution
         self.constraints = []
         # Predicate registry: name -> Predicate
@@ -110,7 +108,6 @@ class CodeBlock:
 
             # Constant (e.g., MAX_LENGTH)
             if name.isupper():
-                self.is_constant.add(name)
                 return name
 
             # Not constant, not loop var — must be a normal variable
@@ -318,14 +315,13 @@ class CodeBlock:
         array_arg_names = []
         # Use the same order as predicate arrays_order
         for v in pred.arrays_order:
-            declr = pred.all_variable_declarations[v]
+            var_obj = pred.all_variable_declarations[v]
             arr_name = f"{v}__{call_idx}"
             array_arg_names.append(arr_name)
             # Declare arrays needed for this call
             self.all_variable_declarations[arr_name] = Variable(arr_name,
-                                                                   versions=declr.versions,
-                                                                   type_="int")
-            
+                                                                versions=var_obj.versions,
+                                                                type_=var_obj.type)
 
         # Emit the predicate call as a constraint
         call_line = pred.emit_call_line(in_exprs, out_exprs, array_arg_names)
@@ -578,7 +574,6 @@ class CodeBlock:
             # Save in constants; name, value and type
             # constant_value = self.record_constant_definition(stmt.value)
             self.symbol_table[var] = Constant(var, value, type_=type_)
-            self.is_constant.add(var)
             return  # Don't emit constraint for constants
         
         self.new_evolving_variable(var, type_=type_, versions=0)
