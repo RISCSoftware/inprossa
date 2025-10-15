@@ -450,10 +450,10 @@ c = f(1, 2)
     c[1] = (a[1] + b[1]) /\\
     output_1 = c[1]
     );
+array[1..1] of var int: c;
 array[1..1] of var int: a__1;
 array[1..1] of var int: b__1;
 array[1..1] of var int: c__1;
-array[1..1] of var int: c;
 constraint f(1, 2, c[1], a__1, b__1, c__1);
 solve satisfy;"""
     },
@@ -475,12 +475,12 @@ c, d = f(1, 2)
     output_1 = c[1] /\\
     output_2 = d[1]
     );
+array[1..1] of var int: c;
+array[1..1] of var int: d;
 array[1..1] of var int: a__1;
 array[1..1] of var int: b__1;
 array[1..1] of var int: c__1;
 array[1..1] of var int: d__1;
-array[1..1] of var int: c;
-array[1..1] of var int: d;
 constraint f(1, 2, c[1], d[1], a__1, b__1, c__1, d__1);
 solve satisfy;"""
     },
@@ -500,10 +500,10 @@ c = f(1, 2)
     c[1] = (a[1] + b[1]) /\\
     output_1 = c[1]
     );
+array[1..1] of var int: c;
 array[1..1] of var int: a__1;
 array[1..1] of var int: b__1;
 array[1..1] of var int: c__1;
-array[1..1] of var int: c;
 constraint f(1, 2, c[1], a__1, b__1, c__1);
 solve satisfy;"""
     },
@@ -534,19 +534,19 @@ assert c > d
     output_1 = c[2] /\\
     output_2 = d[1]
     );
+array[1..4] of var int: x;
+array[1..1] of var int: c;
+array[1..1] of var int: d;
 array[1..1] of var int: a__1;
 array[1..1] of var int: b__1;
 array[1..2] of var int: c__1;
 array[1..1] of var int: d__1;
+array[1..1] of var int: e;
+array[1..1] of var int: g;
 array[1..1] of var int: a__2;
 array[1..1] of var int: b__2;
 array[1..2] of var int: c__2;
 array[1..1] of var int: d__2;
-array[1..4] of var int: x;
-array[1..1] of var int: c;
-array[1..1] of var int: d;
-array[1..1] of var int: e;
-array[1..1] of var int: g;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + 3);
 constraint x[3] = (x[2] + 1);
@@ -588,11 +588,11 @@ predicate g(var int: input_1, var int: input_2, var int: output_1, array[1..1] o
     c[2] = (c[1] + b[1]) /\\
     output_1 = c[2]
     );
+array[1..1] of var int: c;
 array[1..1] of var int: a__1;
 array[1..2] of var int: a__1__1;
 array[1..1] of var int: b__1;
 array[1..2] of var int: c__1;
-array[1..1] of var int: c;
 constraint g(2, 2, c[1], a__1, a__1__1, b__1, c__1);
 solve satisfy;"""
     },

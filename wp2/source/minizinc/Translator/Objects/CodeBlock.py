@@ -20,12 +20,8 @@ class CodeBlock:
     """
 
     def __init__(self, *, symbol_table=None, predicates=None):
-        # # Tracks the current version (index) of each variable (e.g., x[0], x[1], ...)
-        # self.variable_index = {}
-        # varname → (type, domain), e.g. ('int', [4,10]), ('float', [4.0,10.0])
-        self.variable_table = {}
         # varname → Variable
-        self.all_variable_declarations = {}
+        self.variable_table = {}
         # Tracks the set of constant (symbolic) names, identified by being all uppercase
         self.symbol_table = {} if symbol_table is None else dict(symbol_table)
         # List of accumulated constraints generated during symbolic execution
@@ -39,16 +35,7 @@ class CodeBlock:
         """Execute an AST statement list (block)."""
         self.execute_block(block, {} if loop_scope is None else loop_scope)
         # Add declarations of the evolving variables now that we know their length
-        self.evolving_vars_declaration()
         return self
-
-    def evolving_vars_declaration(self):
-        """Declare arrays for evolving variables in this block."""
-        decls = []
-        for var, var_obj in self.variable_table.items():
-            self.all_variable_declarations[var] = var_obj
-        return decls
-
     # TODO Merge the declarations and run the get?... in minizinc translator
 
     def new_evolving_variable(self, name, type_=None, versions=1):
@@ -315,11 +302,11 @@ class CodeBlock:
         array_arg_names = []
         # Use the same order as predicate arrays_order
         for v in pred.arrays_order:
-            var_obj = pred.all_variable_declarations[v]
+            var_obj = pred.variable_table[v]
             arr_name = f"{v}__{call_idx}"
             array_arg_names.append(arr_name)
             # Declare arrays needed for this call
-            self.all_variable_declarations[arr_name] = Variable(arr_name,
+            self.variable_table[arr_name] = Variable(arr_name,
                                                                 versions=var_obj.versions,
                                                                 type_=var_obj.type)
 

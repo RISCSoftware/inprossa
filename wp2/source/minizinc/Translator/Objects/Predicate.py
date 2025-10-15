@@ -28,7 +28,7 @@ class Predicate(CodeBlock):
 
         # Internal arrays order and sizes (stable ordering)
 
-        self.arrays_order = sorted(self.all_variable_declarations.keys())
+        self.arrays_order = sorted(self.variable_table.keys())
 
     def _extract_return_names(self, func_node):
         # Find first/last return in function (use last)
@@ -59,7 +59,7 @@ class Predicate(CodeBlock):
         params += [f"var int: output_{i+1}" for i in range(self.n_outputs)]
         # arrays (as var int arrays)
         for v in self.arrays_order:
-            params += [self.all_variable_declarations[v].to_minizinc()]
+            params += [self.variable_table[v].to_minizinc()]
 
         # Build boolean body: input inits, function constraints, output bindings
         exprs = []
