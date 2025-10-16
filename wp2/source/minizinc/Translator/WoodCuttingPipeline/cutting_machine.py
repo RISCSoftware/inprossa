@@ -4,7 +4,7 @@ def cutting_machine(board_list: DSList(N_BOARDS, Board),
     pieces: DSList(N_PIECES, Piece)
     for board_index, board in enumerate(board_list):
         cut_list = cuts_list_list[board_index]
-        assert cut_list[0] == 0
+        assert cut_list[1] == 0
         assert cut_list[MAX_N_CUTS_PER_BOARD] == board.length
         for interval in board.curved_intervals:
             assert any(interval.start <= cut and cut <= interval.end for cut in cut_list)

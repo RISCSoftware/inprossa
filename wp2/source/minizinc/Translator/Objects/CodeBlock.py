@@ -1,7 +1,7 @@
 import ast
 from collections import defaultdict
 from Translator.Objects.Constraint import Constraint
-from Translator.Objects.DSTypes import compute_type
+from Translator.Objects.DSTypes import DSList, compute_type
 from Translator.Objects.Variable import Variable
 from itertools import product
 from Translator.Objects.Constant import Constant
@@ -99,8 +99,7 @@ class CodeBlock:
                 # First-time reference (e.g., used in an expression before assignment)
                 self.new_evolving_variable(name)
 
-            return f"{name}[{self.variable_table[name].versions}]"
-            # TODO this could be given by a proc in the object
+            return self.variable_table[name].versioned_name()
 
         elif isinstance(expr, ast.Constant):
             # Handle literals: numbers, booleans
@@ -234,17 +233,13 @@ class CodeBlock:
                 idx_str = f"{int(idx)}"
             elif isinstance(index_node, (ast.List, ast.Tuple)):
                 idx_str = ']['.join(self.rewrite_expr(elt, loop_scope) for elt in index_node.elts)
+            
+            self.create_equality_constraint(f"{self.variable_table[base].versioned_name()}[{idx_str}]", rhs, loop_scope)
             # access with leading version dimension
-            self.constraints.append(Constraint(f"{base}[{self.variable_table[base].version}][{idx_str}] = {rhs}"))
-            return f"{base}[{self.variable_table[base].version}][{idx_str}]"
+            return
 
-    
-
-        if isinstance(lhs, ast.Attribute):
-            var = lhs.attr
-        else:
-            # Normal assignment
-            var = lhs.id
+        # Normal assignment
+        var = lhs.id
 
         # Detect and record constant definitions (uppercase names)
         if var.isupper():
@@ -252,18 +247,26 @@ class CodeBlock:
 
         # For evolving variables, emit a versioned constraint
         if var not in self.variable_table:
-            if isinstance(rhs, ast.List):
-                _, dims = self.rewrite_expr(rhs, loop_scope, return_dimensions=True)
-                self.new_evolving_variable(var, dims=dims)
-                for index in all_indices(dims):
-                    idx_str = ']['.join(str(i) for i in index)
-                    self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}][{idx_str}] = {rhs}[{idx_str}]"))
-                return
-            else:
-                self.new_evolving_variable(var)
+            self.new_evolving_variable(var)
         else:
             self.variable_table[var].versions += 1
-        self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}] = {rhs}"))
+        self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs, loop_scope)
+        
+
+    def create_equality_constraint(self, lhs_name, rhs, loop_scope):
+        if isinstance(rhs, ast.List):
+            length = len(rhs.elts)
+            list_elem_type = []
+            for index in range(1, length + 1):
+                elem_type = self.create_equality_constraint(f"{lhs_name}[{index}]", rhs.elts[index - 1], loop_scope)
+                list_elem_type.append(elem_type)
+            if len(set(list_elem_type)) != 1:
+                raise ValueError(f"List elements have inconsistent types: {list_elem_type}")
+            return DSList(length, elem_type=elem_type)
+        else:
+            self.constraints.append(Constraint(f"{lhs_name} = {rhs}"))
+            return "int" # TODO infer type from rhs
+
 
     def record_constant_definition(self, value_node):
         """Extracts the value of a constant definition from its AST node."""

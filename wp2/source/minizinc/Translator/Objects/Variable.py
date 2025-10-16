@@ -38,6 +38,9 @@ class Variable:
             return f"{self._array_prefix()}var {self.type}: {self.name}"
         else:
             return f"{self._array_prefix()}var {self.type.representation()}: {self.name}"
+        
+    def versioned_name(self):
+        return f"{self.name}[{self.versions}]"
 
     def __str__(self):
             return self.to_minizinc()
