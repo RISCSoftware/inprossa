@@ -82,7 +82,7 @@ class DSBool:
 class DSList:
     def __init__(self,
                  length: Union[int, str],
-                 elem_type: type = None,
+                 elem_type: type = "int",
                  name: str = None
                  ):
         self.name = name
@@ -91,15 +91,11 @@ class DSList:
 
     def representation(self, known_types: Optional[set] = None):
         representation = f"array[1..{self.length}] of "
-        if self.elem_type is not None:
-            type_repr = compute_type(self.elem_type)
-            if isinstance(type_repr, str):
-                representation += type_repr
-            else:
-                representation += compute_type(self.elem_type).representation()
+        type_repr = compute_type(self.elem_type)
+        if isinstance(type_repr, str):
+            representation += type_repr
         else:
-            # default to int if not specified
-            representation += "int"
+            representation += type_repr.representation()
         return representation
 
     def emit_definition(self, known_types: Optional[set] = None):
@@ -143,6 +139,7 @@ class DSType:
             self.type_obj = DSInt(name=self.name, *self.positional_args, **self.arguments)
         elif self.type_object_name == "DSFloat":
             self.type_obj = DSFloat(name=self.name, *self.positional_args, **self.arguments)
+            print("DSFloat args:", self.type_obj)
         elif self.type_object_name == "DSBool":
             self.type_obj = DSBool(name=self.name, *self.positional_args, **self.arguments)
         elif self.type_object_name == "DSList":
@@ -167,6 +164,8 @@ def compute_type(
         type_node: Union[ast.Call, ast.Name],
         type_name: str = None
         ) -> DSType:
+    if isinstance(type_node, (DSInt, DSFloat, DSBool, DSList, DSRecord)):
+        return type_node
     if isinstance(type_node, str) and type_name is None:
         # Already a string type name
         if type_node == "int":
@@ -182,7 +181,8 @@ def compute_type(
         return type_node.id
     if isinstance(type_node, ast.Call):
         # A DS type constructor call
-        return DSType(type_node, type_name).type_obj
+        type_obj = DSType(type_node, type_name).return_type()
+        return type_obj
     raise ValueError(f"Unsupported type node: {type_node}")
 
 minizinc_original_types = {

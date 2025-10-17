@@ -33,6 +33,9 @@ class Variable:
     def define_versions(self, versions):
         self.versions = versions
 
+    def define_type(self, type_):
+        self.type = type_
+
     def to_minizinc(self):
         if isinstance(self.type, str):
             return f"{self._array_prefix()}var {self.type}: {self.name}"
