@@ -37,9 +37,6 @@ class CodeBlock:
 
     def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
-        if type_ is None:
-            # print(f"Warning: Variable '{name}' used without assignment: assuming type 'int'")
-            type_ = "int"
         self.variable_table[name] = Variable(name, type_=type_, versions=versions)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False):
@@ -215,6 +212,9 @@ class CodeBlock:
             else:
                 raise ValueError(f"Unknown predicate/function called: {fname}")
 
+        # Rewrite right-hand side expression
+        rhs_expr = self.rewrite_expr(rhs, loop_scope)
+
             
         # Subscript assignment: e.g., a[1] = 5
         if isinstance(lhs, ast.Subscript):
@@ -232,7 +232,7 @@ class CodeBlock:
             elif isinstance(index_node, (ast.List, ast.Tuple)):
                 idx_str = ']['.join(self.rewrite_expr(elt, loop_scope) for elt in index_node.elts)
             
-            self.create_equality_constraint(f"{self.variable_table[base].versioned_name()}[{idx_str}]", rhs, loop_scope)
+            self.create_equality_constraint(f"{self.variable_table[base].versioned_name()}[{idx_str}]", rhs_expr, rhs, loop_scope)
             # access with leading version dimension
             return
 
@@ -248,15 +248,17 @@ class CodeBlock:
             self.new_evolving_variable(var)
         else:
             self.variable_table[var].versions += 1
-        type_ = self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs, loop_scope)
-        self.variable_table[var].define_type(type_)
+        type_ = self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs_expr, rhs, loop_scope)
+        print("type_ in assign", type_.representation() if not isinstance(type_, str) else type_, self.variable_table[var].type)
+        if self.variable_table[var].type == None:
+            self.variable_table[var].define_type(type_)
 
-    def create_equality_constraint(self, lhs_name, rhs, loop_scope):
+    def create_equality_constraint(self, lhs_name, rhs_expr, rhs, loop_scope):
         if isinstance(rhs, ast.List):
             length = len(rhs.elts)
             list_elem_type = []
             for index in range(1, length + 1):
-                elem_type = self.create_equality_constraint(f"{lhs_name}[{index}]", rhs.elts[index - 1], loop_scope)
+                elem_type = self.create_equality_constraint(f"{lhs_name}[{index}]", f"{rhs_expr}[{index}]", rhs.elts[index - 1], loop_scope)
                 list_elem_type.append(elem_type.representation() if not isinstance(elem_type, str) else elem_type) # Make sure they are of the same type
             if len(set(list_elem_type)) != 1:
                 raise ValueError(f"List elements have inconsistent types: {list_elem_type}")
@@ -264,7 +266,6 @@ class CodeBlock:
                 print("list_elem_type", list_elem_type[0])
             return DSList(length, elem_type=elem_type)
         else:
-            rhs_expr = self.rewrite_expr(rhs, loop_scope)
             self.constraints.append(Constraint(f"{lhs_name} = {rhs_expr}"))
             return "int" # TODO infer type from rhs
 

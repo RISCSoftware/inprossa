@@ -25,8 +25,12 @@ class DSInt:
         declaration = f"type {self.name} = {self.representation()}"
         return declaration
 
-    def representation(self, known_types: Optional[set] = None):
-        representation = ""
+    def representation(self, known_types: Optional[set] = None, with_vars=False):
+        if with_vars:
+            representation = "var "
+        else:
+            representation = ""
+
         if self.lb is None and self.ub is None:
             representation += "int"
             return representation
@@ -53,8 +57,12 @@ class DSFloat:
         declaration = f"type {self.name} = {self.representation()}"
         return declaration
     
-    def representation(self, known_types: Optional[set] = None):
-        representation = ""
+    def representation(self, known_types: Optional[set] = None, with_vars=False):
+        if with_vars:
+            representation = "var "
+        else:
+            representation = ""
+
         if self.lb is None and self.ub is None:
             representation += "float"
             return representation
@@ -76,7 +84,9 @@ class DSBool:
     def emit_definition(self, known_types: Optional[set] = None):
         return f"type {self.name} = bool"
 
-    def representation(self, known_types: Optional[set] = None):
+    def representation(self, known_types: Optional[set] = None, with_vars=False):
+        if with_vars:
+            return "var bool"
         return "bool"
 
 class DSList:
@@ -89,17 +99,17 @@ class DSList:
         self.length = remove_ast(length)
         self.elem_type = elem_type
 
-    def representation(self, known_types: Optional[set] = None):
+    def representation(self, known_types: Optional[set] = None, with_vars=False):
         representation = f"array[1..{self.length}] of "
         type_repr = compute_type(self.elem_type)
         if isinstance(type_repr, str):
             representation += type_repr
         else:
-            representation += type_repr.representation()
+            representation += type_repr.representation(with_vars=with_vars, known_types=known_types)
         return representation
 
     def emit_definition(self, known_types: Optional[set] = None):
-        declaration = f"type {self.name} = {self.representation()}"
+        declaration = f"type {self.name} = {self.representation(known_types=known_types)}"
         return declaration
 
 class DSRecord:
@@ -117,13 +127,13 @@ class DSRecord:
         fields_str = ",\n    ".join(field_defs)
         return fields_str
     
-    def representation(self, known_types: Optional[set] = None):
+    def representation(self, known_types: Optional[set] = None, with_vars=False):
         self.known_types = known_types if known_types is not None else set()
         self.fields_declarations = self.fields_declarations()
         return f"record(\n    {self.fields_declarations}\n)"
 
     def emit_definition(self, known_types: Optional[set] = None):
-        return f"type {self.name} = {self.representation()}"
+        return f"type {self.name} = {self.representation(known_types=known_types)}"
 
 class DSType:
     def __init__(self,

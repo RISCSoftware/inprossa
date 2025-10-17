@@ -11,7 +11,7 @@ class Variable:
     """
     def __init__(self,
                  name,
-                 type_="int",
+                 type_=None,
                  versions=None,
                  annotation=None):
         self.name = name
@@ -37,10 +37,12 @@ class Variable:
         self.type = type_
 
     def to_minizinc(self):
+        if self.type is None:
+            return f"{self._array_prefix()}var int: {self.name}"
         if isinstance(self.type, str):
             return f"{self._array_prefix()}var {self.type}: {self.name}"
         else:
-            return f"{self._array_prefix()}var {self.type.representation()}: {self.name}"
+            return f"{self._array_prefix()}{self.type.representation(with_vars=True)}: {self.name}"
         
     def versioned_name(self):
         return f"{self.name}[{self.versions}]"
