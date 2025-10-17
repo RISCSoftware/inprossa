@@ -18,7 +18,7 @@ class CodeBlock:
     Provides helpers to emit MiniZinc declarations and constraints for this block.
     """
 
-    def __init__(self, *, symbol_table=None, predicates=None):
+    def __init__(self, *, symbol_table=None, predicates=None, types=None):
         # varname → Variable
         self.variable_table = {}
         # Tracks the set of constant (symbolic) names, identified by being all uppercase
@@ -27,6 +27,8 @@ class CodeBlock:
         self.constraints = []
         # Predicate registry: name -> Predicate
         self.predicates = {} if predicates is None else dict(predicates)
+        # Type registry: name -> DSType
+        self.types = {} if types is None else dict(types)
 
     def run(self, block, loop_scope=None):
         """Execute an AST statement list (block)."""
@@ -352,7 +354,14 @@ class CodeBlock:
             const_name = stmt.iter.id
             if const_name in self.symbol_table:
                 # iterate by 1-based index to keep symbolic access
-                n = self.symbol_table[const_name].type.length
+                print("const_name in symbol_table", const_name, self.symbol_table[const_name].type)
+                const_type = self.symbol_table[const_name].type
+                if isinstance(const_type, DSList):
+                    n = const_type.length
+                elif isinstance(const_type, str):
+                    n = self.types[const_type].length
+                else:
+                    raise ValueError(f"Unsupported constant type for array iteration: {const_type}")
                 iter_values = list(range(1, n + 1))  # positions
                 loop_vars = [stmt.target.id]
                 meta.update(kind="const", array_name=const_name)

@@ -59,7 +59,7 @@ class MiniZincTranslator:
 
     def compile(self):
         """Execute top-level block with access to registered predicates"""
-        block = CodeBlock(predicates=self.predicates)
+        block = CodeBlock(predicates=self.predicates, types=self.types)
         block.run(self.top_level_stmts, loop_scope={})
 
         parts = []

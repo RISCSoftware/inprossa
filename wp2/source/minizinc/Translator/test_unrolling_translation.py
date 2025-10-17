@@ -333,55 +333,57 @@ constraint x[2] = ((x[1] + 4) + 1);
 constraint x[3] = ((x[2] + 2) + 2);
 solve satisfy;"""
     },
-#     {
-#         "name": "test_for_with_constant_list",
-#         "code": """
-# ValueType = DSList(2, int)
-# VALUES: ValueType = [1, 2];
-# x = 0
-# for t in VALUES:
-#     x = x + t
-# """,
-#         "expected_translation": """array[1..2] of int: VALUES = [1, 2];
-# array[1..3] of var int: x;
-# constraint x[1] = 0;
-# constraint x[2] = (x[1] + VALUES[1]);
-# constraint x[3] = (x[2] + VALUES[2]);
-# solve satisfy;"""
-#     },
-#     {
-#         "name": "test_for_as_index_of_list",
-#         "code": """
-# ValueType = DSList(3, int)
-# VALUES : ValueType = [1, 2, 4]
-# x = 0
-# for i in range(1, 4):
-#     x = x + VALUES[i]
-# """,
-#         "expected_translation": """array[1..3] of int: VALUES = [1, 2, 4];
-# array[1..4] of var int: x;
-# constraint x[1] = 0;
-# constraint x[2] = (x[1] + VALUES[1]);
-# constraint x[3] = (x[2] + VALUES[2]);
-# constraint x[4] = (x[3] + VALUES[3]);
-# solve satisfy;"""
-#     },
-#     {
-#         "name": "test_constant_as_index_of_list",
-#         "code": """
-# MyList = DSList(3, int)
-# VALUES : MyList = [1, 2, 4]
-# I : int = 3
-# x = 0
-# x = x + VALUES[I]
-# """,
-#         "expected_translation": """array[1..3] of int: VALUES = [1, 2, 4];
-# int: I = 3;
-# array[1..2] of var int: x;
-# constraint x[1] = 0;
-# constraint x[2] = (x[1] + VALUES[I]);
-# solve satisfy;"""
-#     },
+    {
+        "name": "test_for_with_constant_list",
+        "code": """
+ValueType = DSList(2, int)
+VALUES: ValueType = [1, 2];
+x = 0
+for t in VALUES:
+    x = x + t
+""",
+        "expected_translation": """type ValueType = array[1..2] of int;
+ValueType: VALUES = [1, 2];
+array[1..3] of var int: x;
+constraint x[1] = 0;
+constraint x[2] = (x[1] + VALUES[1]);
+constraint x[3] = (x[2] + VALUES[2]);
+solve satisfy;"""
+    },
+    {
+        "name": "test_for_as_index_of_list",
+        "code": """
+ValueType = DSList(3, int)
+VALUES : ValueType = [1, 2, 4]
+x = 0
+for i in range(1, 4):
+    x = x + VALUES[i]
+""",
+        "expected_translation": """type ValueType = array[1..3] of int;
+ValueType: VALUES = [1, 2, 4];
+array[1..4] of var int: x;
+constraint x[1] = 0;
+constraint x[2] = (x[1] + VALUES[1]);
+constraint x[3] = (x[2] + VALUES[2]);
+constraint x[4] = (x[3] + VALUES[3]);
+solve satisfy;"""
+    },
+    {
+        "name": "test_constant_as_index_of_list",
+        "code": """
+MyList = DSList(3, int)
+VALUES : MyList = [1, 2, 4]
+I : int = 3
+x = 0
+x = x + VALUES[I]
+""",
+        "expected_translation": """array[1..3] of int: VALUES = [1, 2, 4];
+int: I = 3;
+array[1..2] of var int: x;
+constraint x[1] = 0;
+constraint x[2] = (x[1] + VALUES[I]);
+solve satisfy;"""
+    },
     {
         "name": "test_variable_created_in_if",
         "code": """
