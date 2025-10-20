@@ -35,14 +35,14 @@ class MiniZincObject:
                     initialisation.run(stmt.body, loop_scope={})
                     print("Initialisation for", self.name, ":", initialisation.all_variable_declarations)
                     constants = []
-                    for k, v in initialisation.symbol_table.items():
+                    for k, v in initialisation.constant_table.items():
                         constants.append(Constant(k, v))
                     new_record = Record(f"{self.name}",
                                         list(initialisation.all_variable_declarations.values()),
                                         constants)
                     print("Emitting record definition for", self.name)
                     print(new_record.emit_definition())
-                    print(initialisation.symbol_table)
+                    print(initialisation.constant_table)
                 else:
                     ns_name = f"{self.name}__{stmt.name}"
                     print("Defining method predicate:", ns_name)

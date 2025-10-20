@@ -1,12 +1,16 @@
 
 code_check_machine = f"""
+MAX_PIECES_PER_BEAM = 10
+MIN_DIST_BETWEEN_PIECES = 2
+MAX_PIECES_PER_BEAM = 10
 def checking_machine(pieces: DSList(elem_type = Piece)):
     depth = 0
     length = 0
     n_length = 0
     n_prev_layer = 0
     new_beam = True
-    for piece in pieces:
+    PIECES : DSList(5, Piece)
+    for piece in PIECES:
         length = length + piece.length
         n_length = n_length + 1
         assert length <= BEAM_LENGTH

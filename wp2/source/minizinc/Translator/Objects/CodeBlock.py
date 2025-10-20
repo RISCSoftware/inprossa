@@ -9,7 +9,7 @@ import copy
 class CodeBlock:
     """
     Executes a block of Python statements, tracks:
-      - symbol_table (UPPERCASE constants)
+      - constant_table (UPPERCASE constants)
       - variable_index (versioning x[1], x[2], ...)
       - variable_declarations (var type/domain)
       - constraints (generated Constraint objects)
@@ -18,11 +18,11 @@ class CodeBlock:
     Provides helpers to emit MiniZinc declarations and constraints for this block.
     """
 
-    def __init__(self, *, symbol_table=None, predicates=None, types=None):
+    def __init__(self, *, constant_table=None, predicates=None, types=None):
         # varname → Variable
         self.variable_table = {}
         # Tracks the set of constant (symbolic) names, identified by being all uppercase
-        self.symbol_table = {} if symbol_table is None else dict(symbol_table)
+        self.constant_table = {} if constant_table is None else dict(constant_table)
         # List of accumulated constraints generated during symbolic execution
         self.constraints = []
         # Predicate registry: name -> Predicate
@@ -125,7 +125,8 @@ class CodeBlock:
                 args = [self.rewrite_expr(arg, loop_scope) for arg in expr.args]
                 return f"{func_name}({', '.join(args)})"
             else:
-                raise ValueError(f"Unsupported function call in expression: {func_name}")
+                if func_name[:2] != "DS":
+                    raise ValueError(f"Unsupported function call in expression: {func_name}")
 
         elif isinstance(expr, ast.List):
             # Elements rewritten recursively so Names/Calls/etc. are handled
@@ -212,7 +213,8 @@ class CodeBlock:
             if fname in self.predicates:
                 return self._handle_predicate_call_assign(lhs, rhs, loop_scope, self.predicates[fname])
             else:
-                raise ValueError(f"Unknown predicate/function called: {fname}")
+                if fname[:2] != "DS":
+                    raise ValueError(f"Unknown predicate/function called: {fname}")
 
         # Rewrite right-hand side expression
         rhs_expr = self.rewrite_expr(rhs, loop_scope)
@@ -352,10 +354,11 @@ class CodeBlock:
         # Case 3: iterate over constant name: for x in PIECES
         elif isinstance(stmt.iter, ast.Name):
             const_name = stmt.iter.id
-            if const_name in self.symbol_table:
+            print("const_name in constant_table", self.types)
+            if const_name in self.constant_table:
                 # iterate by 1-based index to keep symbolic access
-                print("const_name in symbol_table", const_name, self.symbol_table[const_name].type)
-                const_type = self.symbol_table[const_name].type
+                print("const_name in constant_table", const_name, self.constant_table[const_name].type)
+                const_type = self.constant_table[const_name].type
                 if isinstance(const_type, DSList):
                     n = const_type.length
                 elif isinstance(const_type, str):
@@ -391,16 +394,17 @@ class CodeBlock:
         # Evaluate start
         if isinstance(start_node, ast.Constant):
             start_val = start_node.value
-        elif isinstance(start_node, ast.Name) and start_node.id in self.symbol_table:
-            start_val = self.symbol_table[start_node.id]
+        elif isinstance(start_node, ast.Name) and start_node.id in self.constant_table:
+            start_val = self.constant_table[start_node.id]
         else:
             raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
 
         # Evaluate end
+        print("Symbol table in range", self.constant_table)
         if isinstance(end_node, ast.Constant):
             end_val = end_node.value
-        elif isinstance(end_node, ast.Name) and end_node.id in self.symbol_table:
-            end_val = self.symbol_table[end_node.id]
+        elif isinstance(end_node, ast.Name) and end_node.id in self.constant_table:
+            end_val = self.constant_table[end_node.id]
         else:
             raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
 
@@ -419,8 +423,8 @@ class CodeBlock:
         if isinstance(arg, ast.List):
             values = [elt.value for elt in arg.elts]
         # enumerate over constant array like PIECES
-        elif isinstance(arg, ast.Name) and arg.id in self.symbol_table:
-            values = self.symbol_table[arg.id]
+        elif isinstance(arg, ast.Name) and arg.id in self.constant_table:
+            values = self.constant_table[arg.id]
         else:
             raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
 
@@ -571,7 +575,7 @@ class CodeBlock:
         if var.isupper():
             # Save in constants; name, value and type
             # constant_value = self.record_constant_definition(stmt.value)
-            self.symbol_table[var] = Constant(var, value, type_=type_)
+            self.constant_table[var] = Constant(var, value, type_=type_)
             return  # Don't emit constraint for constants
         
         self.new_evolving_variable(var, type_=type_, versions=0)

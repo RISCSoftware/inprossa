@@ -1,5 +1,5 @@
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
-
+from Translator.WoodCuttingPipeline.check_machine import code_check_machine
 
 
 # ===== Example usage =====
@@ -18,6 +18,7 @@ oneofmyints : MyInt = 3
 a : float
 a = 0
 """
+    code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
     print(model)

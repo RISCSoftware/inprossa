@@ -4,6 +4,8 @@ Figure information to save about:
 Try for the type not to be the str but rather the type itself
 (Why variables not being displayed)
 
+Clean predicates
+
 
 To give the type of a variable we use
 x: MyType

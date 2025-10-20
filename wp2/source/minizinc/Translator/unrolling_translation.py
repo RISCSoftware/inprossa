@@ -121,7 +121,7 @@ class MiniZincTranslator:
 
         # Declare constants as MiniZinc symbols (not versioned)
         symbol_decls = []
-        for name, val in self.symbol_table.items():
+        for name, val in self.constant_table.items():
             if isinstance(val, int):
                 symbol_decls.append(f"int: {name} = {val};")
             elif isinstance(val, list):
@@ -155,7 +155,7 @@ class CodeBlock:
         self.variable_declarations = {}
         # Tracks the set of constant (symbolic) names,
         # identified by being all uppercase
-        self.symbol_table = {}
+        self.constant_table = {}
         self.is_constant = set()
         # List of accumulated constraints generated during symbolic execution
         self.constraints = []
@@ -272,9 +272,9 @@ class CodeBlock:
         # Detect and record constant definitions (uppercase names)
         if var.isupper():
             if isinstance(stmt.value, ast.Constant):
-                self.symbol_table[var] = stmt.value.value
+                self.constant_table[var] = stmt.value.value
             elif isinstance(stmt.value, ast.List):
-                self.symbol_table[var] = [elt.value for elt in stmt.value.elts]
+                self.constant_table[var] = [elt.value for elt in stmt.value.elts]
             self.is_constant.add(var)
             return  # Don't emit constraint for constants
 
@@ -292,16 +292,16 @@ class CodeBlock:
         # Evaluate start
         if isinstance(start_node, ast.Constant):
             start_val = start_node.value
-        elif isinstance(start_node, ast.Name) and start_node.id in self.symbol_table:
-            start_val = self.symbol_table[start_node.id]
+        elif isinstance(start_node, ast.Name) and start_node.id in self.constant_table:
+            start_val = self.constant_table[start_node.id]
         else:
             raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
 
         # Evaluate end
         if isinstance(end_node, ast.Constant):
             end_val = end_node.value
-        elif isinstance(end_node, ast.Name) and end_node.id in self.symbol_table:
-            end_val = self.symbol_table[end_node.id]
+        elif isinstance(end_node, ast.Name) and end_node.id in self.constant_table:
+            end_val = self.constant_table[end_node.id]
         else:
             raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
 
@@ -320,8 +320,8 @@ class CodeBlock:
         if isinstance(arg, ast.List):
             values = [elt.value for elt in arg.elts]
         # enumerate over constant array like PIECES
-        elif isinstance(arg, ast.Name) and arg.id in self.symbol_table:
-            values = self.symbol_table[arg.id]
+        elif isinstance(arg, ast.Name) and arg.id in self.constant_table:
+            values = self.constant_table[arg.id]
         else:
             raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
 
@@ -360,9 +360,9 @@ class CodeBlock:
         # Case 3: constant name
         elif isinstance(stmt.iter, ast.Name):
             const_name = stmt.iter.id
-            if const_name in self.symbol_table:
+            if const_name in self.constant_table:
                 # Keep symbolic reference (CONST[i]) to preserve constraints
-                iter_values = [f"{const_name}[{i}]" for i in range(1, len(self.symbol_table[const_name]) + 1)]
+                iter_values = [f"{const_name}[{i}]" for i in range(1, len(self.constant_table[const_name]) + 1)]
                 loop_vars = [stmt.target.id]
             else:
                 raise ValueError(f"Unknown constant array: {const_name}")

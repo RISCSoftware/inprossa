@@ -5,8 +5,8 @@ from Translator.Objects.Variable import Variable
     
 class Predicate(CodeBlock):
     """Translate a Python function into a MiniZinc predicate."""
-    def __init__(self, func_node: ast.FunctionDef, predicates=None, name_override: str | None = None):
-        super().__init__(symbol_table=None, predicates=predicates)
+    def __init__(self, func_node: ast.FunctionDef, predicates=None, constant_table=None, name_override: str | None = None):
+        super().__init__(constant_table=constant_table, predicates=predicates)
         self.func_node = func_node
         self.name = name_override if name_override is not None else func_node.name
         self.input_names = [a.arg for a in func_node.args.args]

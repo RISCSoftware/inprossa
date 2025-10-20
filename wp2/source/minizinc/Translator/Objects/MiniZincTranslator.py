@@ -16,6 +16,7 @@ class MiniZincTranslator:
     """
     def __init__(self, code):
         self.code = code
+        self.constants = dict()          # name -> Constant
         self.types = dict()              # name -> DS... type
         self.predicates = dict()         # name -> Predicate
         self.records = dict()            # class_name -> MiniZincRecord
@@ -37,21 +38,29 @@ class MiniZincTranslator:
         # for node in tree.body:
         #     print(ast.dump(node, indent=4))
         for node in tree.body:
-            # 1) type definitions -> MiniZinc type definitions
-            if (isinstance(node, ast.Assign) and
-                isinstance(node.value, ast.Call) and  # right-hand side is a call
-                isinstance(node.value.func, ast.Name) and
-                node.value.func.id.startswith("DS")):
-                        type_name = node.targets[0].id
-                        mz_type = DSType(node.value, type_name).return_type()
-                        self.types[type_name] = mz_type
+            # 0) Constants
+            # if is an annassignment and lhs is uppercase
+            if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id.isupper():
+                const_name = node.target.id
+                 # Evaluate type
+                code_block = CodeBlock(constant_table=self.constants, predicates=self.predicates, types=self.types)
+                code_block.run([node], loop_scope={})
+                self.constants[const_name] = code_block.constant_table[const_name]
+            # For now the constant should be defined in annassignment
+            # # if is an assignment and lhs is uppercase
+            # elif isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) and node.targets[0].id.isupper():
+            #     const_name = node.targets[0].id
+            #     # Evaluate type
+            #     self.constants[const_name].add_value(ast.unparse(node.value))
+
             # 2) class definitions -> MiniZincObject
             elif isinstance(node, ast.ClassDef):
                 mz_obj = MiniZincObject(node, predicates_registry=self.predicates)
                 self.objects[mz_obj.name] = mz_obj
             # 3) function definitions -> Predicates
             elif isinstance(node, ast.FunctionDef):
-                pred = Predicate(node, predicates=self.predicates)
+                pred = Predicate(node,
+                                 predicates=self.predicates)
                 self.predicates[pred.name] = pred
             else:
                 self.top_level_stmts.append(node)
@@ -59,7 +68,10 @@ class MiniZincTranslator:
 
     def compile(self):
         """Execute top-level block with access to registered predicates"""
-        block = CodeBlock(predicates=self.predicates, types=self.types)
+        block = CodeBlock(
+            constant_table=self.constants,
+            predicates=self.predicates,
+            types=self.types)
         block.run(self.top_level_stmts, loop_scope={})
 
         parts = []
@@ -95,7 +107,7 @@ class MiniZincTranslator:
     def get_symbol_declarations(self, block):
         """Declare constants as MiniZinc symbols (not evolving)."""
         decls = []
-        for constant in block.symbol_table.values():
+        for constant in block.constant_table.values():
             decls.append(constant.to_minizinc())
         return decls
 
