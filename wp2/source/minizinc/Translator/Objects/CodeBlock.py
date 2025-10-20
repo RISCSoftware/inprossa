@@ -77,11 +77,18 @@ class CodeBlock:
         elif isinstance(expr, ast.BoolOp):
             # Handle logical operations: and / or
             op = {
+                # "and": "/\\",
                 ast.And: "/\\",
                 ast.Or: "\\/"
             }.get(type(expr.op), "?")
             values = [self.rewrite_expr(v, loop_scope) for v in expr.values]
             return f"({' {} '.format(op).join(values)})"
+        
+        elif isinstance(expr, ast.UnaryOp):
+            # Handle unary operations: not / -
+            if isinstance(expr.op, ast.Not):
+                operand = self.rewrite_expr(expr.operand, loop_scope)
+                return f"(not {operand})"
 
         elif isinstance(expr, ast.Name):
             name = expr.id

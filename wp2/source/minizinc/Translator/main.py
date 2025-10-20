@@ -15,8 +15,7 @@ PersonRec = DSRecord({"name":string,"age":MyVec})
 oneofmyints : MyInt = 3
 """
     code = """
-a : float
-a = 0
+assert not (interval[0] <= length and length <= interval[1])
 """
     code = code_check_machine
     translator = MiniZincTranslator(code)
