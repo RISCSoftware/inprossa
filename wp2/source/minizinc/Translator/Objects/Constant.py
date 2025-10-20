@@ -8,7 +8,12 @@ class Constant:
                  value: str = None,
                  type_: Union[int, float, bool, DSList] = "int"):
         self.name = name
-        self.value = value
+        # Convert value to appropriate a numeral type if possible
+        if value is not None:
+            try:
+                self.value = ast.literal_eval(value)
+            except:
+                raise ValueError(f"Unable to evaluate constant value: {value}")
         self.type = type_
 
     def to_minizinc(self) -> str:

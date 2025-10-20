@@ -53,14 +53,25 @@ class MiniZincTranslator:
             #     # Evaluate type
             #     self.constants[const_name].add_value(ast.unparse(node.value))
 
+            # 1) type definitions -> MiniZinc type definitions
+            if (isinstance(node, ast.Assign) and
+                isinstance(node.value, ast.Call) and  # right-hand side is a call
+                isinstance(node.value.func, ast.Name) and
+                node.value.func.id.startswith("DS")):
+                        type_name = node.targets[0].id
+                        mz_type = DSType(node.value, type_name).return_type()
+                        self.types[type_name] = mz_type
+
             # 2) class definitions -> MiniZincObject
             elif isinstance(node, ast.ClassDef):
                 mz_obj = MiniZincObject(node, predicates_registry=self.predicates)
                 self.objects[mz_obj.name] = mz_obj
             # 3) function definitions -> Predicates
             elif isinstance(node, ast.FunctionDef):
+                print("CTABLE BEFORE PREDICATE", self.constants)
                 pred = Predicate(node,
-                                 predicates=self.predicates)
+                                 predicates=self.predicates,
+                                 constant_table=self.constants)
                 self.predicates[pred.name] = pred
             else:
                 self.top_level_stmts.append(node)

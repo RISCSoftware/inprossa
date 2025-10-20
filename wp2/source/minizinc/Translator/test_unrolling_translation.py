@@ -377,7 +377,8 @@ I : int = 3
 x = 0
 x = x + VALUES[I]
 """,
-        "expected_translation": """array[1..3] of int: VALUES = [1, 2, 4];
+        "expected_translation": """type MyList = array[1..3] of int;
+MyList: VALUES = [1, 2, 4];
 int: I = 3;
 array[1..2] of var int: x;
 constraint x[1] = 0;

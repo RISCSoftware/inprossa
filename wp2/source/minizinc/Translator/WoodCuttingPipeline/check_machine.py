@@ -1,8 +1,8 @@
 
 code_check_machine = f"""
-MAX_PIECES_PER_BEAM = 10
-MIN_DIST_BETWEEN_PIECES = 2
-MAX_PIECES_PER_BEAM = 10
+MAX_PIECES_PER_BEAM : int = 6
+MIN_DIST_BETWEEN_PIECES : int = 2
+FORBIDDEN_INTERVALS : DSList(2, DSList(2, int)) = [[3,4], [7,8]]
 def checking_machine(pieces: DSList(elem_type = Piece)):
     depth = 0
     length = 0

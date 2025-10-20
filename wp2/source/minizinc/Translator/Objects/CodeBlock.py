@@ -23,6 +23,7 @@ class CodeBlock:
         self.variable_table = {}
         # Tracks the set of constant (symbolic) names, identified by being all uppercase
         self.constant_table = {} if constant_table is None else dict(constant_table)
+        print("CONSTANT TABLE INITIALISED AS", self.constant_table)
         # List of accumulated constraints generated during symbolic execution
         self.constraints = []
         # Predicate registry: name -> Predicate
@@ -401,10 +402,13 @@ class CodeBlock:
 
         # Evaluate end
         print("Symbol table in range", self.constant_table)
+        print("end_node", end_node.id if isinstance(end_node, ast.Name) else end_node, type(end_node), self.constant_table)
         if isinstance(end_node, ast.Constant):
             end_val = end_node.value
         elif isinstance(end_node, ast.Name) and end_node.id in self.constant_table:
-            end_val = self.constant_table[end_node.id]
+            end_val = self.constant_table[end_node.id].value
+            print("end_val from constant table", end_val)
+
         else:
             raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
 
