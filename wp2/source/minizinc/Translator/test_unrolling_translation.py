@@ -621,6 +621,7 @@ solve satisfy;"""
     {
         "name": "test_assign_list",
         "code": """
+pieces : DSList(2, DSList(3, int))
 pieces = [[2,1,5],[2,12,53]]
 pieces[1] = pieces[1]
 """,

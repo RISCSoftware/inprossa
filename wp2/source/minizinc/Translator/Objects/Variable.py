@@ -13,12 +13,19 @@ class Variable:
                  name,
                  type_=None,
                  versions=None,
-                 annotation=None):
+                 annotation=None,
+                 known_types=None):
         self.name = name
         if annotation is not None:
             self.type = compute_type(annotation)
         else:
             self.type = type_
+        if self.type is None:
+            self.representation_type_with_vars = "var int"
+        elif isinstance(self.type, str):  # TODO if is str compute real type earlier
+            self.representation_type_with_vars = f"var {compute_type(self.type).representation()}"
+        else:
+            self.representation_type_with_vars = self.type.representation(with_vars=True, known_types=known_types)
         self.versions = versions
         
     def _array_prefix(self):
@@ -37,12 +44,7 @@ class Variable:
         self.type = type_
 
     def to_minizinc(self):
-        if self.type is None:
-            return f"{self._array_prefix()}var int: {self.name}"
-        if isinstance(self.type, str):
-            return f"{self._array_prefix()}var {self.type}: {self.name}"
-        else:
-            return f"{self._array_prefix()}{self.type.representation(with_vars=True)}: {self.name}"
+        return f"{self._array_prefix()}{self.representation_type_with_vars}: {self.name}"
         
     def versioned_name(self):
         return f"{self.name}[{self.versions}]"

@@ -39,7 +39,7 @@ class CodeBlock:
 
     def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
-        self.variable_table[name] = Variable(name, type_=type_, versions=versions)
+        self.variable_table[name] = Variable(name, type_=type_, versions=versions, known_types=self.types)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False, get_numeral=False, no_more_vars=False):
         """
@@ -166,8 +166,9 @@ class CodeBlock:
         elif isinstance(expr, ast.Expression):
             return self.rewrite_expr(expr.body, loop_scope, get_numeral=get_numeral)
 
-        # elif isinstance(expr, str):
-        #     return expr
+        elif isinstance(expr, str):
+            print("String expr:", expr)
+            return expr
             
 
         else:

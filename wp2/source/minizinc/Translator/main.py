@@ -15,7 +15,10 @@ PersonRec = DSRecord({"name":string,"age":MyVec})
 oneofmyints : MyInt = 3
 """
     code = """
-pieces : DSList(5, DSInt(0,10))
+Piece = DSRecord({
+    "length": DSInt(0, 10)
+})
+pieces : DSList(5, Piece)
 pieces[3].length = 1
 """
     # code = code_check_machine

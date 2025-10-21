@@ -101,7 +101,7 @@ class DSList:
 
     def representation(self, known_types: Optional[set] = None, with_vars=False):
         representation = f"array[1..{self.length}] of "
-        type_repr = compute_type(self.elem_type)
+        type_repr = compute_type(self.elem_type, known_types=known_types)
         if isinstance(type_repr, str):
             representation += type_repr
         else:
@@ -129,8 +129,8 @@ class DSRecord:
     
     def representation(self, known_types: Optional[set] = None, with_vars=False):
         self.known_types = known_types if known_types is not None else set()
-        self.fields_declarations = self.fields_declarations()
-        return f"record(\n    {self.fields_declarations}\n)"
+        self.fields_declar = self.fields_declarations()
+        return f"record(\n    {self.fields_declar}\n)"
 
     def emit_definition(self, known_types: Optional[set] = None):
         return f"type {self.name} = {self.representation(known_types=known_types)}"
@@ -171,7 +171,8 @@ def remove_ast(input):
 
 def compute_type(
         type_node: Union[ast.Call, ast.Name],
-        type_name: str = None
+        type_name: str = None,
+        known_types: Optional[set] = None
         ) -> DSType:
     if isinstance(type_node, (DSInt, DSFloat, DSBool, DSList, DSRecord)):
         return type_node
@@ -184,7 +185,10 @@ def compute_type(
         elif type_node == "bool":
             return DSBool(name=type_node)
         else:
-            raise ValueError(f"Unknown type string: {type_node}")
+            if known_types is not None and type_node in known_types:
+                return known_types[type_node]
+            else:
+                raise ValueError(f"Unknown type string: {type_node}")
     if isinstance(type_node, ast.Name):
         # int, float, bool or an existing type
         return type_node.id
