@@ -1,6 +1,5 @@
 import ast
 from Translator.Objects.CodeBlock import CodeBlock
-from Translator.Objects.Variable import Variable
 
     
 class Predicate(CodeBlock):
@@ -73,7 +72,10 @@ class Predicate(CodeBlock):
 
         # output_k = last_version(return_name)
         for k, ret_name in enumerate(self.return_names, start=1):
-            last = self.variable_table.get(ret_name, Variable(name="", versions=1)).versions
+            if ret_name in self.variable_table:
+                last = self.variable_table[ret_name].versions
+            else:
+                last = 1
             exprs.append(f"output_{k} = {ret_name}[{last}]")
 
         expr_joined = " /\\\n    ".join(exprs)

@@ -39,6 +39,9 @@ class CodeBlock:
 
     def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
+        if name == "pieces[0][3]":
+            print("Here")
+            fasd = fasds
         self.variable_table[name] = Variable(name, type_=type_, versions=versions, known_types=self.types)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False, get_numeral=False, no_more_vars=False):
@@ -205,7 +208,7 @@ class CodeBlock:
 
     # --- ASSIGNMENTS ---
 
-    def execute_block_assign(self, lhs, rhs, loop_scope):
+    def execute_block_assign(self, lhs, rhs, loop_scope, no_more_vars=False):
         """
         Handle assignment statements, including:
             - predicate call assignments: c, d = f(a, b)
@@ -259,14 +262,20 @@ class CodeBlock:
         if isinstance(lhs, ast.Attribute):
             obj_name = self.rewrite_expr(lhs.value, loop_scope, no_more_vars=True)
             attr_name = self.rewrite_expr(lhs.attr, loop_scope, no_more_vars=True)
+            # Find original object variable
+            
             # ensure version counter exists
-            if obj_name not in self.variable_table:
-                self.new_evolving_variable(obj_name, type_="int")  # or infer
+            if obj_name not in self.variable_table and not no_more_vars:
+                self.new_evolving_variable(obj_name)  # or infer
             else:
                 self.variable_table[obj_name].versions += 1
                 # TODO: Handle the rest of object assignment
             # create equality constraint for attribute
-            self.create_equality_constraint(f"{self.variable_table[obj_name].versioned_name()}.{attr_name}", rhs_expr, rhs, loop_scope)
+            self.create_equality_constraint(
+                f"{self.variable_table[obj_name].versioned_name()}.{attr_name}",
+                rhs_expr,
+                rhs,
+                loop_scope)
             return
 
         # Normal assignment # TODO Maybe the previous cases can be deleted
@@ -602,8 +611,8 @@ class CodeBlock:
     # --- TYPE DECLARATIONS ---
 
     def execute_block_annassign(self, stmt, loop_scope):
-        
-        type_ = compute_type(stmt.annotation)
+        print("Known types:", self.types)
+        type_ = compute_type(stmt.annotation, known_types=self.types)
         var = stmt.target.id
         value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None
         if var.isupper():

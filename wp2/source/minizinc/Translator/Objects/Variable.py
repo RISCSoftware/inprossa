@@ -27,6 +27,9 @@ class Variable:
         else:
             self.representation_type_with_vars = self.type.representation(with_vars=True, known_types=known_types)
         self.versions = versions
+
+        # TODO from each type, we can create an object indicating which of its fields have already been assigned
+        self.assigned_fields = self.type.assigned_fields(known_types=known_types)
         
     def _array_prefix(self):
         prefix = ""

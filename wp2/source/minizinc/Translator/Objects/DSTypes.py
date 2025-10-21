@@ -5,6 +5,16 @@ import ast
 from typing import Optional, Union, Dict
 
 
+
+def remove_ast(input):
+    if isinstance(input, ast.Name):
+        return input.id
+    # If constant and no numerical value, return value
+    if isinstance(input, ast.Constant):
+        if isinstance(input.value, (int, float, str)):
+            pass
+        return input.value
+    return input
 # Do I need names in types?
 # Because when they're defined we do
 # type MyInt = DSInt(0,10)
@@ -41,6 +51,9 @@ class DSInt:
             representation += f"{self.ub}"
         return representation
 
+    def assigned_fields(self, known_types: Optional[set] = None):
+        return 0
+
 class DSFloat:
     def __init__(self,
                  lb: Union[float, str] = None,
@@ -73,6 +86,9 @@ class DSFloat:
             representation += f"{self.ub}"
         return representation
 
+    def assigned_fields(self, known_types: Optional[set] = None):
+        return 0
+
 
 class DSBool:
     def __init__(self, name: str = None):
@@ -88,16 +104,22 @@ class DSBool:
         if with_vars:
             return "var bool"
         return "bool"
+    def assigned_fields(self, known_types: Optional[set] = None):
+        return 0
 
 class DSList:
     def __init__(self,
                  length: Union[int, str],
-                 elem_type: type = "int",
-                 name: str = None
+                 elem_type: type = DSInt(),
+                 name: str = None,
+                 known_types: Optional[set] = None
                  ):
         self.name = name
         self.length = remove_ast(length)
-        self.elem_type = elem_type
+        if isinstance(elem_type, str):
+            self.elem_type = compute_type(elem_type, known_types=known_types)
+        else:
+            self.elem_type = elem_type
 
     def representation(self, known_types: Optional[set] = None, with_vars=False):
         representation = f"array[1..{self.length}] of "
@@ -111,11 +133,15 @@ class DSList:
     def emit_definition(self, known_types: Optional[set] = None):
         declaration = f"type {self.name} = {self.representation(known_types=known_types)}"
         return declaration
+    
+    def assigned_fields(self, known_types: Optional[set] = None):
+        return [self.elem_type.assigned_fields(known_types=known_types) for _ in range(self.length)]
 
 class DSRecord:
     def __init__(self,
                  fields: Dict[str, type],
-                 name: str = None):
+                 name: str = None,
+                 known_types: Optional[set] = None):
         self.name = name
         self.ast_fields = fields
 
@@ -134,11 +160,15 @@ class DSRecord:
 
     def emit_definition(self, known_types: Optional[set] = None):
         return f"type {self.name} = {self.representation(known_types=known_types)}"
+    
+    def assigned_fields(self, known_types: Optional[set] = None):
+        return {fname: compute_type(ftype).assigned_fields(known_types=known_types) for fname, ftype in self.ast_fields.items()}
 
 class DSType:
     def __init__(self,
                  type_node: ast.Call,
-                 type_name: str = None):
+                 type_name: str = None,
+                 known_types: Optional[set] = None):
         self.name = type_name
         self.type_node = type_node
         self.type_object_name = type_node.func.id
@@ -152,22 +182,12 @@ class DSType:
         elif self.type_object_name == "DSBool":
             self.type_obj = DSBool(name=self.name, *self.positional_args, **self.arguments)
         elif self.type_object_name == "DSList":
-            self.type_obj = DSList(name=self.name, *self.positional_args, **self.arguments)
+            self.type_obj = DSList(name=self.name, *self.positional_args, **self.arguments, known_types=known_types)
         elif self.type_object_name == "DSRecord":
-            self.type_obj = DSRecord(name=self.name, *self.positional_args, **self.arguments)
+            self.type_obj = DSRecord(name=self.name, *self.positional_args, **self.arguments, known_types=known_types)
 
     def return_type(self):
         return self.type_obj
-
-def remove_ast(input):
-    if isinstance(input, ast.Name):
-        return input.id
-    # If constant and no numerical value, return value
-    if isinstance(input, ast.Constant):
-        if isinstance(input.value, (int, float, str)):
-            pass
-        return input.value
-    return input
 
 def compute_type(
         type_node: Union[ast.Call, ast.Name],
@@ -175,6 +195,7 @@ def compute_type(
         known_types: Optional[set] = None
         ) -> DSType:
     if isinstance(type_node, (DSInt, DSFloat, DSBool, DSList, DSRecord)):
+        print("1Returning existing type object:", type_node)
         return type_node
     if isinstance(type_node, str) and type_name is None:
         # Already a string type name
@@ -186,15 +207,18 @@ def compute_type(
             return DSBool(name=type_node)
         else:
             if known_types is not None and type_node in known_types:
+                print("2Returning existing type object:", known_types[type_node])
                 return known_types[type_node]
             else:
                 raise ValueError(f"Unknown type string: {type_node}")
     if isinstance(type_node, ast.Name):
         # int, float, bool or an existing type
+        print("3Returning existing type object:", type_node.id)
         return type_node.id
     if isinstance(type_node, ast.Call):
         # A DS type constructor call
-        type_obj = DSType(type_node, type_name).return_type()
+        type_obj = DSType(type_node, type_name, known_types=known_types).return_type()
+        print("4Returning existing type object:", type_obj)
         return type_obj
     raise ValueError(f"Unsupported type node: {type_node}")
 

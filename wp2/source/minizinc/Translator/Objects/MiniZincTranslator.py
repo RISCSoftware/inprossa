@@ -59,7 +59,7 @@ class MiniZincTranslator:
                 isinstance(node.value.func, ast.Name) and
                 node.value.func.id.startswith("DS")):
                         type_name = node.targets[0].id
-                        mz_type = DSType(node.value, type_name).return_type()
+                        mz_type = DSType(node.value, type_name, known_types=self.types).return_type()
                         self.types[type_name] = mz_type
 
             # 2) class definitions -> MiniZincObject
