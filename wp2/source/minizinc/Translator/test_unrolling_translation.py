@@ -15,13 +15,15 @@ solve satisfy;"""
     {
         "name": "dsint_keyword_names",
         "code": """
+MAX_N : int = 10
 LB : int = 0
 UB : int = MAX_N
 MyInt2 = DSInt(lb=LB, ub=UB)
 """,
         "expected_translation": """type MyInt2 = LB..UB;
+int: MAX_N = 10;
 int: LB = 0;
-int: UB = MAX_N;
+int: UB = 10;
 solve satisfy;"""
     },
     {
@@ -46,6 +48,14 @@ solve satisfy;"""
 Flag = DSBool()
 """,
         "expected_translation": """type Flag = bool;
+solve satisfy;"""
+    },
+    {
+        "name": "dslist_constant",
+        "code": """
+VEC : DSList(5) = [1, 2, 3, 4, 5]
+""",
+        "expected_translation": """array[1..5] of int: VEC = [1, 2, 3, 4, 5];
 solve satisfy;"""
     },
     {
@@ -175,6 +185,15 @@ x = 0
 constraint x[1] = 0;
 solve satisfy;"""
     },
+#     {
+#         "name": "test_simple_subscript",
+#         "code": """
+# x[1] = 0
+# """,
+#         "expected_translation": """array[1..1] of var array[1..1] of var int: x;
+# constraint x[1][1] = 0;
+# solve satisfy;"""
+#     },
     {
         "name": "test_simple_assert",
         "code": """
@@ -640,7 +659,6 @@ for test in translation_tests:
     translator = MiniZincTranslator(test["code"])
     result = translator.unroll_translation()
     if result != test["expected_translation"]:
-        failed += 1
         print(f"Test {test['name']} failed:")
         print("Code:")
         print(test["code"])
@@ -648,6 +666,7 @@ for test in translation_tests:
         print(test["expected_translation"])
         print("Got:")
         print(result)
+        failed += 1
 print(f"Total failed tests: {failed}")
 
 # if __name__ == "__main__":

@@ -15,9 +15,10 @@ PersonRec = DSRecord({"name":string,"age":MyVec})
 oneofmyints : MyInt = 3
 """
     code = """
-assert not (interval[0] <= length and length <= interval[1])
+pieces : DSList(5, DSInt(0,10))
+pieces[3].length = 1
 """
-    code = code_check_machine
+    # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
     print(model)

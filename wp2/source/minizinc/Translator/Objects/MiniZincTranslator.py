@@ -35,8 +35,8 @@ class MiniZincTranslator:
         and creating a list of top-level statements.
         """
         tree = ast.parse(self.code)
-        # for node in tree.body:
-        #     print(ast.dump(node, indent=4))
+        for node in tree.body:
+            print(ast.dump(node, indent=4))
         for node in tree.body:
             # 0) Constants
             # if is an annassignment and lhs is uppercase
@@ -68,7 +68,6 @@ class MiniZincTranslator:
                 self.objects[mz_obj.name] = mz_obj
             # 3) function definitions -> Predicates
             elif isinstance(node, ast.FunctionDef):
-                print("CTABLE BEFORE PREDICATE", self.constants)
                 pred = Predicate(node,
                                  predicates=self.predicates,
                                  constant_table=self.constants)

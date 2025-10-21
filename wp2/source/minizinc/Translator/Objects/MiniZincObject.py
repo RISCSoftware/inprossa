@@ -30,26 +30,12 @@ class MiniZincObject:
         # 2) methods -> Predicates, namespaced as ClassName__method
         for stmt in class_node.body:
             if isinstance(stmt, ast.FunctionDef):
-                if stmt.name == "__init__":
-                    initialisation = CodeBlock()
-                    initialisation.run(stmt.body, loop_scope={})
-                    print("Initialisation for", self.name, ":", initialisation.all_variable_declarations)
-                    constants = []
-                    for k, v in initialisation.constant_table.items():
-                        constants.append(Constant(k, v))
-                    new_record = Record(f"{self.name}",
-                                        list(initialisation.all_variable_declarations.values()),
-                                        constants)
-                    print("Emitting record definition for", self.name)
-                    print(new_record.emit_definition())
-                    print(initialisation.constant_table)
-                else:
-                    ns_name = f"{self.name}__{stmt.name}"
-                    print("Defining method predicate:", ns_name)
-                    pred = Predicate(stmt, predicates=self.predicates_registry, name_override=ns_name)
-                    self.methods[stmt.name] = pred
-                    # also register into global registry if you want global lookup
-                    self.predicates_registry[ns_name] = pred
+                ns_name = f"{self.name}__{stmt.name}"
+                print("Defining method predicate:", ns_name)
+                pred = Predicate(stmt, predicates=self.predicates_registry, name_override=ns_name)
+                self.methods[stmt.name] = pred
+                # also register into global registry if you want global lookup
+                self.predicates_registry[ns_name] = pred
 
     def _eval_simple_constant(self, node):
         """Very small evaluator for common literal class constants (int, list[int])."""

@@ -149,7 +149,6 @@ class DSType:
             self.type_obj = DSInt(name=self.name, *self.positional_args, **self.arguments)
         elif self.type_object_name == "DSFloat":
             self.type_obj = DSFloat(name=self.name, *self.positional_args, **self.arguments)
-            print("DSFloat args:", self.type_obj)
         elif self.type_object_name == "DSBool":
             self.type_obj = DSBool(name=self.name, *self.positional_args, **self.arguments)
         elif self.type_object_name == "DSList":

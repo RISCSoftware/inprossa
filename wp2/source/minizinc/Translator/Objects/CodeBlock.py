@@ -23,7 +23,6 @@ class CodeBlock:
         self.variable_table = {}
         # Tracks the set of constant (symbolic) names, identified by being all uppercase
         self.constant_table = {} if constant_table is None else dict(constant_table)
-        print("CONSTANT TABLE INITIALISED AS", self.constant_table)
         # List of accumulated constraints generated during symbolic execution
         self.constraints = []
         # Predicate registry: name -> Predicate
@@ -42,14 +41,14 @@ class CodeBlock:
         """New variable is detected, we add it to the variable index and create its declaration."""
         self.variable_table[name] = Variable(name, type_=type_, versions=versions)
 
-    def rewrite_expr(self, expr, loop_scope, return_dimensions=False):
+    def rewrite_expr(self, expr, loop_scope, return_dimensions=False, get_numeral=False, no_more_vars=False):
         """
         Converts a Python expression AST into a MiniZinc-compatible string
         """
         if isinstance(expr, ast.BinOp):
             # Handle binary operations like x + y
-            left = self.rewrite_expr(expr.left, loop_scope)
-            right = self.rewrite_expr(expr.right, loop_scope)
+            left = self.rewrite_expr(expr.left, loop_scope, get_numeral=get_numeral)
+            right = self.rewrite_expr(expr.right, loop_scope, get_numeral=get_numeral)
             op = {
                 ast.Add: "+",
                 ast.Sub: "-",
@@ -99,10 +98,12 @@ class CodeBlock:
 
             # Constant (e.g., MAX_LENGTH)
             if name.isupper():
+                if get_numeral:
+                    return str(self.constant_table[name].value)
                 return name
 
             # Not constant, not loop var — must be a normal variable
-            if name not in self.variable_table:
+            if name not in self.variable_table and not no_more_vars:
                 # First-time reference (e.g., used in an expression before assignment)
                 self.new_evolving_variable(name)
 
@@ -117,10 +118,7 @@ class CodeBlock:
             base = self.rewrite_expr(expr.value, loop_scope)
 
             # Get the index expression, which can be a Name, Constant, or BinOp
-            if isinstance(expr.slice, ast.Index):  # for Python <3.9
-                index = expr.slice.value
-            else:  # for Python 3.9+
-                index = expr.slice
+            index = expr.slice
 
             index_str = self.rewrite_expr(index, loop_scope)
             return f"{base}[{index_str}]"
@@ -164,7 +162,12 @@ class CodeBlock:
                     return list_str, dims
             else:
                 return list_str
+            
+        elif isinstance(expr, ast.Expression):
+            return self.rewrite_expr(expr.body, loop_scope, get_numeral=get_numeral)
 
+        # elif isinstance(expr, str):
+        #     return expr
             
 
         else:
@@ -236,9 +239,10 @@ class CodeBlock:
                 self.new_evolving_variable(base, type_="int")  # or infer
             else:
                 self.variable_table[base].versions += 1
+                # TODO: Handle the rest of subscript assignment
             # index expr
             index_node = lhs.slice
-            idx = self.rewrite_expr(index_node, loop_scope)
+            idx = self.rewrite_expr(index_node, loop_scope, no_more_vars=True)
             if isinstance(index_node, ast.Constant):
                 idx_str = f"{int(idx)}"
             elif isinstance(index_node, (ast.List, ast.Tuple)):
@@ -248,7 +252,23 @@ class CodeBlock:
             # access with leading version dimension
             return
 
-        # Normal assignment
+        # TODO Dictionary assignment: e.g., rec["field"] = value
+
+        # Object attribute assignment: e.g., obj.attr = value
+        if isinstance(lhs, ast.Attribute):
+            obj_name = self.rewrite_expr(lhs.value, loop_scope, no_more_vars=True)
+            attr_name = self.rewrite_expr(lhs.attr, loop_scope, no_more_vars=True)
+            # ensure version counter exists
+            if obj_name not in self.variable_table:
+                self.new_evolving_variable(obj_name, type_="int")  # or infer
+            else:
+                self.variable_table[obj_name].versions += 1
+                # TODO: Handle the rest of object assignment
+            # create equality constraint for attribute
+            self.create_equality_constraint(f"{self.variable_table[obj_name].versioned_name()}.{attr_name}", rhs_expr, rhs, loop_scope)
+            return
+
+        # Normal assignment # TODO Maybe the previous cases can be deleted
         var = lhs.id
 
         # Detect and record constant definitions (uppercase names)
@@ -261,7 +281,6 @@ class CodeBlock:
         else:
             self.variable_table[var].versions += 1
         type_ = self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs_expr, rhs, loop_scope)
-        print("type_ in assign", type_.representation() if not isinstance(type_, str) else type_, self.variable_table[var].type)
         if self.variable_table[var].type == None:
             self.variable_table[var].define_type(type_)
 
@@ -274,8 +293,6 @@ class CodeBlock:
                 list_elem_type.append(elem_type.representation() if not isinstance(elem_type, str) else elem_type) # Make sure they are of the same type
             if len(set(list_elem_type)) != 1:
                 raise ValueError(f"List elements have inconsistent types: {list_elem_type}")
-            else:
-                print("list_elem_type", list_elem_type[0])
             return DSList(length, elem_type=elem_type)
         else:
             self.constraints.append(Constraint(f"{lhs_name} = {rhs_expr}"))
@@ -362,10 +379,8 @@ class CodeBlock:
         # Case 3: iterate over constant name: for x in PIECES
         elif isinstance(stmt.iter, ast.Name):
             const_name = stmt.iter.id
-            print("const_name in constant_table", self.types)
             if const_name in self.constant_table:
                 # iterate by 1-based index to keep symbolic access
-                print("const_name in constant_table", const_name, self.constant_table[const_name].type)
                 const_type = self.constant_table[const_name].type
                 if isinstance(const_type, DSList):
                     n = const_type.length
@@ -418,13 +433,10 @@ class CodeBlock:
             raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
 
         # Evaluate end
-        print("Symbol table in range", self.constant_table)
-        print("end_node", end_node.id if isinstance(end_node, ast.Name) else end_node, type(end_node), self.constant_table)
         if isinstance(end_node, ast.Constant):
             end_val = end_node.value
         elif isinstance(end_node, ast.Name) and end_node.id in self.constant_table:
             end_val = self.constant_table[end_node.id].value
-            print("end_val from constant table", end_val)
 
         else:
             raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
@@ -596,11 +608,10 @@ class CodeBlock:
         if var.isupper():
             # Save in constants; name, value and type
             # constant_value = self.record_constant_definition(stmt.value)
-            self.constant_table[var] = Constant(var, value, type_=type_)
+            self.constant_table[var] = Constant(var, value, type_=type_, code_block=self, loop_scope=loop_scope)
             return  # Don't emit constraint for constants
         
         self.new_evolving_variable(var, type_=type_, versions=0)
-        print("type_", type_)
         if value is not None:
             self.new_evolving_variable(var, type_=type_)
             self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}] = {value}"))
