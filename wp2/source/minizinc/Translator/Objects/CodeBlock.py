@@ -376,6 +376,16 @@ class CodeBlock:
                 iter_values = list(range(1, n + 1))  # positions
                 loop_vars = [stmt.target.id]
                 meta.update(kind="const", array_name=const_name)
+            elif const_name in self.variable_table:
+                var_type = self.variable_table[const_name].type
+                if isinstance(var_type, DSList):
+                    n = var_type.length
+                else:
+                    raise ValueError(f"Unsupported variable type for array iteration: {var_type}")
+                iter_values = list(range(1, n + 1))  # positions
+                loop_vars = [stmt.target.id]
+                meta.update(kind="const", array_name=const_name)
+
             else:
                 raise ValueError(f"Unknown constant array: {const_name}")
 
