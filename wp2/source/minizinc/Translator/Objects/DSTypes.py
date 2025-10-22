@@ -116,9 +116,18 @@ class DSList:
                  ):
         self.name = name
         self.length = remove_ast(length)
-        if isinstance(elem_type, str):
+        if isinstance(elem_type, ast.Call):
+            print("OPCION 1")
+            print("elem_type:", ast.dump(elem_type) if isinstance(elem_type, ast.AST) else elem_type)
+            self.elem_type = DSType(type_node=elem_type, known_types=known_types).return_type()
+        elif isinstance(elem_type, str):
+            print("OPCION 2")
+            print("elem_type:", ast.dump(elem_type) if isinstance(elem_type, ast.AST) else elem_type)
             self.elem_type = compute_type(elem_type, known_types=known_types)
         else:
+            print("OPCION 3")
+            print("elem_type:", ast.dump(elem_type) if isinstance(elem_type, ast.AST) else elem_type)
+            print("elem_type type:", type(elem_type))
             self.elem_type = elem_type
 
     def representation(self, known_types: Optional[set] = None, with_vars=False):
@@ -144,6 +153,7 @@ class DSRecord:
                  known_types: Optional[set] = None):
         self.name = name
         self.ast_fields = fields
+        self.types_dict = type_dict_from_ast_literal(fields, known_types=known_types)
 
     def fields_declarations(self):
         self.fields = dict_from_ast_literal(self.ast_fields, self.known_types)
@@ -162,7 +172,8 @@ class DSRecord:
         return f"type {self.name} = {self.representation(known_types=known_types)}"
     
     def assigned_fields(self, known_types: Optional[set] = None):
-        return {fname: compute_type(ftype).assigned_fields(known_types=known_types) for fname, ftype in self.ast_fields.items()}
+        print("Type of ast_fields:", type(self.fields))
+        return {fname: compute_type(ftype).assigned_fields(known_types=known_types) for fname, ftype in self.types_dict.items()}
 
 class DSType:
     def __init__(self,
@@ -220,6 +231,7 @@ def compute_type(
         type_obj = DSType(type_node, type_name, known_types=known_types).return_type()
         print("4Returning existing type object:", type_obj)
         return type_obj
+    print("Unknown type_node:", type(type_node), ast.dump(type_node) if isinstance(type_node, ast.AST) else type_node)
     raise ValueError(f"Unsupported type node: {type_node}")
 
 minizinc_original_types = {
@@ -228,6 +240,15 @@ minizinc_original_types = {
     "string",
     "bool",
 }
+
+def type_dict_from_ast_literal(node: ast.AST,
+                               known_types = set()) -> dict:
+    out = {}
+    for k_node, v_node in zip(node.keys, node.values):
+        key = ast.literal_eval(k_node)
+        v_node_type = compute_type(v_node, known_types=known_types)  # validate
+        out[key] = v_node_type
+    return out
 
 def dict_from_ast_literal(node: ast.AST,
                           known_types = set()) -> dict:

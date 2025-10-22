@@ -264,9 +264,9 @@ class CodeBlock:
             attr_name = self.rewrite_expr(lhs.attr, loop_scope, no_more_vars=True)
             # Find original object variable
             
-            # ensure version counter exists
+            # if the object name doesn't exist
             if obj_name not in self.variable_table and not no_more_vars:
-                self.new_evolving_variable(obj_name)  # or infer
+                self.find_original_variable_and_assign(lhs, rhs, loop_scope)
             else:
                 self.variable_table[obj_name].versions += 1
                 # TODO: Handle the rest of object assignment
@@ -293,6 +293,38 @@ class CodeBlock:
         type_ = self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs_expr, rhs, loop_scope)
         if self.variable_table[var].type == None:
             self.variable_table[var].define_type(type_)
+
+    def find_original_variable_and_assign(self, lhs, rhs, loop_scope):
+        """Finds the original variable name from a potentially nested attribute/subscript access."""
+        obj_name = self.rewrite_expr(lhs, loop_scope, no_more_vars=True)
+        my_lhs = lhs
+        depth = [] # to store the attribute/subscript chain
+        while obj_name not in self.variable_table:
+            if isinstance(my_lhs, ast.Attribute):
+                my_lhs = my_lhs.value
+                depth.append(self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True))
+                obj_name = self.rewrite_expr(my_lhs, loop_scope, no_more_vars=True)
+            elif isinstance(my_lhs, ast.Subscript):
+                my_lhs = my_lhs.value
+                depth.append(self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True))
+                obj_name = self.rewrite_expr(my_lhs, loop_scope, no_more_vars=True)
+
+        self.create_deep_equality_constraint(obj_name, depth, rhs, loop_scope)
+
+    def create_deep_equality_constraint(self, base_name, depth, rhs, loop_scope):
+        """Creates equality constraints for nested attribute/subscript assignments."""
+        if not depth:
+            return self.create_equality_constraint(base_name, self.rewrite_expr(rhs, loop_scope), rhs, loop_scope)
+        else:
+            is_assigned = self.variable_table[base_name].is_assigned(depth)
+            # Learn whether the field is already assigned
+            if not is_assigned:
+                # If not assigned, no need to create a new version
+                pass
+            else:
+                # If assigned, create a new version for the base variable
+                # all the already assign fields must preserve the value in the new version
+                pass
 
     def create_equality_constraint(self, lhs_name, rhs_expr, rhs, loop_scope):
         if isinstance(rhs, ast.List):

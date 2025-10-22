@@ -1,4 +1,4 @@
-from Translator.Objects.DSTypes import compute_type
+from Translator.Objects.DSTypes import DSInt, compute_type
 
 
 class Variable:
@@ -19,7 +19,7 @@ class Variable:
         if annotation is not None:
             self.type = compute_type(annotation)
         else:
-            self.type = type_
+            self.type = compute_type(type_) if type_ is not None else DSInt()
         if self.type is None:
             self.representation_type_with_vars = "var int"
         elif isinstance(self.type, str):  # TODO if is str compute real type earlier
