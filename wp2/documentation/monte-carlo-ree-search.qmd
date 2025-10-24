@@ -1,0 +1,128 @@
+---
+title: "(Enhanced) Tree Search for Combinatorial Problems"
+filters:
+  - pseudocode
+bibliography: references.bib
+format: 
+    html:
+        include-in-header:
+            text: |
+              <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+        page-layout: full
+---
+
+# General Idea
+
+- Use the tree search algorithm and extend it by a "learning component".
+
+
+# Overview Tree Search Methods
+
+Tree search algorithms, examples:
+
+- Complete Enumeration
+    - Breadth/Depth First Search Algorithms
+- Partial Enumeration
+    - Branch&Bound
+      - Current solution concept is based on this idea, we do not have a "good" bounding function, but due to the problem properties large parts of the search tree are discarded
+    - Beam search
+      - expand a certain number of nodes per level of the tree
+    - **Monte Carlo Tree Search for Combinatorial Optimization** [@orseau_single-agent_2018]
+    - **Single-Agent Policy Tree Search With Guarantees** [@jooken_exploring_2023]
+
+A recent review of applications of MCTS can be found in [@kemmerling_beyond_2024].
+
+
+# Outline of the idea/algorithm (based on the proposal)
+
+Approach/idea is based on **Monte Carlo Tree Search (MCTS)**.
+It is a heuristic search algorithm which builds a search tree by repeatedly simulating random paths (in the search tree) to estimate the quality of decisions.
+Through an iterative process balancing exploration (new regions) and exploitation (promising paths), MCTS efficiently identifies good actions from a given node in the search tree.
+
+[Schematic representation of the method:](https://en.wikipedia.org/wiki/Monte_Carlo_tree_search)
+
+![](mcts.svg)
+
+<!-- In the nodes of the tree, the following information is stored:
+
+- $N(s)$: How many times was node $s$ visited
+- $N(s,a)$: How often was node $a$ selected from node $s$
+- $W(s,a)$: How often was the game won, when selecting node $a$ from $s$ -->
+
+
+## Selection
+
+- Starting at the root node a child node is selected (using some selection strategy)
+- The next child node is selected; this is repeated until a node is encountered, where there are unencountered (not yet visited) child nodes
+
+
+## Expansion
+
+- If there are child nodes at the current node, which are not yet visited, expand a child node
+
+## Evaluation (or Rollout/Simulation/Playout)
+
+- Walk down a path in the selected child node until a terminal step is reached
+
+
+## Backpropagation
+
+- Update Information 
+
+<!-- # Application to the cutting problem
+
+```{mermaid}
+flowchart TD
+t0("`inputboards=[4.4, 5.5, 5.6, 5.7, 6.8, 6.9, 6.10]
+current_layer=[]
+buffer=[]
+scrap=0
+`")
+
+t0("`inputboards=[4.4, 5.5, 5.6, 5.7, 6.8, 6.9, 6.10]
+current_layer=[]
+buffer=[]
+scrap=0
+`")
+
+```
+
+
+# Combination  -->
+
+# Does it make sense?
+
+We don't know...
+
+- Processing power
+- Generalizability
+- Problem instance size
+- Number of constraints
+- ...
+
+# Applications in Combinatorial Optimizaion
+
+[@kemmerling_beyond_2024] cites applications in Combinatorial Optimization (p. 1027, Table 7):
+
+- Graph Coloring
+- PBQP-based register allocation
+- Machine Scheduling, Vehicle Routing
+  - [@oren_solo_2021] Small problem sizes, they seem to have competitive results
+- Bin Packing
+- Traveling Salesman Problem
+  - [@xing_solve_2020] Solve very small problem sizes
+- Highest Safe Rung Problem
+- Quantified Boolean Formula Satisfaction
+
+# Links
+
+## Introduction
+
+- [OpenAI - Spinning Up Deep RL](https://spinningup.openai.com/en/latest/user/introduction.html)
+- [Simple framework for experimenting](https://github.com/david-abel/simple_rl)
+
+
+# References
+
+::: {#refs}
+:::
