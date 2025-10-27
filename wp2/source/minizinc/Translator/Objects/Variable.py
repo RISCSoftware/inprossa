@@ -25,11 +25,11 @@ class Variable:
         elif isinstance(self.type, str):  # TODO if is str compute real type earlier
             self.representation_type_with_vars = f"var {compute_type(self.type).representation()}"
         else:
-            self.representation_type_with_vars = self.type.representation(with_vars=True, known_types=known_types)
+            self.representation_type_with_vars = self.type.representation(with_vars=True)
         self.versions = versions
 
         # TODO from each type, we can create an object indicating which of its fields have already been assigned
-        self.assigned_fields = self.type.assigned_fields(known_types=known_types)
+        self.assigned_fields = self.type.initial_assigned_fields()
         
     def _array_prefix(self):
         prefix = ""

@@ -58,14 +58,17 @@ class MiniZincTranslator:
                 isinstance(node.value, ast.Call) and  # right-hand side is a call
                 isinstance(node.value.func, ast.Name) and
                 node.value.func.id.startswith("DS")):
-                        type_name = node.targets[0].id
-                        mz_type = DSType(node.value, type_name, known_types=self.types).return_type()
-                        self.types[type_name] = mz_type
 
-            # 2) class definitions -> MiniZincObject
-            elif isinstance(node, ast.ClassDef):
-                mz_obj = MiniZincObject(node, predicates_registry=self.predicates)
-                self.objects[mz_obj.name] = mz_obj
+                type_name = node.targets[0].id
+                mz_type = DSType(node.value, type_name, known_types=self.types).return_type()
+                self.types[type_name] = mz_type
+
+            # This can be implemented later to create a DSRecord
+            # # 2) class definitions -> MiniZincObject
+            # elif isinstance(node, ast.ClassDef):
+            #     mz_obj = MiniZincObject(node, predicates_registry=self.predicates)
+            #     self.objects[mz_obj.name] = mz_obj
+
             # 3) function definitions -> Predicates
             elif isinstance(node, ast.FunctionDef):
                 pred = Predicate(node,
@@ -88,10 +91,7 @@ class MiniZincTranslator:
 
         # 0) Type definitions
         for name, _type in self.types.items():
-            if isinstance(_type, DSRecord):
-                parts.append(_type.emit_definition(self.types.keys()))
-            else:
-                parts.append(_type.emit_definition(known_types=self.types))
+            parts.append(_type.emit_definition())
 
         # 1) Predicate definitions
         for name in sorted(self.predicates.keys()):
