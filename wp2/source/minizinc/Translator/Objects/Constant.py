@@ -25,7 +25,7 @@ class Constant:
     def to_minizinc(self) -> str:
         if hasattr(self.type, 'length'):
             return f"array[1..{self.type.length}] of int: {self.name} = {self.value}"
-        return f"{self.type}: {self.name} = {self.value}"
+        return f"{self.type.name}: {self.name} = {self.value}"
     
     # def add_value(self, value: str):
     #     if self.value is not None and self.value != value:

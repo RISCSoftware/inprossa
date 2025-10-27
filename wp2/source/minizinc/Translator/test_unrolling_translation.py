@@ -89,10 +89,10 @@ solve satisfy;"""
     {
         "name": "dsrecord_simple",
         "code": """
-Person = DSRecord({"name": "string", "age": "int"})
+Person = DSRecord({"name": "float", "age": "int"})
 """,
         "expected_translation": """type Person = record(
-    string: name,
+    float: name,
     int: age
 );
 solve satisfy;"""
@@ -104,12 +104,12 @@ translation_tests += [
         "code": """
 MyInt = DSInt(3, 7)
 VecMyInt5 = DSList(length=5, elem_type=MyInt)
-Person = DSRecord({"name": "string", "scores": "VecMyInt5", "grade": "MyInt"})
+Person = DSRecord({"name": "float", "scores": "VecMyInt5", "grade": "MyInt"})
 """,
         "expected_translation": """type MyInt = 3..7;
 type VecMyInt5 = array[1..5] of MyInt;
 type Person = record(
-    string: name,
+    float: name,
     VecMyInt5: scores,
     MyInt: grade
 );
@@ -136,7 +136,7 @@ solve satisfy;"""
         "code": """
 Point = DSRecord({"x": "int", "y": "int"})
 Points = DSList(length=3, elem_type=Point)
-Polygon = DSRecord({"name": "string", "points": "Points"})
+Polygon = DSRecord({"name": "float", "points": "Points"})
 """,
         "expected_translation": """type Point = record(
     int: x,
@@ -144,7 +144,7 @@ Polygon = DSRecord({"name": "string", "points": "Points"})
 );
 type Points = array[1..3] of Point;
 type Polygon = record(
-    string: name,
+    float: name,
     Points: points
 );
 solve satisfy;"""
@@ -153,18 +153,18 @@ solve satisfy;"""
         "name": "nested_records_with_custom_zip_and_group",
         "code": """
 Zip = DSInt(10000, 99999)
-Address = DSRecord({"street": "string", "zip": "Zip"})
-User = DSRecord({"name": "string", "addr": "Address"})
+Address = DSRecord({"street": "float", "zip": "Zip"})
+User = DSRecord({"name": "float", "addr": "Address"})
 Group = DSList(length=2, elem_type=User)
 Team = DSRecord({"members": "Group"})
 """,
         "expected_translation": """type Zip = 10000..99999;
 type Address = record(
-    string: street,
+    float: street,
     Zip: zip
 );
 type User = record(
-    string: name,
+    float: name,
     Address: addr
 );
 type Group = array[1..2] of User;

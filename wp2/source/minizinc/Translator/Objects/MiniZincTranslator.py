@@ -91,7 +91,7 @@ class MiniZincTranslator:
             if isinstance(_type, DSRecord):
                 parts.append(_type.emit_definition(self.types.keys()))
             else:
-                parts.append(_type.emit_definition())
+                parts.append(_type.emit_definition(known_types=self.types))
 
         # 1) Predicate definitions
         for name in sorted(self.predicates.keys()):

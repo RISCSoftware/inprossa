@@ -207,30 +207,49 @@ def compute_type(
         ) -> DSType:
     if isinstance(type_node, (DSInt, DSFloat, DSBool, DSList, DSRecord)):
         print("1Returning existing type object:", type_node)
-        return type_node
+        returned_type = type_node
+        print("Returned type Option 1:", returned_type)
+        return returned_type
     if isinstance(type_node, str) and type_name is None:
         # Already a string type name
         if type_node == "int":
-            return DSInt(name=type_node)
+            returned_type = DSInt(name=type_node)
+            print("Returned type Option 2:", returned_type)
+            return returned_type
         elif type_node == "float":
-            return DSFloat(name=type_node)
+            returned_type = DSFloat(name=type_node)
+            print("Returned type Option 3:", returned_type)
+            return returned_type
         elif type_node == "bool":
-            return DSBool(name=type_node)
+            returned_type = DSBool(name=type_node)
+            print("Returned type Option 4:", returned_type)
+            return returned_type
         else:
             if known_types is not None and type_node in known_types:
-                print("2Returning existing type object:", known_types[type_node])
-                return known_types[type_node]
+                returned_type = known_types[type_node]
+                print("Returned type Option 5:", returned_type)
+                return returned_type
             else:
+                print("Known types:", known_types)
                 raise ValueError(f"Unknown type string: {type_node}")
     if isinstance(type_node, ast.Name):
         # int, float, bool or an existing type
-        print("3Returning existing type object:", type_node.id)
-        return type_node.id
+        returned_type = compute_type(type_node.id, type_name=type_name, known_types=known_types)
+        print("Returned type Option 6:", returned_type)
+        return returned_type
     if isinstance(type_node, ast.Call):
         # A DS type constructor call
-        type_obj = DSType(type_node, type_name, known_types=known_types).return_type()
-        print("4Returning existing type object:", type_obj)
-        return type_obj
+        returned_type = DSType(type_node, type_name, known_types=known_types).return_type()
+        print("Returned type Option 7:", returned_type)
+        return returned_type
+    if isinstance(type_node, ast.Constant):
+        # A constant type name
+        if isinstance(type_node.value, str):
+            returned_type = compute_type(type_node.value, type_name=type_name, known_types=known_types)
+            print("Returned type Option 8:", returned_type)
+            return returned_type
+        else:
+            raise ValueError(f"Unsupported constant type node: {type_node.value}")
     print("Unknown type_node:", type(type_node), ast.dump(type_node) if isinstance(type_node, ast.AST) else type_node)
     raise ValueError(f"Unsupported type node: {type_node}")
 

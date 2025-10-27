@@ -11,16 +11,19 @@ LEN : int = 10
 NAMEE : int = LEN + 3
 MyVec = DSList(LEN, elem_type = int)
 MyyVec = DSList(length = NAMEE, elem_type = MyInt)
-PersonRec = DSRecord({"name":string,"age":MyVec})
+PersonRec = DSRecord({"name":float,"age":MyVec})
 oneofmyints : MyInt = 3
 """
-    code = """
-Piece = DSRecord({
-    "length": DSInt(0, 10)
-})
-pieces : DSList(5, Piece)
-pieces[3].length = 1
-"""
+#     code = """
+# a = 5
+# a = a + 3
+# assert a == 7
+# def my_f(x: int, y: int):
+#     z = x * y + 2
+#     a = 2 * z
+#     return a
+# b = my_f(2, 3)
+# """
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
