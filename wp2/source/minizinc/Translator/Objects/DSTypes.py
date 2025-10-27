@@ -128,7 +128,6 @@ class DSList:
                  known_types: Optional[set] = set()
                  ):
         self.known_types = known_types
-        self.name = name
         self.length = remove_ast(length)
         if isinstance(elem_type, ast.Call):
             print("OPCION 1")
@@ -143,6 +142,10 @@ class DSList:
             print("elem_type:", ast.dump(elem_type) if isinstance(elem_type, ast.AST) else elem_type)
             print("elem_type type:", type(elem_type))
             self.elem_type = elem_type
+        if name is None:
+            self.name = self.representation()
+        else:
+            self.name = name
 
     def representation(self, with_vars=False):
         representation = f"array[1..{self.length}] of "

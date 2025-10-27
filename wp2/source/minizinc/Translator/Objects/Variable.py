@@ -57,3 +57,71 @@ class Variable:
         
     def __repr__(self):
         return f"Declaration({self.name!r}, type_={self.type!r}, versions={self.versions!r})"
+    
+    def collect_assigned_chains(self, assigned_fields, prefix=None):
+        """
+        Returns a list of access chains (lists) that end in a value == 1.
+        Example: {'a':[0,1], 'b':0} -> [['a', 1]]
+        """
+        if prefix is None:
+            prefix = []
+        chains = []
+
+        if isinstance(assigned_fields, int):
+            if assigned_fields == 1:
+                chains.append(prefix)
+            return chains
+
+        if isinstance(assigned_fields, list):
+            for idx, val in enumerate(assigned_fields):
+                chains.extend(self.collect_assigned_chains(val, prefix + [idx]))
+            return chains
+
+        if isinstance(assigned_fields, dict):
+            for key, val in assigned_fields.items():
+                chains.extend(self.collect_assigned_chains(val, prefix + [f"{key}"]))
+            return chains
+
+        raise TypeError(f"Unsupported assigned_fields type: {type(assigned_fields)}")
+
+    def mark_assigned_field(self, access_chain,
+                            target = None):
+        """
+        Modifies `assigned_fields` setting the path specified
+        by `access_chain` to 1. If the access ends at a container
+        (list/dict), all its elements inside are set to 1 recursively.
+        """
+        if target is None:
+            target = self.assigned_fields
+        
+        if access_chain != []:
+            step = access_chain.pop(0)
+            # --- Attribute (record field) access ---
+            if isinstance(target, dict):
+                if step not in target:
+                    raise KeyError(f"Field '{step}' not found in assigned_fields.")
+                target[step] = self.mark_assigned_field(access_chain, target[step])
+                return target
+            elif isinstance(target, list):
+                if not isinstance(step, int):
+                    raise TypeError(f"Invalid list index: {step}")
+                if step < 0 or step >= len(target):
+                    raise IndexError(f"Index {step} out of range")
+                target[step] = self.mark_assigned_field(access_chain, target[step])
+                return target
+            else:
+                raise TypeError(f"Invalid access step: {step}")
+        
+        else:
+            # Now assigned fields inside target should be marked as 1
+            self._mark_all_recursive_inplace(target)
+
+    def _mark_all_recursive_inplace(self, value):
+        """Recursively replace nested lists/dicts with 1s."""
+        if isinstance(value, int):
+            return 1
+        if isinstance(value, list):
+            return [ self._mark_all_recursive(v) for v in value ]
+        if isinstance(value, dict):
+            return { k: self._mark_all_recursive(v) for k, v in value.items() }
+        raise TypeError(f"Unsupported value type in assignment: {type(value)}")
