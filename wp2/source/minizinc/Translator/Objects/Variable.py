@@ -83,6 +83,39 @@ class Variable:
             return chains
 
         raise TypeError(f"Unsupported assigned_fields type: {type(assigned_fields)}")
+    
+    def is_chain_unassigned(self, access_chain):
+        """
+        Returns True if the path specified by `access_chain`
+        is marked as assigned (1) in `assigned_fields`.
+        """
+        target = self.assigned_fields
+        for step in access_chain:
+            if isinstance(target, dict):
+                if step not in target:
+                    raise KeyError(f"Field '{step}' not found in assigned_fields.")
+                target = target[step]
+            elif isinstance(target, list):
+                if not isinstance(step, int):
+                    raise TypeError(f"Invalid list index: {step}")
+                if step < 0 or step >= len(target):
+                    raise IndexError(f"Index {step} out of range")
+                target = target[step]
+            else:
+                raise TypeError(f"Invalid access step: {step}")
+            
+        
+        return self.all_unassigned_recursive(target)
+    
+    def all_unassigned_recursive(self, value):
+        """Check if all nested lists/dicts are marked as 1."""
+        if isinstance(value, int):
+            return value == 0
+        if isinstance(value, list):
+            return all(self.all_unassigned_recursive(v) for v in value)
+        if isinstance(value, dict):
+            return all(self.all_unassigned_recursive(v) for v in value.values())
+        raise TypeError(f"Unsupported value type in assignment: {type(value)}")
 
     def mark_assigned_field(self, access_chain,
                             target = None):

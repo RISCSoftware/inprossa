@@ -266,7 +266,7 @@ class CodeBlock:
             
             # if the object name doesn't exist
             if obj_name not in self.variable_table and not no_more_vars:
-                self.find_original_variable_and_assign(lhs, rhs, loop_scope)
+                self.find_original_variable_and_assign(lhs, rhs_expr, rhs, loop_scope)
             else:
                 self.variable_table[obj_name].versions += 1
                 # TODO: Handle the rest of object assignment
@@ -294,37 +294,64 @@ class CodeBlock:
         if self.variable_table[var].type == None:
             self.variable_table[var].define_type(type_)
 
-    def find_original_variable_and_assign(self, lhs, rhs, loop_scope):
+    def find_original_variable_and_assign(self, lhs, rhs_expr, rhs, loop_scope):
         """Finds the original variable name from a potentially nested attribute/subscript access."""
         obj_name = self.rewrite_expr(lhs, loop_scope, no_more_vars=True)
         my_lhs = lhs
-        depth = [] # to store the attribute/subscript chain
+        assigned_chain = [] # to store the attribute/subscript chain
         while obj_name not in self.variable_table:
             if isinstance(my_lhs, ast.Attribute):
                 my_lhs = my_lhs.value
-                depth.append(self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True))
+                assigned_chain.append(self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True))
                 obj_name = self.rewrite_expr(my_lhs, loop_scope, no_more_vars=True)
             elif isinstance(my_lhs, ast.Subscript):
                 my_lhs = my_lhs.value
-                depth.append(self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True))
+                assigned_chain.append(self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True))
                 obj_name = self.rewrite_expr(my_lhs, loop_scope, no_more_vars=True)
 
-        self.create_deep_equality_constraint(obj_name, depth, rhs, loop_scope)
+        var_obj = self.variable_table[obj_name]
+        self.create_deep_equality_constraint(var_obj, assigned_chain, rhs_expr, rhs, loop_scope)
 
-    def create_deep_equality_constraint(self, base_name, depth, rhs, loop_scope):
+    def create_deep_equality_constraint(self, var_obj, chain, rhs_expr, rhs, loop_scope):
         """Creates equality constraints for nested attribute/subscript assignments."""
-        if not depth:
-            return self.create_equality_constraint(base_name, self.rewrite_expr(rhs, loop_scope), rhs, loop_scope)
+        if chain == []:
+            return self.create_equality_constraint(var_obj.versioned_name(), self.rewrite_expr(rhs, loop_scope), rhs, loop_scope)
         else:
-            is_assigned = self.variable_table[base_name].is_assigned(depth)
+            is_unassigned = var_obj.is_chain_unassigned(chain)
             # Learn whether the field is already assigned
-            if not is_assigned:
-                # If not assigned, no need to create a new version
-                pass
-            else:
+            if not is_unassigned:
                 # If assigned, create a new version for the base variable
                 # all the already assign fields must preserve the value in the new version
-                pass
+                self.new_var_version_and_preserve_assigned(var_obj, chain)
+            # In any case, create the equality constraint for the field being assigned and mark it as assigned
+            lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
+            self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope)
+
+    def new_var_version_and_preserve_assigned(self, var_obj, chain):
+        """Creates a new version of var_obj, preserving assigned fields."""
+        old_version_name = var_obj.versioned_name()
+        var_obj.versions += 1
+        new_version_name = var_obj.versioned_name()
+        assigned_chains = var_obj.collect_assigned_chains(var_obj.assigned_fields)
+        for new_chain in assigned_chains:
+            if len(new_chain) < len(chain) or new_chain[:len(chain)] != chain:
+                # Make sure this new chain is not under the chain being assigned
+                full_chain = new_chain
+                # Create equality constraint for this chain
+                appended_text_for_chain = self.chain_to_appended_text(full_chain)
+                self.constraints.append(Constraint(f"{old_version_name}{appended_text_for_chain} = {new_version_name}{appended_text_for_chain}"))
+
+    def chain_to_appended_text(self, chain):
+        """Converts an access chain to MiniZinc syntax."""
+        appended_text = ""
+        for step in chain:
+            if isinstance(step, int):
+                appended_text += f"[{step}]"
+            elif isinstance(step, str):
+                appended_text += f".{step}"
+            else:
+                raise TypeError(f"Invalid access step: {step}")
+        return appended_text
 
     def create_equality_constraint(self, lhs_name, rhs_expr, rhs, loop_scope):
         if isinstance(rhs, ast.List):
