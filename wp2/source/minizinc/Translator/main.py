@@ -21,19 +21,22 @@ b : int
 b = 3
 b = b + 4
 """
-#     code = """
-# a = 5
-# a = a + 3
-# assert a == 7
-# def my_f(x: int, y: int):
-#     z = x * y + 2
-#     a = 2 * z
-#     return a
-# b = my_f(2, 3)
-# """
+    code = """
+a: int
+b: int
+a = 5
+a = a + 3
+assert a == 7
+def my_f(x: int, y: int):
+    z = x * y + 2
+    a = 2 * z
+    return a
+b = my_f(2, 3)
+"""
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
+    print("\n")
     print(model)
 
 

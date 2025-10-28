@@ -90,7 +90,6 @@ class Variable:
         is marked as assigned (1) in `assigned_fields`.
         """
         target = self.assigned_fields
-        print("TARGET", target)
         for step in access_chain:
             if isinstance(target, dict):
                 if step not in target:
@@ -104,7 +103,6 @@ class Variable:
                 target = target[step]
             else:
                 raise TypeError(f"Invalid access step: {step}")
-            print("TARGET", target)
             
         
         return self.all_unassigned_recursive(target)
@@ -136,7 +134,6 @@ class Variable:
                 if step not in target:
                     raise KeyError(f"Field '{step}' not found in assigned_fields.")
                 target[step] = self.mark_chain_as_assigned(access_chain, target[step])
-                print("TARGET TO RETURN", target)
                 return target
             elif isinstance(target, list):
                 if not isinstance(step, int):
@@ -144,7 +141,6 @@ class Variable:
                 if step < 0 or step >= len(target):
                     raise IndexError(f"Index {step} out of range")
                 target[step] = self.mark_chain_as_assigned(access_chain, target[step])
-                print("TARGET TO RETURN", target)
                 return target
             else:
                 raise TypeError(f"Invalid access step: {step}")

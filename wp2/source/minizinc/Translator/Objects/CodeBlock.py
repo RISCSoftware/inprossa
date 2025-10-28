@@ -39,9 +39,6 @@ class CodeBlock:
 
     def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
-        if name == "pieces[0][3]":
-            print("Here")
-            fasd = fasds
         self.variable_table[name] = Variable(name, type_=type_, versions=versions, known_types=self.types)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False, get_numeral=False, no_more_vars=False):
@@ -170,7 +167,6 @@ class CodeBlock:
             return self.rewrite_expr(expr.body, loop_scope, get_numeral=get_numeral)
 
         elif isinstance(expr, str):
-            print("String expr:", expr)
             return expr
             
 
@@ -249,17 +245,17 @@ class CodeBlock:
 
         # Normal assignment # TODO Maybe the previous cases can be deleted
         var = lhs.id
+
+        # Detect and record constant definitions (uppercase names)
+        if var.isupper():
+            raise Exception("Constant definitions should indicate their type")
+
+        # For evolving variables, emit a versioned constraint
+        if var not in self.variable_table:
+            self.new_evolving_variable(var)
+
+        
         self.find_original_variable_and_assign(lhs, rhs_expr, rhs, loop_scope)
-
-        # # Detect and record constant definitions (uppercase names)
-        # if var.isupper():
-        #     raise Exception("Constant definitions should indicate their type")
-
-        # # For evolving variables, emit a versioned constraint
-        # if var not in self.variable_table:
-        #     self.new_evolving_variable(var)
-        # else:
-        #     self.variable_table[var].versions += 1
         # type_ = self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs_expr, rhs, loop_scope)
         # if self.variable_table[var].type == None:
         #     self.variable_table[var].define_type(type_)
@@ -637,7 +633,6 @@ class CodeBlock:
     # --- TYPE DECLARATIONS ---
 
     def execute_block_annassign(self, stmt, loop_scope):
-        print("Known types:", self.types)
         type_ = compute_type(stmt.annotation, known_types=self.types)
         var = stmt.target.id
         value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None

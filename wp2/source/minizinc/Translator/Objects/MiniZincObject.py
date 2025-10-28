@@ -31,7 +31,7 @@ class MiniZincObject:
         for stmt in class_node.body:
             if isinstance(stmt, ast.FunctionDef):
                 ns_name = f"{self.name}__{stmt.name}"
-                print("Defining method predicate:", ns_name)
+                # print("Defining method predicate:", ns_name)
                 pred = Predicate(stmt, predicates=self.predicates_registry, name_override=ns_name)
                 self.methods[stmt.name] = pred
                 # also register into global registry if you want global lookup

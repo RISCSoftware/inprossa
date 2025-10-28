@@ -130,23 +130,15 @@ class DSList:
         self.known_types = known_types
         self.length = remove_ast(length)
         if isinstance(elem_type, ast.Call):
-            print("OPCION 1")
-            print("elem_type:", ast.dump(elem_type) if isinstance(elem_type, ast.AST) else elem_type)
             self.elem_type = DSType(type_node=elem_type, known_types=known_types).return_type()
         elif isinstance(elem_type, str):
-            print("OPCION 2")
-            print("elem_type:", ast.dump(elem_type) if isinstance(elem_type, ast.AST) else elem_type)
             self.elem_type = compute_type(elem_type, known_types=known_types)
         else:
-            print("OPCION 3")
-            print("elem_type:", ast.dump(elem_type) if isinstance(elem_type, ast.AST) else elem_type)
-            print("elem_type type:", type(elem_type))
             self.elem_type = known_types[elem_type.id]
         if name is None:
             self.name = self.representation()
         else:
             self.name = name
-        print("ELEM TYPE:", self.name, self.elem_type, type(self.elem_type))
 
     def representation(self, with_vars=False):
         representation = f"array[1..{self.length}] of "
@@ -162,7 +154,6 @@ class DSList:
         return declaration
 
     def initial_assigned_fields(self):
-        print("LENTHG:", self.name, self.length, type(self.length))
         return [self.elem_type.initial_assigned_fields() for _ in range(self.length)]
 
 class DSRecord:
@@ -191,7 +182,6 @@ class DSRecord:
         return f"type {self.name} = {self.representation()}"
     
     def initial_assigned_fields(self):
-        print("Type of ast_fields:", type(self.fields))
         return {fname: compute_type(ftype).initial_assigned_fields() for fname, ftype in self.types_dict.items()}
 
 class DSType:
@@ -225,51 +215,40 @@ def compute_type(
         known_types: Optional[set] = None
         ) -> DSType:
     if isinstance(type_node, (DSInt, DSFloat, DSBool, DSList, DSRecord)):
-        print("1Returning existing type object:", type_node)
         returned_type = type_node
-        print("Returned type Option 1:", returned_type)
         return returned_type
     if isinstance(type_node, str) and type_name is None:
         # Already a string type name
         if type_node == "int":
             returned_type = DSInt(name=type_node)
-            print("Returned type Option 2:", returned_type)
             return returned_type
         elif type_node == "float":
             returned_type = DSFloat(name=type_node)
-            print("Returned type Option 3:", returned_type)
             return returned_type
         elif type_node == "bool":
             returned_type = DSBool(name=type_node)
-            print("Returned type Option 4:", returned_type)
             return returned_type
         else:
             if known_types is not None and type_node in known_types:
                 returned_type = known_types[type_node]
-                print("Returned type Option 5:", returned_type)
                 return returned_type
             else:
-                print("Known types:", known_types)
                 raise ValueError(f"Unknown type string: {type_node}")
     if isinstance(type_node, ast.Name):
         # int, float, bool or an existing type
         returned_type = compute_type(type_node.id, type_name=type_name, known_types=known_types)
-        print("Returned type Option 6:", returned_type)
         return returned_type
     if isinstance(type_node, ast.Call):
         # A DS type constructor call
         returned_type = DSType(type_node, type_name, known_types=known_types).return_type()
-        print("Returned type Option 7:", returned_type)
         return returned_type
     if isinstance(type_node, ast.Constant):
         # A constant type name
         if isinstance(type_node.value, str):
             returned_type = compute_type(type_node.value, type_name=type_name, known_types=known_types)
-            print("Returned type Option 8:", returned_type)
             return returned_type
         else:
             raise ValueError(f"Unsupported constant type node: {type_node.value}")
-    print("Unknown type_node:", type(type_node), ast.dump(type_node) if isinstance(type_node, ast.AST) else type_node)
     raise ValueError(f"Unsupported type node: {type_node}")
 
 minizinc_original_types = {
@@ -315,7 +294,6 @@ def dict_from_ast_literal(node: ast.AST,
             type_def = v_node_type.representation(known_types)  # validate
             val = type_def
         else:
-            print("Unknown value node type:", type(v_node), ast.dump(v_node))
             try:
                 val = ast.literal_eval(v_node)   # e.g., "string", 3, True
             except Exception as e:
