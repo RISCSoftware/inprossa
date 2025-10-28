@@ -141,11 +141,12 @@ class DSList:
             print("OPCION 3")
             print("elem_type:", ast.dump(elem_type) if isinstance(elem_type, ast.AST) else elem_type)
             print("elem_type type:", type(elem_type))
-            self.elem_type = elem_type
+            self.elem_type = known_types[elem_type.id]
         if name is None:
             self.name = self.representation()
         else:
             self.name = name
+        print("ELEM TYPE:", self.name, self.elem_type, type(self.elem_type))
 
     def representation(self, with_vars=False):
         representation = f"array[1..{self.length}] of "
@@ -161,6 +162,7 @@ class DSList:
         return declaration
 
     def initial_assigned_fields(self):
+        print("LENTHG:", self.name, self.length, type(self.length))
         return [self.elem_type.initial_assigned_fields() for _ in range(self.length)]
 
 class DSRecord:

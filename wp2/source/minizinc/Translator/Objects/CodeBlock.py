@@ -237,95 +237,62 @@ class CodeBlock:
             
         # Subscript assignment: e.g., a[1] = 5
         if isinstance(lhs, ast.Subscript):
-            base = lhs.value.id
-            # ensure version counter exists
-            if base not in self.variable_table:
-                self.new_evolving_variable(base, type_="int")  # or infer
-            else:
-                self.variable_table[base].versions += 1
-                # TODO: Handle the rest of subscript assignment
-            # index expr
-            index_node = lhs.slice
-            idx = self.rewrite_expr(index_node, loop_scope, no_more_vars=True)
-            if isinstance(index_node, ast.Constant):
-                idx_str = f"{int(idx)}"
-            elif isinstance(index_node, (ast.List, ast.Tuple)):
-                idx_str = ']['.join(self.rewrite_expr(elt, loop_scope) for elt in index_node.elts)
-            
-            self.create_equality_constraint(f"{self.variable_table[base].versioned_name()}[{idx_str}]", rhs_expr, rhs, loop_scope)
-            # access with leading version dimension
+            self.find_original_variable_and_assign(lhs, rhs_expr, rhs, loop_scope)
             return
 
         # TODO Dictionary assignment: e.g., rec["field"] = value
 
         # Object attribute assignment: e.g., obj.attr = value
         if isinstance(lhs, ast.Attribute):
-            obj_name = self.rewrite_expr(lhs.value, loop_scope, no_more_vars=True)
-            attr_name = self.rewrite_expr(lhs.attr, loop_scope, no_more_vars=True)
-            # Find original object variable
-            
-            # if the object name doesn't exist
-            if obj_name not in self.variable_table and not no_more_vars:
-                self.find_original_variable_and_assign(lhs, rhs_expr, rhs, loop_scope)
-            else:
-                self.variable_table[obj_name].versions += 1
-                # TODO: Handle the rest of object assignment
-            # create equality constraint for attribute
-            self.create_equality_constraint(
-                f"{self.variable_table[obj_name].versioned_name()}.{attr_name}",
-                rhs_expr,
-                rhs,
-                loop_scope)
+            self.find_original_variable_and_assign(lhs, rhs_expr, rhs, loop_scope)
             return
 
         # Normal assignment # TODO Maybe the previous cases can be deleted
         var = lhs.id
+        self.find_original_variable_and_assign(lhs, rhs_expr, rhs, loop_scope)
 
-        # Detect and record constant definitions (uppercase names)
-        if var.isupper():
-            raise Exception("Constant definitions should indicate their type")
+        # # Detect and record constant definitions (uppercase names)
+        # if var.isupper():
+        #     raise Exception("Constant definitions should indicate their type")
 
-        # For evolving variables, emit a versioned constraint
-        if var not in self.variable_table:
-            self.new_evolving_variable(var)
-        else:
-            self.variable_table[var].versions += 1
-        type_ = self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs_expr, rhs, loop_scope)
-        if self.variable_table[var].type == None:
-            self.variable_table[var].define_type(type_)
+        # # For evolving variables, emit a versioned constraint
+        # if var not in self.variable_table:
+        #     self.new_evolving_variable(var)
+        # else:
+        #     self.variable_table[var].versions += 1
+        # type_ = self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs_expr, rhs, loop_scope)
+        # if self.variable_table[var].type == None:
+        #     self.variable_table[var].define_type(type_)
 
     def find_original_variable_and_assign(self, lhs, rhs_expr, rhs, loop_scope):
         """Finds the original variable name from a potentially nested attribute/subscript access."""
-        obj_name = self.rewrite_expr(lhs, loop_scope, no_more_vars=True)
+        obj_name = " "
         my_lhs = lhs
         assigned_chain = [] # to store the attribute/subscript chain
         while obj_name not in self.variable_table:
             if isinstance(my_lhs, ast.Attribute):
-                my_lhs = my_lhs.value
                 assigned_chain.append(self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True))
-                obj_name = self.rewrite_expr(my_lhs, loop_scope, no_more_vars=True)
-            elif isinstance(my_lhs, ast.Subscript):
                 my_lhs = my_lhs.value
+            elif isinstance(my_lhs, ast.Subscript):
                 assigned_chain.append(self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True))
-                obj_name = self.rewrite_expr(my_lhs, loop_scope, no_more_vars=True)
+                my_lhs = my_lhs.value
+            obj_name = my_lhs.id
 
         var_obj = self.variable_table[obj_name]
         self.create_deep_equality_constraint(var_obj, assigned_chain, rhs_expr, rhs, loop_scope)
 
     def create_deep_equality_constraint(self, var_obj, chain, rhs_expr, rhs, loop_scope):
         """Creates equality constraints for nested attribute/subscript assignments."""
-        if chain == []:
-            return self.create_equality_constraint(var_obj.versioned_name(), self.rewrite_expr(rhs, loop_scope), rhs, loop_scope)
-        else:
-            is_unassigned = var_obj.is_chain_unassigned(chain)
-            # Learn whether the field is already assigned
-            if not is_unassigned:
-                # If assigned, create a new version for the base variable
-                # all the already assign fields must preserve the value in the new version
-                self.new_var_version_and_preserve_assigned(var_obj, chain)
-            # In any case, create the equality constraint for the field being assigned and mark it as assigned
-            lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
-            self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope)
+        is_unassigned = var_obj.is_chain_unassigned(chain)
+        # Learn whether the field is already assigned
+        if not is_unassigned:
+            # If assigned, create a new version for the base variable
+            # all the already assign fields must preserve the value in the new version
+            self.new_var_version_and_preserve_assigned(var_obj, chain)
+        # In any case, create the equality constraint for the field being assigned and mark it as assigned
+        lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
+        self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope)
+        var_obj.mark_chain_as_assigned(chain)
 
     def new_var_version_and_preserve_assigned(self, var_obj, chain):
         """Creates a new version of var_obj, preserving assigned fields."""
@@ -680,7 +647,7 @@ class CodeBlock:
             self.constant_table[var] = Constant(var, value, type_=type_, code_block=self, loop_scope=loop_scope)
             return  # Don't emit constraint for constants
         
-        self.new_evolving_variable(var, type_=type_, versions=0)
+        self.new_evolving_variable(var, type_=type_, versions=1)
         if value is not None:
             self.new_evolving_variable(var, type_=type_)
             self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}] = {value}"))
