@@ -267,10 +267,10 @@ class CodeBlock:
         assigned_chain = [] # to store the attribute/subscript chain
         while obj_name not in self.variable_table:
             if isinstance(my_lhs, ast.Attribute):
-                assigned_chain.append(self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True))
+                assigned_chain.append(("dict", self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True)))
                 my_lhs = my_lhs.value
             elif isinstance(my_lhs, ast.Subscript):
-                assigned_chain.append(self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True))
+                assigned_chain.append(("list", self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True)))
                 my_lhs = my_lhs.value
             obj_name = my_lhs.id
 
@@ -297,6 +297,8 @@ class CodeBlock:
         new_version_name = var_obj.versioned_name()
         assigned_chains = var_obj.collect_assigned_chains(var_obj.assigned_fields)
         for new_chain in assigned_chains:
+            print("New chain:", new_chain)
+            print("Assigned chain:", chain)
             if len(new_chain) < len(chain) or new_chain[:len(chain)] != chain:
                 # Make sure this new chain is not under the chain being assigned
                 full_chain = new_chain
@@ -307,10 +309,10 @@ class CodeBlock:
     def chain_to_appended_text(self, chain):
         """Converts an access chain to MiniZinc syntax."""
         appended_text = ""
-        for step in chain:
-            if isinstance(step, int):
+        for step_type, step in chain:
+            if step_type == "list":
                 appended_text += f"[{step}]"
-            elif isinstance(step, str):
+            elif step_type == "dict":
                 appended_text += f".{step}"
             else:
                 raise TypeError(f"Invalid access step: {step}")

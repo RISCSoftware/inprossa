@@ -74,12 +74,12 @@ class Variable:
 
         if isinstance(assigned_fields, list):
             for idx, val in enumerate(assigned_fields):
-                chains.extend(self.collect_assigned_chains(val, prefix + [idx]))
+                chains.extend(self.collect_assigned_chains(val, prefix + [("list", str(idx))]))
             return chains
 
         if isinstance(assigned_fields, dict):
             for key, val in assigned_fields.items():
-                chains.extend(self.collect_assigned_chains(val, prefix + [f"{key}"]))
+                chains.extend(self.collect_assigned_chains(val, prefix + [("dict", key)]))
             return chains
 
         raise TypeError(f"Unsupported assigned_fields type: {type(assigned_fields)}")
@@ -90,12 +90,12 @@ class Variable:
         is marked as assigned (1) in `assigned_fields`.
         """
         target = self.assigned_fields
-        for step in access_chain:
-            if isinstance(target, dict):
+        for step_type, step in access_chain:
+            if step_type == "dict":
                 if step not in target:
                     raise KeyError(f"Field '{step}' not found in assigned_fields.")
                 target = target[step]
-            elif isinstance(target, list):
+            elif step_type == "list":
                 if not isinstance(step, int):
                     step = int(step)
                 if step < 0 or step >= len(target):
@@ -128,7 +128,8 @@ class Variable:
             target = self.assigned_fields
         
         if access_chain != []:
-            step = access_chain.pop(0)
+            print("Access chain:", access_chain)
+            step_type, step = access_chain.pop(0)
             # --- Attribute (record field) access ---
             if isinstance(target, dict):
                 if step not in target:
@@ -150,11 +151,11 @@ class Variable:
             return self._mark_all_recursive_inplace(target)
 
     def _mark_all_recursive_inplace(self, value):
-        """Recursively replace nested lists/dicts with 1s."""
+        """Recursively replace nested lists/dicts in value with 1s."""
         if isinstance(value, int):
             return 1
         if isinstance(value, list):
-            return [ self._mark_all_recursive(v) for v in value ]
+            return [ self._mark_all_recursive_inplace(v) for v in value ]
         if isinstance(value, dict):
-            return { k: self._mark_all_recursive(v) for k, v in value.items() }
+            return { k: self._mark_all_recursive_inplace(v) for k, v in value.items() }
         raise TypeError(f"Unsupported value type in assignment: {type(value)}")
