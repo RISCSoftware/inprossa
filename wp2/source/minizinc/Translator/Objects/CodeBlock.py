@@ -39,6 +39,7 @@ class CodeBlock:
 
     def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
+        print("Known types:", self.types)
         self.variable_table[name] = Variable(name, type_=type_, versions=versions, known_types=self.types)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False, get_numeral=False, no_more_vars=False):
@@ -436,6 +437,7 @@ class CodeBlock:
                 meta.update(kind="const", array_name=const_name)
 
             else:
+                print(self.variable_table.keys())
                 raise ValueError(f"Unknown constant array: {const_name}")
 
         # Anything else is unsupported

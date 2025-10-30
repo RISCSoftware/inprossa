@@ -8,11 +8,12 @@ MAX_BOARD_LENGTH : int = 10
 MAX_N_INTERVALS : int = 5
 MAX_PIECES_PER_BEAM : int = 2
 MIN_DIST_BETWEEN_PIECES : int = 2
+MAX_PIECES : int = 10
 BEAM_LENGTH : int = 10
 BEAM_DEPTH : int = 3
 FORBIDDEN_INTERVALS : DSList(2, DSList(2, int)) = [[3,4], [7,8]]
-def checking_machine(pieces: DSList(elem_type = Piece)):
-    pieces : DSList(5, elem_type = Piece) = pieces
+pieces : DSList(5, elem_type = Piece)
+def checking_machine(pieces: DSList(MAX_PIECES, elem_type = Piece)):
     depth = 0
     length = 0
     n_length = 0

@@ -73,7 +73,8 @@ class MiniZincTranslator:
             elif isinstance(node, ast.FunctionDef):
                 pred = Predicate(node,
                                  predicates=self.predicates,
-                                 constant_table=self.constants)
+                                 constant_table=self.constants,
+                                 types=self.types)
                 self.predicates[pred.name] = pred
             else:
                 self.top_level_stmts.append(node)

@@ -4,25 +4,30 @@ from Translator.Objects.CodeBlock import CodeBlock
     
 class Predicate(CodeBlock):
     """Translate a Python function into a MiniZinc predicate."""
-    def __init__(self, func_node: ast.FunctionDef, predicates=None, constant_table=None, name_override: str | None = None):
-        super().__init__(constant_table=constant_table, predicates=predicates)
+    def __init__(self, func_node: ast.FunctionDef, predicates=None, types=None, constant_table=None, name_override: str | None = None):
+        super().__init__(constant_table=constant_table, predicates=predicates, types=types)
         self.func_node = func_node
         self.name = name_override if name_override is not None else func_node.name
+        # Printing the tree of the function for debugging
         self.input_names = [a.arg for a in func_node.args.args]
+        self.input_types = [a.annotation for a in func_node.args.args]
+        # TODO collect the types of the inputs from annotations
         self.n_inputs = len(self.input_names)
         self.return_names = self._extract_return_names(func_node)
         self.n_outputs = len(self.return_names)
         # Counter per predicate for unique call arrays (a1,b1,...) then (a2,b2,...)
         self.call_count = 0
 
+        # Ensure inputs have at least one version and will be tied to input_i
+        print("Predicate input names:", self.input_names)
+        for i_name, i_type in zip(self.input_names, self.input_types):
+            print("Input name:", i_name)
+            if i_name not in self.variable_table:
+                self.new_evolving_variable(i_name, type_=i_type)
+
         # Execute function body to collect constraints and versioning
         func_body = [s for s in func_node.body if not isinstance(s, ast.Return)]
         self.run(func_body, loop_scope={})
-
-        # Ensure inputs have at least one version and will be tied to input_i
-        for i_name in self.input_names:
-            if i_name not in self.variable_table:
-                self.new_evolving_variable(i_name)
 
         # Internal arrays order and sizes (stable ordering)
 

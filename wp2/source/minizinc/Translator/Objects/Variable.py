@@ -17,13 +17,13 @@ class Variable:
                  known_types=None):
         self.name = name
         if annotation is not None:
-            self.type = compute_type(annotation)
+            self.type = compute_type(annotation, known_types=known_types)
         else:
-            self.type = compute_type(type_) if type_ is not None else DSInt()
+            self.type = compute_type(type_, known_types=known_types) if type_ is not None else DSInt()
         if self.type is None:
             self.representation_type_with_vars = "var int"
         elif isinstance(self.type, str):  # TODO if is str compute real type earlier
-            self.representation_type_with_vars = f"var {compute_type(self.type).representation()}"
+            self.representation_type_with_vars = f"var {compute_type(self.type, known_types=known_types).representation()}"
         else:
             self.representation_type_with_vars = self.type.representation(with_vars=True)
         self.versions = versions

@@ -33,6 +33,13 @@ b = b + 4
 #     return a
 # b = my_f(2, 3)
 # """
+    code = """MyVec = DSList(length = 3, elem_type = DSInt(0,10))
+def sum_vec(v: MyVec):
+    s = 0
+    for i in v:
+        s = s + i
+    return s
+    """
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
