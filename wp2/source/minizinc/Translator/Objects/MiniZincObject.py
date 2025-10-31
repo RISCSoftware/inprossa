@@ -1,8 +1,5 @@
 import ast
 from Translator.Objects.Predicate import Predicate
-from Translator.Objects import Variable
-from Translator.Objects.CodeBlock import CodeBlock
-from Translator.Objects.Constant import Constant
 
 
 class MiniZincObject:

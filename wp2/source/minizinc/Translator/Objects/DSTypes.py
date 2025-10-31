@@ -129,12 +129,7 @@ class DSList:
                  ):
         self.known_types = known_types
         self.length = remove_ast(length)
-        if isinstance(elem_type, ast.Call):
-            self.elem_type = DSType(type_node=elem_type, known_types=known_types).return_type()
-        elif isinstance(elem_type, str):
-            self.elem_type = compute_type(elem_type, known_types=known_types)
-        else:
-            self.elem_type = known_types[elem_type.id]
+        self.elem_type = compute_type(elem_type, known_types=known_types)
         if name is None:
             self.name = self.representation()
         else:

@@ -1,9 +1,7 @@
 import ast
 from Translator.Objects.Predicate import Predicate
 from Translator.Objects.CodeBlock import CodeBlock
-from Translator.Objects.MiniZincObject import MiniZincObject
-from Translator.Objects.Constant import Constant
-from Translator.Objects.DSTypes import DSRecord, DSType
+from Translator.Objects.DSTypes import DSType
 
 
 class MiniZincTranslator:

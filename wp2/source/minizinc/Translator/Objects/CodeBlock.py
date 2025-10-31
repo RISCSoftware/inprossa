@@ -248,6 +248,7 @@ class CodeBlock:
 
         # Detect and record constant definitions (uppercase names)
         if var.isupper():
+            # TODO allow if the constant is an int
             raise Exception("Constant definitions should indicate their type")
 
         # For evolving variables, emit a versioned constraint

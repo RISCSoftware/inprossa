@@ -2,39 +2,90 @@ import ast
 from typing import Union
 from Translator.Objects.DSTypes import DSList, compute_type
 
+
 class Constant:
     def __init__(self,
                  name: str,
                  value: str = None,
                  type_: Union[int, float, bool, DSList] = "int",
-                 code_block = None,
-                 loop_scope = {}):
+                 code_block=None,
+                 loop_scope=None):
         self.name = name
-        # Convert value to appropriate a numeral type if possible
+        self.type = type_
+        self.loop_scope = {} if loop_scope is None else loop_scope
+
         if value is not None:
             tree = ast.parse(value, mode='eval')
             try:
-                rewritten = code_block.rewrite_expr(tree, get_numeral = True, loop_scope=loop_scope)
-                self.value = self.to_number(rewritten)
-            except:
+                # Substitute known constants before evaluation
+                tree = self.substitute_constants(tree, code_block.constant_table)
+
+                # Try evaluating the AST directly (safe subset)
+                evaluated = self.safe_eval(tree)
+
+                # rewrite_expr if not purely evaluable
+                if evaluated is None:
+                    rewritten = code_block.rewrite_expr(tree, get_numeral=True, loop_scope=self.loop_scope)
+                    evaluated = self.to_number(rewritten)
+
+                self.value = evaluated
+            except Exception as e:
+                # fallback if not evaluable
                 self.value = value
         else:
             self.value = value
-        self.type = type_
+
+        print(f"Defined constant: {self.name} = {self.value} of type {self.type}")
+
 
     def to_minizinc(self) -> str:
         if hasattr(self.type, 'length'):
             return f"array[1..{self.type.length}] of int: {self.name} = {self.value}"
         return f"{self.type.name}: {self.name} = {self.value}"
-    
-    # def add_value(self, value: str):
-    #     if self.value is not None and self.value != value:
-    #         raise ValueError("Constant already has a different value.")
-    #     self.value = value
 
     def to_number(self, s):
-        # Try to convert to int if possible, otherwise float
+        # Convert string to numeric if possible
+        if isinstance(s, (int, float, list)):
+            return s
         try:
             return int(s)
         except ValueError:
-            return float(s)
+            try:
+                return float(s)
+            except ValueError:
+                return s
+
+
+    def substitute_constants(self, tree, const_table):
+        """Replace ast.Name nodes with ast.Constant if known."""
+        class ConstSubstituter(ast.NodeTransformer):
+            def __init__(self, table):
+                self.table = table
+            def visit_Name(self, node):
+                if node.id in self.table:
+                    val = self.table[node.id].value
+                    # 🔹 Allow nested lists or numbers
+                    return ast.copy_location(ast.Constant(value=val), node)
+                return node
+        return ConstSubstituter(const_table).visit(tree)
+
+
+    def safe_eval(self, tree):
+        """
+        Try to evaluate simple numeric/list expressions safely after constant substitution.
+        Only allows literals, lists, tuples, binops, and numeric constants.
+        """
+        allowed_nodes = (
+            ast.Expression, ast.Constant, ast.List, ast.Tuple,
+            ast.BinOp, ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow,
+            ast.UnaryOp, ast.USub, ast.UAdd
+        )
+
+        for node in ast.walk(tree):
+            if not isinstance(node, allowed_nodes):
+                return None  # contains something too complex → skip evaluation
+
+        try:
+            return eval(compile(tree, filename="<ast>", mode="eval"))
+        except Exception:
+            return None

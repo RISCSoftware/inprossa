@@ -33,7 +33,10 @@ b = b + 4
 #     return a
 # b = my_f(2, 3)
 # """
-    code = """MyVec = DSList(length = 3, elem_type = DSInt(0,10))
+    code = """L : int = 3
+MyVec = DSList(length = 3, elem_type = DSInt(0,10))
+V : MyVec = [L, 2, 3]
+M : int = V[2]
 def sum_vec(v: MyVec):
     s = 0
     for i in v:
