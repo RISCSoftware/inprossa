@@ -19,9 +19,7 @@ class Predicate(CodeBlock):
         self.call_count = 0
 
         # Ensure inputs have at least one version and will be tied to input_i
-        print("Predicate input names:", self.input_names)
         for i_name, i_type in zip(self.input_names, self.input_types):
-            print("Input name:", i_name)
             if i_name not in self.variable_table:
                 self.new_evolving_variable(i_name, type_=i_type)
 

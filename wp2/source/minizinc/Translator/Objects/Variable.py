@@ -126,17 +126,17 @@ class Variable:
         """
         if target is None:
             target = self.assigned_fields
-        
+            # TODO understand why when modifying target it modifies self.assigned_fields
+
         if access_chain != []:
-            print("Access chain:", access_chain)
             step_type, step = access_chain.pop(0)
             # --- Attribute (record field) access ---
-            if isinstance(target, dict):
+            if step_type == "dict":
                 if step not in target:
                     raise KeyError(f"Field '{step}' not found in assigned_fields.")
                 target[step] = self.mark_chain_as_assigned(access_chain, target[step])
                 return target
-            elif isinstance(target, list):
+            elif step_type == "list":
                 if not isinstance(step, int):
                     step = int(step)
                 if step < 0 or step >= len(target):

@@ -5,14 +5,14 @@ from Translator.WoodCuttingPipeline.check_machine import code_check_machine
 # ===== Example usage =====
 if __name__ == "__main__":
     code = """
-LEN : int = 10
-NAMEE : int = 3
+# LEN : int = 10
+# NAMEE : int = 3
 MyInt = DSInt(0, 10)
 MyVec = DSList(length = 3, elem_type = MyInt)
-PersonRec = DSRecord({"name":float,"age":MyVec})
-a : PersonRec
-a.name = 5.0
-a.name = a.name + 2.
+# PersonRec = DSRecord({"name":float,"age":MyVec})
+# a : PersonRec
+# a.name = 5.0
+# a.name = a.name + 2.
 c: MyVec
 c[1] = 3
 c[1] = 3 + c[1]
@@ -45,6 +45,7 @@ def sum_vec(v: MyVec):
     model = translator.unroll_translation()
     print("\n")
     print(model)
+    print("\n")
 
 
 

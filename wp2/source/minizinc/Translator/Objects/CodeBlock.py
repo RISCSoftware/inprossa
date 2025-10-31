@@ -39,7 +39,6 @@ class CodeBlock:
 
     def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
-        print("Known types:", self.types)
         self.variable_table[name] = Variable(name, type_=type_, versions=versions, known_types=self.types)
 
     def rewrite_expr(self, expr, loop_scope, return_dimensions=False, get_numeral=False, no_more_vars=False):
@@ -289,7 +288,7 @@ class CodeBlock:
         # In any case, create the equality constraint for the field being assigned and mark it as assigned
         lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
         self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope)
-        var_obj.mark_chain_as_assigned(chain)
+        var_obj.assigned_fields = var_obj.mark_chain_as_assigned(chain)
 
     def new_var_version_and_preserve_assigned(self, var_obj, chain):
         """Creates a new version of var_obj, preserving assigned fields."""
@@ -298,8 +297,6 @@ class CodeBlock:
         new_version_name = var_obj.versioned_name()
         assigned_chains = var_obj.collect_assigned_chains(var_obj.assigned_fields)
         for new_chain in assigned_chains:
-            print("New chain:", new_chain)
-            print("Assigned chain:", chain)
             if len(new_chain) < len(chain) or new_chain[:len(chain)] != chain:
                 # Make sure this new chain is not under the chain being assigned
                 full_chain = new_chain
@@ -439,7 +436,6 @@ class CodeBlock:
                 meta.update(kind="const", array_name=versioned_const_name)
 
             else:
-                print(self.variable_table.keys())
                 raise ValueError(f"Unknown constant array: {const_name}")
 
         # Anything else is unsupported
