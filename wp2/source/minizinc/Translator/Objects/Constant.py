@@ -6,7 +6,7 @@ from Translator.Objects.DSTypes import DSList, compute_type
 class Constant:
     def __init__(self,
                  name: str,
-                 value: str = None,
+                 stmt_value: str = None,
                  type_: Union[int, float, bool, DSList] = "int",
                  code_block=None,
                  loop_scope=None):
@@ -14,19 +14,23 @@ class Constant:
         self.type = type_
         self.loop_scope = {} if loop_scope is None else loop_scope
 
-        if value is not None:
-            tree = ast.parse(value, mode='eval')
+        if stmt_value is not None:
+            print("VALUE TO EVALUATE:", stmt_value, type(stmt_value))
             try:
                 # Substitute known constants before evaluation
-                tree = self.substitute_constants(tree, code_block.constant_table)
+                print("Tree before substitution:", ast.dump(stmt_value, include_attributes=False))
+                tree = self.substitute_constants(stmt_value, code_block.constant_table)
 
                 # Try evaluating the AST directly (safe subset)
                 evaluated = self.safe_eval(tree)
+                print(f"\nEvaluating constant {self.name}: initial eval = {evaluated}")
 
                 # rewrite_expr if not purely evaluable
                 if evaluated is None:
                     rewritten = code_block.rewrite_expr(tree, get_numeral=True, loop_scope=self.loop_scope)
                     evaluated = self.to_number(rewritten)
+
+                print(f"Evaluated constant {self.name}: final value = {evaluated}\n")
 
                 self.value = evaluated
             except Exception as e:
@@ -39,9 +43,7 @@ class Constant:
 
 
     def to_minizinc(self) -> str:
-        if hasattr(self.type, 'length'):
-            return f"array[1..{self.type.length}] of int: {self.name} = {self.value}"
-        return f"{self.type.name}: {self.name} = {self.value}"
+        return f"{self.type.representation()}: {self.name} = {self.value}"
 
     def to_number(self, s):
         # Convert string to numeric if possible

@@ -28,6 +28,15 @@ class Predicate(CodeBlock):
         func_body = [s for s in func_node.body if not isinstance(s, ast.Return)]
         self.run(func_body, loop_scope={})
 
+        # Look for output types
+        self.output_types = []
+        for out_name in self.return_names:
+            if out_name in self.variable_table:
+                self.output_types.append(self.variable_table[out_name].type)
+            else:
+                raise ValueError(f"Output variable '{out_name}' not defined in function '{self.name}'.")
+
+
         # Internal arrays order and sizes (stable ordering)
 
         self.arrays_order = sorted(self.variable_table.keys())
@@ -59,7 +68,7 @@ class Predicate(CodeBlock):
         print([input_type.name for input_type in self.input_types])
         params += [f"{i_type.representation(with_vars=True)}: input_{i+1}" for i, i_type in enumerate(self.input_types)]
         # outputs
-        params += [f"var int: output_{i+1}" for i in range(self.n_outputs)]
+        params += [f"{i_type.representation(with_vars=True)}: output_{i+1}" for i, i_type in enumerate(self.output_types)]
         # arrays (as var int arrays)
         for v in self.arrays_order:
             params += [self.variable_table[v].to_minizinc()]

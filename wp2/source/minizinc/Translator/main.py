@@ -34,14 +34,15 @@ b = b + 4
 # b = my_f(2, 3)
 # """
     code = """L : int = 3
-MyVec = DSList(length = 3, elem_type = DSInt(0,10))
-V : MyVec = [L, 2, 3]
-M : int = V[2]
+MyVec = DSList(length = 3, elem_type = DSList(2, DSInt(0,10)))
+v : MyVec = [[L,4], [2,3], [5,6]]
+M : int = v[5][7]
 def sum_vec(v: MyVec):
-    s = 0
+    s : DSInt(3,20) = 0
     for i in v:
-        s = s + i
+        s = s + i[0] + i[1]
     return s
+x = sum_vec(v)
     """
     # code = code_check_machine
     translator = MiniZincTranslator(code)

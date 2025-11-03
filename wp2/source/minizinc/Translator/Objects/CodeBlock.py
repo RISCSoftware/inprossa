@@ -115,12 +115,16 @@ class CodeBlock:
 
         elif isinstance(expr, ast.Subscript):
             # Handle array access like VALUES[i]
+            for node in ast.walk(expr):
+                print(ast.dump(node, include_attributes=False))
             base = self.rewrite_expr(expr.value, loop_scope)
 
             # Get the index expression, which can be a Name, Constant, or BinOp
             index = expr.slice
 
             index_str = self.rewrite_expr(index, loop_scope)
+            # print the whole tree under expr
+            print("Subscript:", base, index_str)
             return f"{base}[{index_str}]"
 
         elif isinstance(expr, ast.Call):
@@ -638,16 +642,17 @@ class CodeBlock:
     def execute_block_annassign(self, stmt, loop_scope):
         type_ = compute_type(stmt.annotation, known_types=self.types)
         var = stmt.target.id
-        value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None
         if var.isupper():
             # Save in constants; name, value and type
             # constant_value = self.record_constant_definition(stmt.value)
-            self.constant_table[var] = Constant(var, value, type_=type_, code_block=self, loop_scope=loop_scope)
+            print("SEND ONLY STMT")
+            self.constant_table[var] = Constant(var, stmt_value=stmt.value, type_=type_, code_block=self, loop_scope=loop_scope)
             return  # Don't emit constraint for constants
         
-        self.new_evolving_variable(var, type_=type_, versions=1)
-        if value is not None:
+        value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None
+        if var not in self.variable_table:
             self.new_evolving_variable(var, type_=type_)
+        if value is not None:
             self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}] = {value}"))
 
 
