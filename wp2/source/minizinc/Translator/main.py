@@ -41,6 +41,7 @@ def sum_vec(v: MyVec):
     return s
 x : int
 x = sum_vec(v)
+x = sum_vec(v)
     """
     # code = code_check_machine
     translator = MiniZincTranslator(code)

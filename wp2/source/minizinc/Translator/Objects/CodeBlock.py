@@ -262,7 +262,7 @@ class CodeBlock:
         # if self.variable_table[var].type == None:
         #     self.variable_table[var].define_type(type_)
 
-    def find_original_variable_and_assign(self, lhs, rhs_expr, rhs, loop_scope):
+    def find_original_variable_and_assign(self, lhs, rhs_expr=None, rhs=None, loop_scope=None):
         """Finds the original variable name from a potentially nested attribute/subscript access."""
         obj_name = " "
         my_lhs = lhs
@@ -279,10 +279,11 @@ class CodeBlock:
         var_obj = self.variable_table[obj_name]
         self.create_deep_equality_constraint(var_obj, assigned_chain, rhs_expr, rhs, loop_scope)
 
-    def create_deep_equality_constraint(self, var_obj, chain, rhs_expr, rhs, loop_scope):
+    def create_deep_equality_constraint(self, var_obj, chain, rhs_expr=None, rhs=None, loop_scope=None):
         """Creates equality constraints for nested attribute/subscript assignments."""
         is_unassigned = var_obj.is_chain_unassigned(chain)
         # Learn whether the field is already assigned
+        print("Assigned chain:", chain, "is unassigned?", is_unassigned)
         if not is_unassigned:
             # If assigned, create a new version for the base variable
             # all the already assign fields must preserve the value in the new version
@@ -290,8 +291,9 @@ class CodeBlock:
         # In any case, create the equality constraint for the field being assigned and mark it as assigned
         lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
         fields_after_chain = var_obj.fields_after_chain(chain)
-        self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope, fields=fields_after_chain)
         var_obj.assigned_fields = var_obj.mark_chain_as_assigned(chain)
+        if rhs_expr is not None:
+            self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope, fields=fields_after_chain)
 
     def new_var_version_and_preserve_assigned(self, var_obj, chain):
         """Creates a new version of var_obj, preserving assigned fields."""
@@ -358,12 +360,20 @@ class CodeBlock:
         """Handle assignments like: e, g = f(c, d)."""
 
         # Outputs on LHS
+        out_exprs = []
         if isinstance(lhs, ast.Tuple):
             # Multiple outputs
-            out_exprs = [self.rewrite_expr(elt, loop_scope) for elt in lhs.elts]
+            for elt in lhs.elts:
+                # Taking into account the output vars actualise version and assigned fields accordingly
+                self.find_original_variable_and_assign(elt)
+                # Write the output expression with appropriate versions
+                out_exprs.append(self.rewrite_expr(elt, loop_scope))
         else:
             # Single output
-            out_exprs = [self.rewrite_expr(lhs, loop_scope)]
+            # Taking into account the output var actualise version and assigned fields accordingly
+            self.find_original_variable_and_assign(lhs)
+                # Write the output expression with appropriate versions
+            out_exprs.append(self.rewrite_expr(lhs, loop_scope))
 
         if len(out_exprs) != pred.n_outputs:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_outputs} outputs, got {len(out_exprs)}")
@@ -377,6 +387,7 @@ class CodeBlock:
         pred.call_count += 1
         call_idx = pred.call_count
 
+
         array_arg_names = []
         # Use the same order as predicate arrays_order
         for v in pred.arrays_order:
@@ -385,8 +396,8 @@ class CodeBlock:
             array_arg_names.append(arr_name)
             # Declare arrays needed for this call
             self.variable_table[arr_name] = Variable(arr_name,
-                                                                versions=var_obj.versions,
-                                                                type_=var_obj.type)
+                                                     versions=var_obj.versions,
+                                                     type_=var_obj.type)
 
         # Emit the predicate call as a constraint
         call_line = pred.emit_call_line(in_exprs, out_exprs, array_arg_names)
