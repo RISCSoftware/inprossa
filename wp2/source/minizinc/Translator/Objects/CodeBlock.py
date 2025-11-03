@@ -293,16 +293,15 @@ class CodeBlock:
         """Creates equality constraints for nested attribute/subscript assignments."""
         is_unassigned = var_obj.is_chain_unassigned(chain)
         # Learn whether the field is already assigned
-        print("Assigned chain:", chain, "is unassigned?", is_unassigned)
         if not is_unassigned:
             # If assigned, create a new version for the base variable
             # all the already assign fields must preserve the value in the new version
             self.new_var_version_and_preserve_assigned(var_obj, chain)
         # In any case, create the equality constraint for the field being assigned and mark it as assigned
         lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
-        fields_after_chain = var_obj.fields_after_chain(chain)
         var_obj.assigned_fields = var_obj.mark_chain_as_assigned(chain)
         if rhs_expr is not None:
+            fields_after_chain = var_obj.fields_after_chain(chain)
             self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope, fields=fields_after_chain)
 
     def new_var_version_and_preserve_assigned(self, var_obj, chain):
@@ -593,8 +592,11 @@ class CodeBlock:
         Merges variable versions after an if-else branch by using the highest index
         """
         merged_idx = max(idx_if, idx_else)
+        print(f"Merging variable '{var}': if-version={idx_if}, else-version={idx_else} -> merged-version={merged_idx}")
         if var not in self.variable_table:
             self.new_evolving_variable(var)
+        else:
+            print("Versions", self.variable_table[var].versions)
         self.variable_table[var].versions = merged_idx
         constraints = dict()
 

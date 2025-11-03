@@ -162,7 +162,7 @@ class Variable:
 
     def fields_after_chain(self, access_chain):
         """
-        Given a type and an access chain, returns the type of the field
+        Given a type and an access chain, returns the fields left
         at the end of the chain.
         """
         fields = self.type.initial_assigned_fields()

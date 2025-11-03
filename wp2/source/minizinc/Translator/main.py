@@ -37,10 +37,10 @@ b = b + 4
 MyVec = DSList(length = 3, elem_type = DSInt(0,10))
 v : MyVec = [2, 3, 5]
 def sum_vec(v: MyVec):
-    s : int = v[1]
+    v = v
+    s : int = 0
     return s
 x : int
-x = sum_vec(v)
 x = sum_vec(v)
     """
     # code = code_check_machine

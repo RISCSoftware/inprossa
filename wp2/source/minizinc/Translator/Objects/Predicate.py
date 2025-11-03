@@ -26,6 +26,11 @@ class Predicate(CodeBlock):
             if i_name not in self.variable_table:
                 self.new_evolving_variable(i_name, type_=i_type)
 
+        # a[1] = input_1, b[1] = input_2, ...
+        for i, in_name in enumerate(self.input_names, start=1):
+            self.create_deep_equality_constraint(self.variable_table[in_name], [], f"input_{i}")
+            # exprs.append(f"{in_name}[1] = input_{i}")
+
         # Execute function body to collect constraints and versioning
         func_body = [s for s in func_node.body if not isinstance(s, ast.Return)]
         self.run(func_body, loop_scope={})
@@ -77,9 +82,6 @@ class Predicate(CodeBlock):
         # Build boolean body: input inits, function constraints, output bindings
         exprs = []
 
-        # a[1] = input_1, b[1] = input_2, ...
-        for i, in_name in enumerate(self.input_names, start=1):
-            exprs.append(f"{in_name}[1] = input_{i}")
 
         # constraints from function body (convert to bool exprs)
         for c in self.constraints:
