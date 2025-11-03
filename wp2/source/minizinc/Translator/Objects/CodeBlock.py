@@ -665,7 +665,8 @@ class CodeBlock:
             if var not in self.variable_table:
                 self.new_evolving_variable(var, type_=type_)
             if value is not None:
-                self.create_equality_constraint(self.variable_table[var].versioned_name(), value, stmt.value, loop_scope, fields=type_.initial_assigned_fields())
+                self.create_deep_equality_constraint(self.variable_table[var], [], value, stmt.value, loop_scope)
+                # self.create_equality_constraint(self.variable_table[var].versioned_name(), value, stmt.value, loop_scope, fields=type_.initial_assigned_fields())
 
 
 def all_indices(shape):
