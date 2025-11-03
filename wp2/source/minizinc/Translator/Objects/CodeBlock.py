@@ -267,7 +267,10 @@ class CodeBlock:
         obj_name = " "
         my_lhs = lhs
         assigned_chain = [] # to store the attribute/subscript chain
+        if isinstance(my_lhs, ast.Name):
+            original_name = my_lhs.id
         while obj_name not in self.variable_table:
+            old_obj_name = obj_name
             if isinstance(my_lhs, ast.Attribute):
                 assigned_chain.append(("dict", self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True)))
                 my_lhs = my_lhs.value
@@ -275,6 +278,13 @@ class CodeBlock:
                 assigned_chain.append(("list", self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True)))
                 my_lhs = my_lhs.value
             obj_name = my_lhs.id
+            print("Traversing to find base variable:", obj_name)
+            if obj_name == old_obj_name:
+                if obj_name == original_name:
+                    # Assumming var is an int
+                    self.new_evolving_variable(obj_name)
+                else:
+                    raise ValueError(f"Variable '{obj_name}' not defined in variable table.")
 
         var_obj = self.variable_table[obj_name]
         self.create_deep_equality_constraint(var_obj, assigned_chain, rhs_expr, rhs, loop_scope)

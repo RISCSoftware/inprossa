@@ -461,6 +461,7 @@ solve satisfy;"""
         "name": "test_simple_function",
         "code": """
 def f(a, b):
+
     c = a + b
     return c
 c = f(1, 2)
@@ -632,7 +633,12 @@ constraint pieces[1][1][3] = [[2, 1, 5], [2, 12, 53]][1][3];
 constraint pieces[1][2][1] = [[2, 1, 5], [2, 12, 53]][2][1];
 constraint pieces[1][2][2] = [[2, 1, 5], [2, 12, 53]][2][2];
 constraint pieces[1][2][3] = [[2, 1, 5], [2, 12, 53]][2][3];
-constraint pieces[2][1] = pieces[1][1];
+constraint pieces[2][2][1] = pieces[1][2][1];
+constraint pieces[2][2][2] = pieces[1][2][2];
+constraint pieces[2][2][3] = pieces[1][2][3];
+constraint pieces[2][1][1] = pieces[1][1][1];
+constraint pieces[2][1][2] = pieces[1][1][2];
+constraint pieces[2][1][3] = pieces[1][1][3];
 solve satisfy;"""
     },
 ]
