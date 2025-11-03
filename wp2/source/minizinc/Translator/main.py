@@ -35,12 +35,13 @@ b = b + 4
 # """
     code = """L : int = 3
 MyVec = DSList(length = 3, elem_type = DSList(2, DSInt(0,10)))
+V : MyVec = [[L,4], [2,3], [5,6]]
 v : MyVec = [[L,4], [2,3], [5,6]]
-M : int = v[5][7]
+M : int = V[2][1] + V[3][1]
 def sum_vec(v: MyVec):
     s : DSInt(3,20) = 0
     for i in v:
-        s = s + i[0] + i[1]
+        s = s + i[1] + i[2]
     return s
 x = sum_vec(v)
     """

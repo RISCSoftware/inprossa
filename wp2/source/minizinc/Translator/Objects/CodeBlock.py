@@ -115,8 +115,6 @@ class CodeBlock:
 
         elif isinstance(expr, ast.Subscript):
             # Handle array access like VALUES[i]
-            for node in ast.walk(expr):
-                print(ast.dump(node, include_attributes=False))
             base = self.rewrite_expr(expr.value, loop_scope)
 
             # Get the index expression, which can be a Name, Constant, or BinOp
@@ -124,7 +122,6 @@ class CodeBlock:
 
             index_str = self.rewrite_expr(index, loop_scope)
             # print the whole tree under expr
-            print("Subscript:", base, index_str)
             return f"{base}[{index_str}]"
 
         elif isinstance(expr, ast.Call):
@@ -267,6 +264,7 @@ class CodeBlock:
 
     def find_original_variable_and_assign(self, lhs, rhs_expr, rhs, loop_scope):
         """Finds the original variable name from a potentially nested attribute/subscript access."""
+        print("Finding original variable for:", lhs.id, "with rhs:", rhs_expr)
         obj_name = " "
         my_lhs = lhs
         assigned_chain = [] # to store the attribute/subscript chain
@@ -292,7 +290,8 @@ class CodeBlock:
             self.new_var_version_and_preserve_assigned(var_obj, chain)
         # In any case, create the equality constraint for the field being assigned and mark it as assigned
         lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
-        self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope)
+        fields_after_chain = var_obj.fields_after_chain(chain)
+        self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope, fields=fields_after_chain)
         var_obj.assigned_fields = var_obj.mark_chain_as_assigned(chain)
 
     def new_var_version_and_preserve_assigned(self, var_obj, chain):
@@ -321,16 +320,29 @@ class CodeBlock:
                 raise TypeError(f"Invalid access step: {step}")
         return appended_text
 
-    def create_equality_constraint(self, lhs_name, rhs_expr, rhs, loop_scope):
-        if isinstance(rhs, ast.List):
-            length = len(rhs.elts)
-            list_elem_type = []
-            for index in range(1, length + 1):
-                elem_type = self.create_equality_constraint(f"{lhs_name}[{index}]", f"{rhs_expr}[{index}]", rhs.elts[index - 1], loop_scope)
-                list_elem_type.append(elem_type.representation() if not isinstance(elem_type, str) else elem_type) # Make sure they are of the same type
-            if len(set(list_elem_type)) != 1:
-                raise ValueError(f"List elements have inconsistent types: {list_elem_type}")
-            return DSList(length, elem_type=elem_type)
+    def create_equality_constraint(self, lhs_name, rhs_expr, rhs, loop_scope, fields=None):
+        print("Creating equality constraint:", lhs_name, "=", rhs_expr, "with fields:", fields)
+        if fields is not None and fields != 0:
+            # Iterate through the content of the type to create the constraints
+            # 0 means that we are at the final field
+            if isinstance(fields, dict):
+                for key, subfields in fields.items():
+                    new_lhs_name = f"{lhs_name}.{key}"
+                    self.create_equality_constraint(new_lhs_name, rhs_expr + f".{key}", rhs, loop_scope, fields=subfields)
+            elif isinstance(fields, list):
+                for index, subfields in enumerate(fields):
+                    new_lhs_name = f"{lhs_name}[{index + 1}]"
+                    self.create_equality_constraint(new_lhs_name, rhs_expr + f"[{index + 1}]", rhs, loop_scope, fields=subfields)
+
+        # elif isinstance(rhs, ast.List):
+        #     length = len(rhs.elts)
+        #     list_elem_type = []
+        #     for index in range(1, length + 1):
+        #         elem_type = self.create_equality_constraint(f"{lhs_name}[{index}]", f"{rhs_expr}[{index}]", rhs.elts[index - 1], loop_scope)
+        #         list_elem_type.append(elem_type.representation() if not isinstance(elem_type, str) else elem_type) # Make sure they are of the same type
+        #     if len(set(list_elem_type)) != 1:
+        #         raise ValueError(f"List elements have inconsistent types: {list_elem_type}")
+        #     return DSList(length, elem_type=elem_type)
         else:
             self.constraints.append(Constraint(f"{lhs_name} = {rhs_expr}"))
             return "int" # TODO infer type from rhs
@@ -645,15 +657,15 @@ class CodeBlock:
         if var.isupper():
             # Save in constants; name, value and type
             # constant_value = self.record_constant_definition(stmt.value)
-            print("SEND ONLY STMT")
             self.constant_table[var] = Constant(var, stmt_value=stmt.value, type_=type_, code_block=self, loop_scope=loop_scope)
             return  # Don't emit constraint for constants
         
-        value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None
-        if var not in self.variable_table:
-            self.new_evolving_variable(var, type_=type_)
-        if value is not None:
-            self.constraints.append(Constraint(f"{var}[{self.variable_table[var].versions}] = {value}"))
+        else:
+            value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None
+            if var not in self.variable_table:
+                self.new_evolving_variable(var, type_=type_)
+            if value is not None:
+                self.create_equality_constraint(self.variable_table[var].versioned_name(), value, stmt.value, loop_scope, fields=type_.initial_assigned_fields())
 
 
 def all_indices(shape):

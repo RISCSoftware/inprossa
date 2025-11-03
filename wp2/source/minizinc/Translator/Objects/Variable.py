@@ -61,7 +61,7 @@ class Variable:
     def collect_assigned_chains(self, assigned_fields, prefix=None):
         """
         Returns a list of access chains (lists) that end in a value == 1.
-        Example: {'a':[0,1], 'b':0} -> [['a', 1]]
+        Example: {'a':[0,1], 'b':0} -> [[("dict", 'a'), ("list", 1)]]
         """
         if prefix is None:
             prefix = []
@@ -159,3 +159,22 @@ class Variable:
         if isinstance(value, dict):
             return { k: self._mark_all_recursive_inplace(v) for k, v in value.items() }
         raise TypeError(f"Unsupported value type in assignment: {type(value)}")
+
+    def fields_after_chain(self, access_chain):
+        """
+        Given a type and an access chain, returns the type of the field
+        at the end of the chain.
+        """
+        fields = self.type.initial_assigned_fields()
+        for step_type, step in access_chain:
+            if step_type == "dict":
+                if step not in fields:
+                    raise KeyError(f"Field '{step}' not found in type {self.type}.")
+                fields = fields[step]
+            elif step_type == "list":
+                if not isinstance(step, int):
+                    step = int(step)
+                fields = fields[step]
+            else:
+                raise TypeError(f"Invalid access step: {step}")
+        return fields

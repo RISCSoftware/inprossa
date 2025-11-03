@@ -15,31 +15,25 @@ class Constant:
         self.loop_scope = {} if loop_scope is None else loop_scope
 
         if stmt_value is not None:
-            print("VALUE TO EVALUATE:", stmt_value, type(stmt_value))
             try:
                 # Substitute known constants before evaluation
-                print("Tree before substitution:", ast.dump(stmt_value, include_attributes=False))
+                # print("Tree before substitution:", ast.dump(tree, include_attributes=False))
                 tree = self.substitute_constants(stmt_value, code_block.constant_table)
 
                 # Try evaluating the AST directly (safe subset)
                 evaluated = self.safe_eval(tree)
-                print(f"\nEvaluating constant {self.name}: initial eval = {evaluated}")
 
                 # rewrite_expr if not purely evaluable
                 if evaluated is None:
                     rewritten = code_block.rewrite_expr(tree, get_numeral=True, loop_scope=self.loop_scope)
                     evaluated = self.to_number(rewritten)
 
-                print(f"Evaluated constant {self.name}: final value = {evaluated}\n")
-
                 self.value = evaluated
             except Exception as e:
                 # fallback if not evaluable
-                self.value = value
+                self.value = stmt_value
         else:
-            self.value = value
-
-        print(f"Defined constant: {self.name} = {self.value} of type {self.type}")
+            self.value = stmt_value
 
 
     def to_minizinc(self) -> str:
