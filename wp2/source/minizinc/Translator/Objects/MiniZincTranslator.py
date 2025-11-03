@@ -32,7 +32,6 @@ class MiniZincTranslator:
         Parse the input code collection functions as predicates
         and creating a list of top-level statements.
         """
-        print("\nPARSING CODE...\n")
         tree = ast.parse(self.code)
         # for node in tree.body:
         #     print(ast.dump(node, indent=4))
@@ -81,7 +80,6 @@ class MiniZincTranslator:
 
     def compile(self):
         """Execute top-level block with access to registered predicates"""
-        print("\nCOMPILING TO MINIZINC...\n")
         block = CodeBlock(
             constant_table=self.constants,
             predicates=self.predicates,

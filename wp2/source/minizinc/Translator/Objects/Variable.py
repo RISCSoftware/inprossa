@@ -61,7 +61,7 @@ class Variable:
     def collect_assigned_chains(self, assigned_fields, prefix=None):
         """
         Returns a list of access chains (lists) that end in a value == 1.
-        Example: {'a':[0,1], 'b':0} -> [[("dict", 'a'), ("list", 1)]]
+        Example: {'a':[0,1], 'b':0} -> [[("dict", 'a'), ("list", 2)]]
         """
         if prefix is None:
             prefix = []
@@ -74,7 +74,7 @@ class Variable:
 
         if isinstance(assigned_fields, list):
             for idx, val in enumerate(assigned_fields):
-                chains.extend(self.collect_assigned_chains(val, prefix + [("list", str(idx))]))
+                chains.extend(self.collect_assigned_chains(val, prefix + [("list", str(idx + 1))]))
             return chains
 
         if isinstance(assigned_fields, dict):

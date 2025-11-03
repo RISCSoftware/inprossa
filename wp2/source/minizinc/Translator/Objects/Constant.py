@@ -17,7 +17,6 @@ class Constant:
         if stmt_value is not None:
             try:
                 # Substitute known constants before evaluation
-                # print("Tree before substitution:", ast.dump(tree, include_attributes=False))
                 tree = self.substitute_constants(stmt_value, code_block.constant_table)
 
                 # Try evaluating the AST directly (safe subset)

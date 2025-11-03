@@ -1,6 +1,6 @@
 import ast
 from Translator.Objects.CodeBlock import CodeBlock
-from Translator.Objects.DSTypes import compute_type
+from Translator.Objects.DSTypes import DSInt, compute_type
 
     
 class Predicate(CodeBlock):
@@ -11,7 +11,9 @@ class Predicate(CodeBlock):
         self.name = name_override if name_override is not None else func_node.name
         # Printing the tree of the function for debugging
         self.input_names = [a.arg for a in func_node.args.args]
-        self.input_types = [compute_type(a.annotation, known_types=types) for a in func_node.args.args]
+        self.input_types = [compute_type(a.annotation, known_types=types)
+                            if a.annotation != None else DSInt()
+                            for a in func_node.args.args]
         # TODO collect the types of the inputs from annotations
         self.n_inputs = len(self.input_names)
         self.return_names = self._extract_return_names(func_node)
@@ -65,7 +67,6 @@ class Predicate(CodeBlock):
         # Parameters: inputs, outputs, then arrays in variable declarations
         params = []
         # inputs
-        print([input_type.name for input_type in self.input_types])
         params += [f"{i_type.representation(with_vars=True)}: input_{i+1}" for i, i_type in enumerate(self.input_types)]
         # outputs
         params += [f"{i_type.representation(with_vars=True)}: output_{i+1}" for i, i_type in enumerate(self.output_types)]

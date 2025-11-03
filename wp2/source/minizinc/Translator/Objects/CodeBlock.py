@@ -264,7 +264,6 @@ class CodeBlock:
 
     def find_original_variable_and_assign(self, lhs, rhs_expr, rhs, loop_scope):
         """Finds the original variable name from a potentially nested attribute/subscript access."""
-        print("Finding original variable for:", lhs.id, "with rhs:", rhs_expr)
         obj_name = " "
         my_lhs = lhs
         assigned_chain = [] # to store the attribute/subscript chain
@@ -306,7 +305,7 @@ class CodeBlock:
                 full_chain = new_chain
                 # Create equality constraint for this chain
                 appended_text_for_chain = self.chain_to_appended_text(full_chain)
-                self.constraints.append(Constraint(f"{old_version_name}{appended_text_for_chain} = {new_version_name}{appended_text_for_chain}"))
+                self.constraints.append(Constraint(f"{new_version_name}{appended_text_for_chain} = {old_version_name}{appended_text_for_chain}"))
 
     def chain_to_appended_text(self, chain):
         """Converts an access chain to MiniZinc syntax."""
@@ -321,7 +320,6 @@ class CodeBlock:
         return appended_text
 
     def create_equality_constraint(self, lhs_name, rhs_expr, rhs, loop_scope, fields=None):
-        print("Creating equality constraint:", lhs_name, "=", rhs_expr, "with fields:", fields)
         if fields is not None and fields != 0:
             # Iterate through the content of the type to create the constraints
             # 0 means that we are at the final field
