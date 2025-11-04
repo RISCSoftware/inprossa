@@ -240,7 +240,6 @@ class CodeBlock:
 
         # Rewrite right-hand side expression
         rhs_expr = self.rewrite_expr(rhs, loop_scope)
-        print("RHS expr:", rhs_expr)
 
             
         # Subscript assignment: e.g., a[1] = 5
@@ -686,7 +685,6 @@ class CodeBlock:
     def execute_block_assert(self, stmt, loop_scope):
         # Handle assert statements
         test_expr = self.rewrite_expr(stmt.test, loop_scope)
-        print("Assert constraint > ", test_expr)
         self.constraints.append(Constraint(test_expr))
 
     # --- TYPE DECLARATIONS ---
@@ -705,7 +703,6 @@ class CodeBlock:
             if var not in self.variable_table:
                 self.new_evolving_variable(var, type_=type_)
             if value is not None:
-                print("ANNASsGIN")
                 self.create_deep_equality_constraint(self.variable_table[var], [], value, stmt.value, loop_scope)
                 # self.create_equality_constraint(self.variable_table[var].versioned_name(), value, stmt.value, loop_scope, fields=type_.initial_assigned_fields())
 

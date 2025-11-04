@@ -15,12 +15,9 @@ class Constant:
         self.type = type_
         self.loop_scope = {} if loop_scope is None else loop_scope
         empty_structure = self.build_empty_structure(self.type)
-        print("Empty structure for", self.name, ":", empty_structure)
-        print("DSType:", self.type)
         self.value_structure = self.fill_structure(
             empty_structure,
             stmt_value)
-        print("Filled structure for", self.name, ":", self.value_structure)
 
 
     def to_minizinc(self) -> str:
@@ -28,7 +25,6 @@ class Constant:
 
     def _to_mzn(self, value):
         """Recursively convert stored Python structures to MiniZinc text."""
-        print("Converting to MZN:", ast.dump(value, indent=4) if isinstance(value, ast.AST) else value)
         if isinstance(value, dict):
             fields = [f"{k}: {self._to_mzn(v)}" for k, v in value.items()]
             return f"({', '.join(fields)})"
