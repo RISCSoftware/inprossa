@@ -33,10 +33,10 @@ class Constant:
             fields = [f"{k}: {self._to_mzn(v)}" for k, v in value.items()]
             return f"({', '.join(fields)})"
         elif isinstance(value, (list, tuple)):
-            elems = [self._to_mzn(v) for v in value]
+            elems = [f"{self._to_mzn(v)}" for v in value]
             return f"[{', '.join(elems)}]"
         elif isinstance(value, str):
-            return f"\"{value}\""
+            return f"{value}"
         else:
             return str(value)
 
@@ -132,7 +132,7 @@ class Constant:
             return target
         # --- 3. Constants or other expressions
         else:
-            return self.from_stmt_value_to_value(value_node)
+            return self.code_block.rewrite_expr(value_node, loop_scope=self.loop_scope)
         
     def from_stmt_value_to_value(self, stmt_value):
         """Process the stmt_value AST to compute the actual value."""
@@ -214,82 +214,82 @@ class Constant:
 
 # ### Auxiliary functions to merge with others
 
-# def ast_to_object(node):
-#     """
-#     Recursively convert AST literal trees (Dict, List, Tuple, Constant, BinOp, etc.)
-#     into actual Python objects (dicts, lists, numbers, strings, etc.).
+def ast_to_object(node):
+    """
+    Recursively convert AST literal trees (Dict, List, Tuple, Constant, BinOp, etc.)
+    into actual Python objects (dicts, lists, numbers, strings, etc.).
     
-#     Keeps symbolic names or expressions as strings.
-#     """
-#     if node is None:
-#         return None
+    Keeps symbolic names or expressions as strings.
+    """
+    if node is None:
+        return None
 
-#     # --- Literal values ---
-#     if isinstance(node, ast.Constant):
-#         return node.value
+    # --- Literal values ---
+    if isinstance(node, ast.Constant):
+        return node.value
 
-#     # --- Variable name (symbolic reference) ---
-#     elif isinstance(node, ast.Name):
-#         return node.id
+    # --- Variable name (symbolic reference) ---
+    elif isinstance(node, ast.Name):
+        return node.id
 
-#     # --- Dictionary literal ---
-#     elif isinstance(node, ast.Dict):
-#         result = {}
-#         for k_node, v_node in zip(node.keys, node.values):
-#             if k_node is None:  # handle dict unpacking (**kwargs), unlikely for your DSL
-#                 continue
-#             key = ast_to_object(k_node)
-#             val = ast_to_object(v_node)
-#             result[key] = val
-#         return result
+    # --- Dictionary literal ---
+    elif isinstance(node, ast.Dict):
+        result = {}
+        for k_node, v_node in zip(node.keys, node.values):
+            if k_node is None:  # handle dict unpacking (**kwargs), unlikely for your DSL
+                continue
+            key = ast_to_object(k_node)
+            val = ast_to_object(v_node)
+            result[key] = val
+        return result
 
-#     # --- List or tuple literal ---
-#     elif isinstance(node, (ast.List, ast.Tuple)):
-#         return [ast_to_object(e) for e in node.elts]
+    # --- List or tuple literal ---
+    elif isinstance(node, (ast.List, ast.Tuple)):
+        return [ast_to_object(e) for e in node.elts]
 
-#     # --- Binary operations (e.g. 1 + x) ---
-#     elif isinstance(node, ast.BinOp):
-#         left = ast_to_object(node.left)
-#         right = ast_to_object(node.right)
-#         op = _op_to_str(node.op)
-#         return f"({left} {op} {right})"
+    # --- Binary operations (e.g. 1 + x) ---
+    elif isinstance(node, ast.BinOp):
+        left = ast_to_object(node.left)
+        right = ast_to_object(node.right)
+        op = _op_to_str(node.op)
+        return f"({left} {op} {right})"
 
-#     # --- Unary operations (e.g. -x) ---
-#     elif isinstance(node, ast.UnaryOp):
-#         op = _op_to_str(node.op)
-#         operand = ast_to_object(node.operand)
-#         return f"({op}{operand})"
+    # --- Unary operations (e.g. -x) ---
+    elif isinstance(node, ast.UnaryOp):
+        op = _op_to_str(node.op)
+        operand = ast_to_object(node.operand)
+        return f"({op}{operand})"
 
-#     # --- Attribute access (e.g. obj.field) ---
-#     elif isinstance(node, ast.Attribute):
-#         value = ast_to_object(node.value)
-#         return f"{value}.{node.attr}"
+    # --- Attribute access (e.g. obj.field) ---
+    elif isinstance(node, ast.Attribute):
+        value = ast_to_object(node.value)
+        return f"{value}.{node.attr}"
 
-#     # --- Function calls (e.g. f(a,b)) ---
-#     elif isinstance(node, ast.Call):
-#         func = ast_to_object(node.func)
-#         args = [ast_to_object(a) for a in node.args]
-#         return f"{func}({', '.join(map(str, args))})"
+    # --- Function calls (e.g. f(a,b)) ---
+    elif isinstance(node, ast.Call):
+        func = ast_to_object(node.func)
+        args = [ast_to_object(a) for a in node.args]
+        return f"{func}({', '.join(map(str, args))})"
 
-#     else:
-#         raise TypeError(f"Unsupported AST node type: {type(node)}")
+    else:
+        raise TypeError(f"Unsupported AST node type: {type(node)}")
     
 
-# def _op_to_str(op):
-#     """Convert AST operator node to string representation."""
-#     if isinstance(op, ast.Add):
-#         return "+"
-#     elif isinstance(op, ast.Sub):
-#         return "-"
-#     elif isinstance(op, ast.Mult):
-#         return "*"
-#     elif isinstance(op, ast.Div):
-#         return "/"
-#     elif isinstance(op, ast.Pow):
-#         return "**"
-#     elif isinstance(op, ast.USub):
-#         return "-"
-#     elif isinstance(op, ast.UAdd):
-#         return "+"
-#     else:
-#         raise TypeError(f"Unsupported operator type: {type(op)}")
+def _op_to_str(op):
+    """Convert AST operator node to string representation."""
+    if isinstance(op, ast.Add):
+        return "+"
+    elif isinstance(op, ast.Sub):
+        return "-"
+    elif isinstance(op, ast.Mult):
+        return "*"
+    elif isinstance(op, ast.Div):
+        return "/"
+    elif isinstance(op, ast.Pow):
+        return "**"
+    elif isinstance(op, ast.USub):
+        return "-"
+    elif isinstance(op, ast.UAdd):
+        return "+"
+    else:
+        raise TypeError(f"Unsupported operator type: {type(op)}")
