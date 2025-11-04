@@ -45,6 +45,10 @@ class CodeBlock:
         """
         Converts a Python expression AST into a MiniZinc-compatible string
         """
+        
+        print("expr type:", type(expr), expr)
+        if isinstance(expr, ast.AST):
+            print("expr dump:", ast.dump(expr, include_attributes=False))
         if isinstance(expr, ast.BinOp):
             # Handle binary operations like x + y
             left = self.rewrite_expr(expr.left, loop_scope, get_numeral=get_numeral)
@@ -88,6 +92,7 @@ class CodeBlock:
             if isinstance(expr.op, ast.Not):
                 operand = self.rewrite_expr(expr.operand, loop_scope)
                 return f"(not {operand})"
+            
 
         elif isinstance(expr, ast.Name):
             name = expr.id
@@ -123,6 +128,12 @@ class CodeBlock:
             index_str = self.rewrite_expr(index, loop_scope)
             # print the whole tree under expr
             return f"{base}[{index_str}]"
+        
+        elif isinstance(expr, ast.Attribute):
+            # Handle attribute access like record.field
+            value_str = self.rewrite_expr(expr.value, loop_scope)
+            attr_str = expr.attr
+            return f"{value_str}.{attr_str}"
 
         elif isinstance(expr, ast.Call):
             func_name = expr.func.id if isinstance(expr.func, ast.Name) else ast.unparse(expr.func)
@@ -174,6 +185,8 @@ class CodeBlock:
         else:
             # Fallback: use source-like syntax
             print("Fallback: use source-like syntax\n", expr, type(expr))
+            if isinstance(expr, ast.AST):
+                print("expr dump:", ast.dump(expr, include_attributes=False))
             return ast.unparse(expr)
 
     # --- Execute blocks (assignments, for, if, functions, type declarations, asserts...) ---

@@ -46,11 +46,14 @@ for i in range(1, 4):
     b = a[i] + b
 """
     code = """
-a : DSList(4, DSList(3, int))
+MyRec = DSRecord({
+    "field1": int
+    })
+a : DSList(4, MyRec)
 b : int = 0
 for i in range(1, 5):
-    a[i][2] = i * 2
-    b = a[i][2] + b
+    a[i].field1 = i * 2
+    b = a[i].field1 + b
 """
     # code = code_check_machine
     translator = MiniZincTranslator(code)
