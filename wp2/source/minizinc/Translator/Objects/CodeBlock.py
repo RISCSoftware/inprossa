@@ -269,21 +269,25 @@ class CodeBlock:
         assigned_chain = [] # to store the attribute/subscript chain
         if isinstance(my_lhs, ast.Name):
             original_name = my_lhs.id
+        else:
+            original_name = None
         while obj_name not in self.variable_table:
             old_obj_name = obj_name
             if isinstance(my_lhs, ast.Attribute):
-                assigned_chain.append(("dict", self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True)))
+                assigned_chain.insert(0, ("dict", self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True)))
                 my_lhs = my_lhs.value
             elif isinstance(my_lhs, ast.Subscript):
-                assigned_chain.append(("list", self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True)))
+                assigned_chain.insert(0, ("list", self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True)))
                 my_lhs = my_lhs.value
-            obj_name = my_lhs.id
-            if obj_name == old_obj_name:
-                if obj_name == original_name:
-                    # Assumming var is an int
-                    self.new_evolving_variable(obj_name)
-                else:
-                    raise ValueError(f"Variable '{obj_name}' not defined in variable table.")
+            
+            if hasattr(my_lhs, "id"):
+                obj_name = my_lhs.id
+                if obj_name == old_obj_name:
+                    if obj_name == original_name:
+                        # If its an unseen variable without attributes/subscripts, create it assuming int
+                        self.new_evolving_variable(obj_name)
+                    else:
+                        raise ValueError(f"Variable '{obj_name}' not defined in variable table.")
 
         var_obj = self.variable_table[obj_name]
         self.create_deep_equality_constraint(var_obj, assigned_chain, rhs_expr, rhs, loop_scope)

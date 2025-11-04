@@ -74,12 +74,12 @@ class Variable:
 
         if isinstance(assigned_fields, list):
             for idx, val in enumerate(assigned_fields):
-                chains.extend(self.collect_assigned_chains(val, prefix + [("list", str(idx + 1))]))
+                chains.extend(self.collect_assigned_chains(val, [("list", str(idx + 1))] + prefix))
             return chains
 
         if isinstance(assigned_fields, dict):
             for key, val in assigned_fields.items():
-                chains.extend(self.collect_assigned_chains(val, prefix + [("dict", key)]))
+                chains.extend(self.collect_assigned_chains(val, [("dict", key)] + prefix))
             return chains
 
         raise TypeError(f"Unsupported assigned_fields type: {type(assigned_fields)}")
@@ -90,17 +90,21 @@ class Variable:
         is marked as assigned (1) in `assigned_fields`.
         """
         target = self.assigned_fields
+        print("Checking unassigned chain", access_chain, "in", target)
         for step_type, step in access_chain:
             if step_type == "dict":
                 if step not in target:
                     raise KeyError(f"Field '{step}' not found in assigned_fields.")
                 target = target[step]
             elif step_type == "list":
+                print("target before step", target, step, len(target))
                 if not isinstance(step, int):
                     step = int(step)
-                if step < 0 or step >= len(target):
+                    print(step > len(target))
+                print(step <= 0, step > len(target))
+                if step <= 0 or step > len(target):
                     raise IndexError(f"Index {step} out of range")
-                target = target[step]
+                target = target[step - 1]
             else:
                 raise TypeError(f"Invalid access step: {step}")
             
@@ -140,9 +144,9 @@ class Variable:
             elif step_type == "list":
                 if not isinstance(step, int):
                     step = int(step)
-                if step < 0 or step >= len(target):
+                if step <= 0 or step > len(target):
                     raise IndexError(f"Index {step} out of range")
-                target[step] = self.mark_chain_as_assigned(chain, target[step])
+                target[step - 1] = self.mark_chain_as_assigned(chain, target[step - 1])
                 return target
             else:
                 raise TypeError(f"Invalid access step: {step}")

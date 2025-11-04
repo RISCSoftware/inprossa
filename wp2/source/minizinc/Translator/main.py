@@ -34,10 +34,24 @@ b = b + 4
 # b = my_f(2, 3)
 # """
     code = """
-pieces : DSList(2, DSList(3, int))
-pieces = [[2,1,5],[2,12,53]]
-pieces[1] = pieces[2]
-    """
+a : DSList(4, int)
+for b in a:
+    b = 2
+"""
+    code = """
+a : DSList(4, int)
+b : int
+for i in range(1, 4):
+    a[i] = i * 2
+    b = a[i] + b
+"""
+    code = """
+a : DSList(4, DSList(3, int))
+b : int = 0
+for i in range(1, 5):
+    a[i][2] = i * 2
+    b = a[i][2] + b
+"""
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
