@@ -39,6 +39,7 @@ class DSInt:
             self.name = self.representation()
         else:
             self.name = name
+        self.var_name = f"var {self.name}"
 
     def emit_definition(self):
         declaration = f"type {self.name} = {self.representation()}"
@@ -76,6 +77,7 @@ class DSFloat:
             self.name = self.representation()
         else:
             self.name = name
+        self.var_name = f"var {self.name}"
 
     def emit_definition(self):
         declaration = f"type {self.name} = {self.representation()}"
@@ -109,6 +111,7 @@ class DSBool:
             self.name = self.representation()
         else:
             self.name = name
+        self.var_name = f"var {self.name}"
 
     def emit_definition(self):
         return f"type {self.name} = bool"
@@ -134,14 +137,15 @@ class DSList:
             self.name = self.representation()
         else:
             self.name = name
+        self.var_name = f"var {self.name}"
 
     def representation(self, with_vars=False):
         representation = f"array[1..{self.length}] of "
         type_repr = compute_type(self.elem_type, known_types=self.known_types)
-        if isinstance(type_repr, str):
-            representation += type_repr
+        if with_vars:
+            representation += type_repr.var_name
         else:
-            representation += type_repr.representation(with_vars=with_vars)
+            representation += type_repr.name
         return representation
 
     def emit_definition(self):
@@ -157,21 +161,26 @@ class DSRecord:
                  name: str = None,
                  known_types: Optional[set] = set()):
         self.known_types = known_types
-        self.name = name
-        self.ast_fields = fields
         self.types_dict = type_dict_from_ast_literal(fields, known_types=known_types)
+        if name is None:
+            self.name = self.representation()
+        else:
+            self.name = name
+        self.var_name = f"var {self.name}"
 
     def fields_declarations(self):
-        self.fields = dict_from_ast_literal(self.ast_fields, self.known_types)
         field_defs = []
-        for fname, ftype in self.fields.items():
-            field_defs.append(f"{ftype}: {fname}")
+        for fname, ftype in self.types_dict.items():
+            field_defs.append(f"{ftype.name}: {fname}")
         fields_str = ",\n    ".join(field_defs)
         return fields_str
     
     def representation(self, with_vars=False):
         self.fields_declar = self.fields_declarations()
-        return f"record(\n    {self.fields_declar}\n)"
+        repre = ""
+        if with_vars:
+            repre += "var "
+        return f"{repre}record(\n    {self.fields_declar}\n)"
 
     def emit_definition(self):
         return f"type {self.name} = {self.representation()}"

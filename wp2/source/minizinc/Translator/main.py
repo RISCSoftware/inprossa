@@ -55,6 +55,93 @@ for i in range(1, 5):
     a[i].field1 = i * 2
     b = a[i].field1 + b
 """
+    code = """
+Item = DSRecord({
+    "value": int,
+    "weight": DSInt(),
+    "chosen": DSBool()
+})
+
+ITEM1 : Item
+ITEM1.value = 15
+ITEM1.weight = 12
+ITEM2 : Item
+ITEM2.value = 50
+ITEM2.weight = 70
+ITEM3 : Item
+ITEM3.value = 80
+ITEM3.weight = 100
+ITEM4 : Item
+ITEM4.value = 80
+ITEM4.weight = 20
+ITEM5 : Item
+ITEM5.value = 20
+ITEM5.weight = 12
+ITEM6 : Item
+ITEM6.value = 25
+ITEM6.weight = 5
+Items = DSList(length = 6, elem_type = Item)
+ITEMS : Items = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
+N_ITEMS : int = 7
+MAX_WEIGHT : int = 110
+accumulated_weight = 0
+ChosenItemsArray = DSList(6, DSBool())
+chosen_items : ChosenItemsArray
+objective: int = 0
+
+def pack_item(items: Items, chosen_items: ChosenItemsArray):
+    for item in items:
+        accumulated_weight = accumulated_weight + item.weight
+        objective = objective + item.value
+
+assert accumulated_weight > 0
+assert accumulated_weight < MAX_WEIGHT
+"""
+    code = """
+PersonRec = DSRecord({"name": "float", "age": "int"})
+FamilyRec = DSRecord({"father": PersonRec, "children": DSList(length=2, elem_type=PersonRec)})
+
+FAM : FamilyRec = {
+    "children": [
+        {"name": "Alice", "age": 10},
+        {"name": "Bob", "age": 8}
+    ]
+}
+FAM.father = {"name": "John", "age": 40}
+FAM.father.age = 23
+
+"""
+
+    code = """
+Item = DSRecord({
+    "value": int,
+    "weight": int,
+    "chosen": DSBool()
+})
+
+ITEM1 : Item = {"value": 15, "weight": 12}
+ITEM2 : Item = {"value": 50, "weight": 70}
+ITEM3 : Item = {"value": 80, "weight": 100}
+ITEM4 : Item = {"value": 80, "weight": 20}
+ITEM5 : Item = {"value": 20, "weight": 12}
+ITEM6 : Item = {"value": 25, "weight": 5}
+Items = DSList(length = 6, elem_type = Item)
+ITEMS : Items = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
+N_ITEMS : int = 7
+MAX_WEIGHT : int = 110
+accumulated_weight = 0
+ChosenItemsArray = DSList(6, DSBool())
+chosen_items : ChosenItemsArray
+objective: int = 0
+
+def pack_item(items: Items, chosen_items: ChosenItemsArray):
+    for item in items:
+        accumulated_weight = accumulated_weight + item.weight
+        objective = objective + item.value
+
+assert accumulated_weight > 0
+assert accumulated_weight < MAX_WEIGHT
+"""
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

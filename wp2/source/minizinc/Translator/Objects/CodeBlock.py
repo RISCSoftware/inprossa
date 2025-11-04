@@ -46,9 +46,6 @@ class CodeBlock:
         Converts a Python expression AST into a MiniZinc-compatible string
         """
         
-        print("expr type:", type(expr), expr)
-        if isinstance(expr, ast.AST):
-            print("expr dump:", ast.dump(expr, include_attributes=False))
         if isinstance(expr, ast.BinOp):
             # Handle binary operations like x + y
             left = self.rewrite_expr(expr.left, loop_scope, get_numeral=get_numeral)
@@ -243,6 +240,7 @@ class CodeBlock:
 
         # Rewrite right-hand side expression
         rhs_expr = self.rewrite_expr(rhs, loop_scope)
+        print("RHS expr:", rhs_expr)
 
             
         # Subscript assignment: e.g., a[1] = 5
@@ -284,7 +282,7 @@ class CodeBlock:
             original_name = my_lhs.id
         else:
             original_name = None
-        while obj_name not in self.variable_table:
+        while obj_name not in self.variable_table and obj_name not in self.constant_table:
             old_obj_name = obj_name
             if isinstance(my_lhs, ast.Attribute):
                 assigned_chain.insert(0, ("dict", self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True)))
@@ -302,8 +300,12 @@ class CodeBlock:
                     else:
                         raise ValueError(f"Variable '{obj_name}' not defined in variable table.")
 
-        var_obj = self.variable_table[obj_name]
-        self.create_deep_equality_constraint(var_obj, assigned_chain, rhs_expr, rhs, loop_scope)
+        if obj_name in self.variable_table:
+            var_obj = self.variable_table[obj_name]
+            self.create_deep_equality_constraint(var_obj, assigned_chain, rhs_expr, rhs, loop_scope)
+        elif obj_name in self.constant_table:
+            const_obj = self.constant_table[obj_name]
+            const_obj.assign_chain(const_obj.value_structure, assigned_chain, rhs)
 
     def create_deep_equality_constraint(self, var_obj, chain, rhs_expr=None, rhs=None, loop_scope=None):
         """Creates equality constraints for nested attribute/subscript assignments."""

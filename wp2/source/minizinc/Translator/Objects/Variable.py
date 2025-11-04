@@ -20,12 +20,6 @@ class Variable:
             self.type = compute_type(annotation, known_types=known_types)
         else:
             self.type = compute_type(type_, known_types=known_types) if type_ is not None else DSInt()
-        if self.type is None:
-            self.representation_type_with_vars = "var int"
-        elif isinstance(self.type, str):  # TODO if is str compute real type earlier
-            self.representation_type_with_vars = f"var {compute_type(self.type, known_types=known_types).representation()}"
-        else:
-            self.representation_type_with_vars = self.type.representation(with_vars=True)
         self.versions = versions
 
         # TODO from each type, we can create an object indicating which of its fields have already been assigned
@@ -47,7 +41,7 @@ class Variable:
         self.type = type_
 
     def to_minizinc(self):
-        return f"{self._array_prefix()}{self.representation_type_with_vars}: {self.name}"
+        return f"{self._array_prefix()}{self.type.var_name}: {self.name}"
         
     def versioned_name(self):
         return f"{self.name}[{self.versions}]"
@@ -90,7 +84,6 @@ class Variable:
         is marked as assigned (1) in `assigned_fields`.
         """
         target = self.assigned_fields
-        print("Checking unassigned chain", access_chain, "in", target)
         for step_type, step in access_chain:
             if step_type == "dict":
                 if step not in target:
