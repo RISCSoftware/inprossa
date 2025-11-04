@@ -278,7 +278,6 @@ class CodeBlock:
                 assigned_chain.append(("list", self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True)))
                 my_lhs = my_lhs.value
             obj_name = my_lhs.id
-            print("Traversing to find base variable:", obj_name)
             if obj_name == old_obj_name:
                 if obj_name == original_name:
                     # Assumming var is an int
@@ -668,6 +667,7 @@ class CodeBlock:
     def execute_block_assert(self, stmt, loop_scope):
         # Handle assert statements
         test_expr = self.rewrite_expr(stmt.test, loop_scope)
+        print("Assert constraint > ", test_expr)
         self.constraints.append(Constraint(test_expr))
 
     # --- TYPE DECLARATIONS ---
@@ -686,6 +686,7 @@ class CodeBlock:
             if var not in self.variable_table:
                 self.new_evolving_variable(var, type_=type_)
             if value is not None:
+                print("ANNASsGIN")
                 self.create_deep_equality_constraint(self.variable_table[var], [], value, stmt.value, loop_scope)
                 # self.create_equality_constraint(self.variable_table[var].versioned_name(), value, stmt.value, loop_scope, fields=type_.initial_assigned_fields())
 
