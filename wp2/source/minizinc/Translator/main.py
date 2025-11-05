@@ -113,37 +113,10 @@ FAM.father.age = 23
 """
 
     code = """
-Item = DSRecord({
-    "value": int,
-    "weight": int
-})
-
-ITEM1 : Item = {"value": 15, "weight": 12}
-ITEM2 : Item = {"value": 50, "weight": 70}
-ITEM3 : Item = {"value": 80, "weight": 100}
-ITEM4 : Item = {"value": 80, "weight": 20}
-ITEM5 : Item = {"value": 20, "weight": 12}
-ITEM6 : Item = {"value": 25, "weight": 5}
-Items = DSList(length = 6, elem_type = Item)
-ITEMS : Items = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
 N_ITEMS : int = 7
-MAX_WEIGHT : int = 110
-
-ChosenItemsArray = DSList(6, DSBool())
-chosen_items : ChosenItemsArray
-
-def pack_item(items: Items, chosen_items: ChosenItemsArray):
-    objective: int = 0
-    accumulated_weight = 0
-    for i, item in enumerate(items):
-        if chosen_items[i]:
-            accumulated_weight = accumulated_weight + item.weight
-            objective = objective + item.value
-    return accumulated_weight, objective
-
-accumulated_weight, objective = pack_item(ITEMS, chosen_items)
-assert accumulated_weight > 0
-assert accumulated_weight < MAX_WEIGHT
+a : int = 0
+for i in range(1, N_ITEMS):
+    a = a + i
 """
     # code = code_check_machine
     translator = MiniZincTranslator(code)

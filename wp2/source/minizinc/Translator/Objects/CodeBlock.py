@@ -517,7 +517,7 @@ class CodeBlock:
         if isinstance(start_node, ast.Constant):
             start_val = start_node.value
         elif isinstance(start_node, ast.Name) and start_node.id in self.constant_table:
-            start_val = self.constant_table[start_node.id]
+            start_val = int(self.constant_table[start_node.id].value_structure) # TODO generalise other ways of accessing constants and their parts
         else:
             raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
 
@@ -525,7 +525,7 @@ class CodeBlock:
         if isinstance(end_node, ast.Constant):
             end_val = end_node.value
         elif isinstance(end_node, ast.Name) and end_node.id in self.constant_table:
-            end_val = self.constant_table[end_node.id].value
+            end_val = int(self.constant_table[end_node.id].value_structure)
 
         else:
             raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
