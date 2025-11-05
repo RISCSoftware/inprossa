@@ -111,13 +111,6 @@ FAM.father = {"name": "John", "age": 40}
 FAM.father.age = 23
 
 """
-
-    code = """
-N_ITEMS : int = 7
-a : int = 0
-for i in range(1, N_ITEMS):
-    a = a + i
-"""
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

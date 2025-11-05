@@ -150,65 +150,64 @@ class Constant:
                 # fallback if not evaluable
                 return stmt_value
 
-#     def assign_chain(self, structure, chain, value):
-#         """
-#         Recursively assign `value` into a nested structure (dict/list)
-#         following a key/index chain where each step is a tuple:
-#             ("dict", key)  or  ("list", index)
+    def assign_chain(self, structure, chain, value):
+        """
+        Recursively assign `value` into a nested structure (dict/list)
+        following a key/index chain where each step is a tuple:
+            ("dict", key)  or  ("list", index)
         
-#         Supports partial record updates like:
-#             assign_chain(fam, [("dict","father")], {"name":"Peter","age":23})
-#             assign_chain(fam, [("dict","children"),("list",1),("dict","age")], 12)
-#         """
-#         if isinstance(value, ast.Tuple):
-#             print("Converting tuple to dict for assignment:", value)
-#             print("Dump:", ast.dump(value, indent=4))
-#             value = value.elts[0]
-#         if isinstance(value, (ast.List, ast.Dict)):
-#             value = ast_to_object(value)
-#         if not chain:
-#             # merge or overwrite directly
-#             if isinstance(structure, dict) and isinstance(value, dict):
-#                 for k, v in value.items():
-#                     self.assign_chain(structure, [("dict", k)], v)
-#             elif isinstance(structure, list) and isinstance(value, list):
-#                 for i, v in enumerate(value):
-#                     if i < len(structure):
-#                         self.assign_chain(structure, [("list", i)], v)
-#             else:
-#                 return value
-#             return structure
+        Supports partial record updates like:
+            assign_chain(fam, [("dict","father")], {"name":"Peter","age":23})
+            assign_chain(fam, [("dict","children"),("list",1),("dict","age")], 12)
+        """
+        if isinstance(value, ast.Tuple):
+            print("Converting tuple to dict for assignment:", value)
+            print("Dump:", ast.dump(value, indent=4))
+            value = value.elts[0]
+        value = ast_to_object(value)
+        if not chain:
+            # merge or overwrite directly
+            if isinstance(structure, dict) and isinstance(value, dict):
+                for k, v in value.items():
+                    self.assign_chain(structure, [("dict", k)], v)
+            elif isinstance(structure, list) and isinstance(value, list):
+                for i, v in enumerate(value):
+                    if i < len(structure):
+                        self.assign_chain(structure, [("list", i)], v)
+            else:
+                return value
+            return structure
 
-#         (kind, key), *rest = chain
-#         print("Assigning chain step:", kind, key, "Rest:", rest, "Current structure:", structure)
-#         print("Value to assign:", value)
+        (kind, key), *rest = chain
+        print("Assigning chain step:", kind, key, "Rest:", rest, "Current structure:", structure)
+        print("Value to assign:", value)
 
-#         # descend into substructure
-#         if kind == "dict":
-#             if not isinstance(structure, dict):
-#                 raise TypeError(f"Expected dict at this step, got {type(structure)}")
-#             if key not in structure:
-#                 structure[key] = {} if rest else None
-#             print("Before recursive assign:", structure[key])
-#             structure[key] = self.assign_chain(structure[key], rest, value)
+        # descend into substructure
+        if kind == "dict":
+            if not isinstance(structure, dict):
+                raise TypeError(f"Expected dict at this step, got {type(structure)}")
+            if key not in structure:
+                structure[key] = {} if rest else None
+            print("Before recursive assign:", structure[key])
+            structure[key] = self.assign_chain(structure[key], rest, value)
 
-#         elif kind == "list":
-#             if not isinstance(structure, list):
-#                 raise TypeError(f"Expected list at this step, got {type(structure)}")
-#             if key >= len(structure):
-#                 raise IndexError(f"List index {key} out of range (len={len(structure)})")
-#             print("Before recursive assign:", structure[key])
-#             structure[key] = self.assign_chain(structure[key], rest, value)
+        elif kind == "list":
+            if not isinstance(structure, list):
+                raise TypeError(f"Expected list at this step, got {type(structure)}")
+            if key >= len(structure):
+                raise IndexError(f"List index {key} out of range (len={len(structure)})")
+            print("Before recursive assign:", structure[key])
+            structure[key] = self.assign_chain(structure[key], rest, value)
 
-#         else:
-#             raise ValueError(f"Invalid chain kind: {kind}")
+        else:
+            raise ValueError(f"Invalid chain kind: {kind}")
 
-#         return structure
-
+        return structure
 
 
 
-# ### Auxiliary functions to merge with others
+
+### Auxiliary functions to merge with others
 
 def ast_to_object(node):
     """
@@ -219,6 +218,9 @@ def ast_to_object(node):
     """
     if node is None:
         return None
+    
+    if not isinstance(node, ast.AST):
+        return node
 
     # --- Literal values ---
     if isinstance(node, ast.Constant):
