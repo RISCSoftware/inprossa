@@ -96,6 +96,7 @@ class CodeBlock:
 
             # Loop variable
             if name in loop_scope:
+                print("Substituting loop var:", name, "->", loop_scope[name])
                 return str(loop_scope[name])
 
             # Constant (e.g., MAX_LENGTH)
@@ -496,7 +497,9 @@ class CodeBlock:
 
         # Iterate through values and execute body with updated loop variable bindings
         for k, item in enumerate(iter_values, start=1):
+            print("Loop iteration with scope:", loop_scope, item)
             new_scope = self._bind_loop_variables(stmt, loop_scope, loop_vars, meta, k, item)
+            print("Loop iteration with scope:", new_scope)
             self.execute_block(stmt.body, new_scope)
 
     def _resolve_range_iter(self, stmt):
@@ -541,17 +544,33 @@ class CodeBlock:
         # enumerate over list literal
         if isinstance(arg, ast.List):
             values = [elt.value for elt in arg.elts]
+            iter_values = list(enumerate(values, start=1))
+            # iter_values: [(1, 2), (2, 5), (3, 3)]
+            loop_vars = [elt.id for elt in stmt.target.elts]
+            # loop_vars: ['current_index', 'piece']
         # enumerate over constant array like PIECES
         elif isinstance(arg, ast.Name) and arg.id in self.constant_table:
             values = self.constant_table[arg.id]
+            iter_values = list(enumerate(values, start=1))
+            # iter_values: [(1, 2), (2, 5), (3, 3)]
+            loop_vars = [elt.id for elt in stmt.target.elts]
+            # loop_vars: ['current_index', 'piece']
+        elif isinstance(arg, ast.Name) and arg.id in self.variable_table:
+            var_obj = self.variable_table[arg.id]
+            var_type = var_obj.type
+            if isinstance(var_type, DSList):
+                n = var_type.length
+            else:
+                raise ValueError(f"Unsupported variable type for array iteration: {var_type}")
+            versioned_const_name = var_obj.versioned_name()
+            iter_values = [(i, f"{versioned_const_name}[{i}]") for i in range(1, n + 1)]  # positions
+            loop_vars = [elt.id for elt in stmt.target.elts]
+            # Edit the second loop var to be the array access
+            print("loop_vars", loop_vars, iter_values)
         else:
             raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
-
-        iter_values = list(enumerate(values, start=1))
-        # iter_values: [(1, 2), (2, 5), (3, 3)]
-        loop_vars = [elt.id for elt in stmt.target.elts]
-        # loop_vars: ['current_index', 'piece']
         return iter_values, loop_vars
+
 
     def _bind_loop_variables(self, stmt, loop_scope, loop_vars, meta, k, item):
         """
@@ -563,6 +582,7 @@ class CodeBlock:
 
         # enumerate(...)
         if hasattr(stmt.iter, "func") and isinstance(stmt.iter.func, ast.Name) and stmt.iter.func.id == "enumerate":
+            print("CASE 1:")
             index_var, element_var = loop_vars
             index_val, element_val = item
             new_scope[index_var] = index_val
@@ -571,17 +591,14 @@ class CodeBlock:
             arg0 = stmt.iter.args[0]
             array_name = arg0.id if isinstance(arg0, ast.Name) else None
 
-            if array_name:
-                # enumerate(CONST_ARRAY) → symbolic access CONST[index]
-                new_scope[element_var] = f"{array_name}[{index_val}]"
-            else:
-                # enumerate([v1,v2,...]) → bind literal value
-                new_scope[element_var] = element_val
+            # enumerate([v1,v2,...]) → bind literal value
+            new_scope[element_var] = element_val
 
             return new_scope
 
         # for t in CONST_ARRAY
         if meta.get("kind") == "const":
+            print("CASE 2:")
             (loop_var,) = loop_vars
             array_name = meta["array_name"]
             new_scope[loop_var] = f"{array_name}[{k}]"

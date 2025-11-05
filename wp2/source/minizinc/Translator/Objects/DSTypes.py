@@ -143,7 +143,7 @@ class DSList:
         representation = f"array[1..{self.length}] of "
         type_repr = compute_type(self.elem_type, known_types=self.known_types)
         if with_vars:
-            representation += type_repr.var_name
+            representation += type_repr.representation(with_vars=True)
         else:
             representation += type_repr.name
         return representation

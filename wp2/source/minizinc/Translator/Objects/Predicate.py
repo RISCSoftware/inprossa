@@ -72,9 +72,9 @@ class Predicate(CodeBlock):
         # Parameters: inputs, outputs, then arrays in variable declarations
         params = []
         # inputs
-        params += [f"{i_type.representation(with_vars=True)}: input_{i+1}" for i, i_type in enumerate(self.input_types)]
+        params += [f"{i_type.var_name}: input_{i+1}" for i, i_type in enumerate(self.input_types)]
         # outputs
-        params += [f"{i_type.representation(with_vars=True)}: output_{i+1}" for i, i_type in enumerate(self.output_types)]
+        params += [f"{o_type.var_name}: output_{i+1}" for i, o_type in enumerate(self.output_types)]
         # arrays (as var int arrays)
         for v in self.arrays_order:
             params += [self.variable_table[v].to_minizinc()]

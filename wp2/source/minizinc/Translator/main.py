@@ -115,8 +115,7 @@ FAM.father.age = 23
     code = """
 Item = DSRecord({
     "value": int,
-    "weight": int,
-    "chosen": DSBool()
+    "weight": int
 })
 
 ITEM1 : Item = {"value": 15, "weight": 12}
@@ -129,16 +128,20 @@ Items = DSList(length = 6, elem_type = Item)
 ITEMS : Items = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
 N_ITEMS : int = 7
 MAX_WEIGHT : int = 110
-accumulated_weight = 0
+
 ChosenItemsArray = DSList(6, DSBool())
 chosen_items : ChosenItemsArray
-objective: int = 0
 
 def pack_item(items: Items, chosen_items: ChosenItemsArray):
-    for item in items:
-        accumulated_weight = accumulated_weight + item.weight
-        objective = objective + item.value
+    objective: int = 0
+    accumulated_weight = 0
+    for i, item in enumerate(items):
+        if chosen_items[i]:
+            accumulated_weight = accumulated_weight + item.weight
+            objective = objective + item.value
+    return accumulated_weight, objective
 
+accumulated_weight, objective = pack_item(ITEMS, chosen_items)
 assert accumulated_weight > 0
 assert accumulated_weight < MAX_WEIGHT
 """
