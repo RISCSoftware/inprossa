@@ -4,7 +4,7 @@ from Translator.Objects.Constraint import Constraint
 from Translator.Objects.DSTypes import DSList, compute_type
 from Translator.Objects.Variable import Variable
 from itertools import product
-from Translator.Objects.Constant import Constant
+from Translator.Objects.Constant import Constant, ast_to_object
 import copy
 class CodeBlock:
     """
@@ -185,7 +185,7 @@ class CodeBlock:
             print("Fallback: use source-like syntax\n", expr, type(expr))
             if isinstance(expr, ast.AST):
                 print("expr dump:", ast.dump(expr, include_attributes=False))
-            return ast.unparse(expr)
+            return ast_to_object(expr)
 
     # --- Execute blocks (assignments, for, if, functions, type declarations, asserts...) ---
 
