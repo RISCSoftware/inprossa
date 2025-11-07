@@ -15,14 +15,15 @@ GIVEN_INITIAL_BOARDS = [
 ]
 
 # The following can be deduced from GIVEN_INITIAL_BOARDS
-N_BOARDS = 3
-MAX_BOARD_LENGTH = 30
+N_BOARDS : int = 3
+MAX_BOARD_LENGTH : int = 30
 MAX_N_INTERVALS = 5
 # Maximum number of bad (or curved) intervals per board
 MAX_N_CUTS_PER_BOARD = 10
 # Maximum number of cuts per board (including the two fixed cuts at the start and end of the board)
 
-
+N_PIECES : int = N_BOARDS * (MAX_N_CUTS_PER_BOARD - 1)
+# Total number of pieces to be obtained from all boards
 BEAM_LENGTH = 10
 # Length of the beams to be produced
 BEAM_DEPTH = 5

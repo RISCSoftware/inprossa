@@ -1,6 +1,5 @@
 import ast
-
-from Translator.Objects.DSTypes import compute_type
+from typing import Optional
 
 
 minizinc_original_types = {
@@ -10,37 +9,141 @@ minizinc_original_types = {
     "bool",
 }
 
-def dict_from_ast_literal(node: ast.AST,
-                          known_types = set()) -> dict:
+
+def ast_to_evaluation_constants(node: ast.AST, constant_table: Optional[dict] = None) -> dict:
     """
-    Convert an ast.Dict consisting only of literal keys/values
-    into a Python dict. Raises on **unpacking and non-literals.
+    Convert an AST node into a value using the constant table for name resolution.
+    For example 1+ C, turns into 6 when constant_table = {'C': 5}.
+    And (7 + C) * 2 turns into 24.
     """
-    if not isinstance(node, ast.Dict):
-        raise TypeError("Expected ast.Dict")
 
-    out = {}
-    for k_node, v_node in zip(node.keys, node.values):
-        if k_node is None:  # {**something}
-            raise ValueError("Dict unpacking (**x) not supported")
+    if constant_table is None:
+        constant_table = {}
 
-        try:
-            key = ast.literal_eval(k_node)   # e.g., "name", 1, (1,2)
-        except Exception as e:
-            raise ValueError(f"Non-literal dict key: {ast.dump(k_node)}") from e
+    if isinstance(node, ast.Constant):
+        print("looking for Constant:", node.value)
+        return constant_table.get(node.value, node.value)
+        return node.value
 
-        if hasattr(v_node, 'id') and (v_node.id in minizinc_original_types or v_node.id in known_types):
-            val = v_node.id
-        elif isinstance(v_node, ast.Call):
-            # e.g., DSInt(0, 10), DSList(7, DSInt(0, 10))
-            v_node_type = compute_type(v_node)  # validate
-            type_def = v_node_type.emit_definition(known_types)  # validate
-            val = type_def
+    elif isinstance(node, ast.Name):
+        if node.id in constant_table:
+            return constant_table[node.id].value_structure
         else:
-            try:
-                val = ast.literal_eval(v_node)   # e.g., "string", 3, True
-            except Exception as e:
-                raise ValueError(f"Non-literal dict value for key {key}: {ast.dump(v_node)}") from e
+            raise ValueError(f"Name {node.id} not found in constant table.")
 
-        out[key] = val
-    return out
+    elif isinstance(node, ast.BinOp):
+        right = ast_to_evaluation_constants(node.right, constant_table)
+        print("Right:", ast.dump(node.right) if isinstance(node.right, ast.AST) else node.right)
+        left = ast_to_evaluation_constants(node.left, constant_table)
+        print("Left:", ast.dump(node.left) if isinstance(node.left, ast.AST) else node.left, " Right:", ast.dump(node.right) if isinstance(node.right, ast.AST) else node.right)
+        if isinstance(node.op, ast.Add):
+            return left + right
+        elif isinstance(node.op, ast.Sub):
+            return left - right
+        elif isinstance(node.op, ast.Mult):
+            return left * right
+        elif isinstance(node.op, ast.Div):
+            return left / right
+        else:
+            raise TypeError(f"Unsupported binary operator: {type(node.op)}")
+
+    elif isinstance(node, ast.UnaryOp):
+        operand = ast_to_evaluation_constants(node.operand, constant_table)
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        elif isinstance(node.op, ast.USub):
+            return -operand
+        else:
+            raise TypeError(f"Unsupported unary operator: {type(node.op)}")
+        
+    elif node is None or isinstance(node, ast.AST) is False:
+        return node
+
+    else:
+        raise TypeError(f"Unsupported AST node type for evaluation: {type(node)}")
+
+
+### Auxiliary functions to merge with others
+
+def ast_to_object(node: ast.AST):
+    """
+    Recursively convert AST literal trees (Dict, List, Tuple, Constant, BinOp, etc.)
+    into actual Python objects (dicts, lists, numbers, strings, etc.).
+    
+    Keeps symbolic names or expressions as strings.
+    """
+    if node is None:
+        return None
+    
+    if not isinstance(node, ast.AST):
+        return node
+
+    # --- Literal values ---
+    if isinstance(node, ast.Constant):
+        return node.value
+
+    # --- Variable name (symbolic reference) ---
+    elif isinstance(node, ast.Name):
+        return node.id
+
+    # --- Dictionary literal ---
+    elif isinstance(node, ast.Dict):
+        result = {}
+        for k_node, v_node in zip(node.keys, node.values):
+            if k_node is None:  # handle dict unpacking (**kwargs), unlikely for your DSL
+                continue
+            key = ast_to_object(k_node)
+            val = ast_to_object(v_node)
+            result[key] = val
+        return result
+
+    # --- List or tuple literal ---
+    elif isinstance(node, (ast.List, ast.Tuple)):
+        return [ast_to_object(e) for e in node.elts]
+
+    # --- Binary operations (e.g. 1 + x) ---
+    elif isinstance(node, ast.BinOp):
+        left = ast_to_object(node.left)
+        right = ast_to_object(node.right)
+        op = _op_to_str(node.op)
+        return f"({left} {op} {right})"
+
+    # --- Unary operations (e.g. -x) ---
+    elif isinstance(node, ast.UnaryOp):
+        op = _op_to_str(node.op)
+        operand = ast_to_object(node.operand)
+        return f"({op}{operand})"
+
+    # --- Attribute access (e.g. obj.field) ---
+    elif isinstance(node, ast.Attribute):
+        value = ast_to_object(node.value)
+        return f"{value}.{node.attr}"
+
+    # --- Function calls (e.g. f(a,b)) ---
+    elif isinstance(node, ast.Call):
+        func = ast_to_object(node.func)
+        args = [ast_to_object(a) for a in node.args]
+        return f"{func}({', '.join(map(str, args))})"
+
+    else:
+        raise TypeError(f"Unsupported AST node type: {type(node)}")
+    
+
+def _op_to_str(op):
+    """Convert AST operator node to string representation."""
+    if isinstance(op, ast.Add):
+        return "+"
+    elif isinstance(op, ast.Sub):
+        return "-"
+    elif isinstance(op, ast.Mult):
+        return "*"
+    elif isinstance(op, ast.Div):
+        return "/"
+    elif isinstance(op, ast.Pow):
+        return "**"
+    elif isinstance(op, ast.USub):
+        return "-"
+    elif isinstance(op, ast.UAdd):
+        return "+"
+    else:
+        raise TypeError(f"Unsupported operator type: {type(op)}")

@@ -13,7 +13,7 @@ Board = DSRecord({
 
 Piece = DSRecord({
     "length": DSInt(0, MAX_BOARD_LENGTH),
-    "quality": DSBool
+    "quality": DSBool()
 })
 
 CutList = DSRecord({

@@ -10,11 +10,14 @@ And Records will have a dict of field_name:str -> field_type:DS...
 """
 import ast
 from typing import Optional, Union, Dict
+from Translator.Tools import ast_to_evaluation_constants
 
 
-
-def remove_ast(input):
+def remove_ast(input, constant_table: Optional[dict] = None):
+    print("Removing AST from input:", input, type(input), ast.dump(input) if isinstance(input, ast.AST) else "N/A")
     if isinstance(input, ast.Name):
+        if constant_table is not None and input.id in constant_table:
+            return constant_table[input.id]
         return input.id
     # If constant and no numerical value, return value
     if isinstance(input, ast.Constant):
@@ -31,10 +34,12 @@ class DSInt:
                  lb: Union[int, str] = None,
                  ub: Union[int, str] = None,
                  name: str = None,
-                 known_types: Optional[set] = set()):
+                 known_types: Optional[set] = set(),
+                 constant_table: Optional[dict] = None
+                 ):
         self.known_types = known_types
-        self.lb = remove_ast(lb)
-        self.ub = remove_ast(ub)
+        self.lb = ast_to_evaluation_constants(lb, constant_table=constant_table)
+        self.ub = ast_to_evaluation_constants(ub, constant_table=constant_table)
         if name is None:
             self.name = self.representation()
         else:
@@ -69,10 +74,12 @@ class DSFloat:
                  lb: Union[float, str] = None,
                  ub: Union[float, str] = None,
                  name: str = None,
-                 known_types: Optional[set] = set()):
+                 known_types: Optional[set] = set(),
+                 constant_table: Optional[dict] = None
+                 ):
         self.known_types = known_types
-        self.lb = remove_ast(lb)
-        self.ub = remove_ast(ub)
+        self.lb = ast_to_evaluation_constants(lb, constant_table=constant_table)
+        self.ub = ast_to_evaluation_constants(ub, constant_table=constant_table)
         if name is None:
             self.name = self.representation()
         else:
@@ -105,7 +112,9 @@ class DSFloat:
 
 class DSBool:
     def __init__(self, name: str = None,
-                 known_types: Optional[set] = set()):
+                 known_types: Optional[set] = set(),
+                 constant_table: Optional[dict] = None
+                 ):
         self.known_types = known_types
         if name is None:
             self.name = self.representation()
@@ -128,11 +137,17 @@ class DSList:
                  length: Union[int, str],
                  elem_type: type = DSInt(),
                  name: str = None,
-                 known_types: Optional[set] = set()
+                 known_types: Optional[set] = set(),
+                 constant_table: Optional[dict] = None
                  ):
         self.known_types = known_types
-        self.length = remove_ast(length)
-        self.elem_type = compute_type(elem_type, known_types=known_types)
+        print("Constant table: ", constant_table)
+        self.length = ast_to_evaluation_constants(length, constant_table=constant_table)
+        self.elem_type = compute_type(
+            elem_type,
+            known_types=known_types,
+            constant_table=constant_table
+            )
         if name is None:
             self.name = self.representation()
             self.var_name = self.representation(with_vars=True)
@@ -154,15 +169,23 @@ class DSList:
         return declaration
 
     def initial_assigned_fields(self):
+        print("LLength:", self.length)
         return [self.elem_type.initial_assigned_fields() for _ in range(self.length)]
 
 class DSRecord:
     def __init__(self,
                  fields: Dict[str, type],
                  name: str = None,
-                 known_types: Optional[set] = set()):
+                 known_types: Optional[set] = set(),
+                 constant_table: Optional[dict] = None
+                 ):
         self.known_types = known_types
-        self.types_dict = type_dict_from_ast_literal(fields, known_types=known_types)
+        self.constant_table = constant_table
+        self.types_dict = type_dict_from_ast_literal(
+            fields,
+            known_types=known_types,
+            constant_table=constant_table
+            )
         if name is None:
             self.name = self.representation()
             self.var_name = self.representation(with_vars=True)
@@ -194,31 +217,71 @@ class DSType:
     def __init__(self,
                  type_node: ast.Call,
                  type_name: str = None,
-                 known_types: Optional[set] = None):
+                 known_types: Optional[set] = None,
+                 constant_table: Optional[dict] = None):
         self.name = type_name
         self.type_node = type_node
         self.type_object_name = type_node.func.id
+        print("Constant table in DSType:", constant_table)
         self.positional_args = [remove_ast(arg) for arg in type_node.args]
         self.arguments = {kw.arg: kw.value for kw in type_node.keywords}
         # Call the function to parse arguments
         if self.type_object_name == "DSInt":
-            self.type_obj = DSInt(name=self.name, *self.positional_args, **self.arguments, known_types=known_types)
+            self.type_obj = DSInt(name=self.name, *self.positional_args, **self.arguments, known_types=known_types, constant_table=constant_table)
         elif self.type_object_name == "DSFloat":
-            self.type_obj = DSFloat(name=self.name, *self.positional_args, **self.arguments, known_types=known_types)
+            self.type_obj = DSFloat(name=self.name, *self.positional_args, **self.arguments, known_types=known_types, constant_table=constant_table)
         elif self.type_object_name == "DSBool":
-            self.type_obj = DSBool(name=self.name, *self.positional_args, **self.arguments, known_types=known_types)
+            self.type_obj = DSBool(name=self.name, *self.positional_args, **self.arguments, known_types=known_types, constant_table=constant_table)
         elif self.type_object_name == "DSList":
-            self.type_obj = DSList(name=self.name, *self.positional_args, **self.arguments, known_types=known_types)
+            self.type_obj = DSList(name=self.name, *self.positional_args, **self.arguments, known_types=known_types, constant_table=constant_table)
         elif self.type_object_name == "DSRecord":
-            self.type_obj = DSRecord(name=self.name, *self.positional_args, **self.arguments, known_types=known_types)
+            self.type_obj = DSRecord(name=self.name, *self.positional_args, **self.arguments, known_types=known_types, constant_table=constant_table)
 
     def return_type(self):
         return self.type_obj
 
+
+def dict_from_ast_literal(node: ast.AST,
+                          known_types = set()) -> dict:
+    """
+    Convert an ast.Dict consisting only of literal keys/values
+    into a Python dict. Raises on **unpacking and non-literals.
+    """
+    if not isinstance(node, ast.Dict):
+        raise TypeError("Expected ast.Dict")
+
+    out = {}
+    for k_node, v_node in zip(node.keys, node.values):
+        if k_node is None:  # {**something}
+            raise ValueError("Dict unpacking (**x) not supported")
+
+        try:
+            key = ast.literal_eval(k_node)   # e.g., "name", 1, (1,2)
+        except Exception as e:
+            raise ValueError(f"Non-literal dict key: {ast.dump(k_node)}") from e
+
+        if hasattr(v_node, 'id') and (v_node.id in minizinc_original_types or v_node.id in known_types):
+            val = v_node.id
+        elif isinstance(v_node, ast.Call):
+            # e.g., DSInt(0, 10), DSList(7, DSInt(0, 10))
+            v_node_type = compute_type(v_node)  # validate
+            type_def = v_node_type.emit_definition(known_types)  # validate
+            val = type_def
+        else:
+            try:
+                val = ast.literal_eval(v_node)   # e.g., "string", 3, True
+            except Exception as e:
+                raise ValueError(f"Non-literal dict value for key {key}: {ast.dump(v_node)}") from e
+
+        out[key] = val
+    return out
+
+
 def compute_type(
         type_node: Union[ast.Call, ast.Name],
         type_name: str = None,
-        known_types: Optional[set] = None
+        known_types: Optional[set] = None,
+        constant_table: Optional[dict] = None
         ) -> DSType:
     if isinstance(type_node, (DSInt, DSFloat, DSBool, DSList, DSRecord)):
         returned_type = type_node
@@ -226,13 +289,13 @@ def compute_type(
     if isinstance(type_node, str) and type_name is None:
         # Already a string type name
         if type_node == "int":
-            returned_type = DSInt(name=type_node)
+            returned_type = DSInt(name=type_node, constant_table=constant_table)
             return returned_type
         elif type_node == "float":
-            returned_type = DSFloat(name=type_node)
+            returned_type = DSFloat(name=type_node, constant_table=constant_table)
             return returned_type
         elif type_node == "bool":
-            returned_type = DSBool(name=type_node)
+            returned_type = DSBool(name=type_node, constant_table=constant_table)
             return returned_type
         else:
             if known_types is not None and type_node in known_types:
@@ -246,12 +309,12 @@ def compute_type(
         return returned_type
     if isinstance(type_node, ast.Call):
         # A DS type constructor call
-        returned_type = DSType(type_node, type_name, known_types=known_types).return_type()
+        returned_type = DSType(type_node, type_name, known_types=known_types, constant_table=constant_table).return_type()
         return returned_type
     if isinstance(type_node, ast.Constant):
         # A constant type name
         if isinstance(type_node.value, str):
-            returned_type = compute_type(type_node.value, type_name=type_name, known_types=known_types)
+            returned_type = compute_type(type_node.value, type_name=type_name, known_types=known_types, constant_table=constant_table)
             return returned_type
         else:
             raise ValueError(f"Unsupported constant type node: {type_node.value}")
@@ -265,13 +328,15 @@ minizinc_original_types = {
 }
 
 def type_dict_from_ast_literal(node: ast.AST,
-                               known_types = set()) -> dict:
+                               known_types = set(),
+                               constant_table = dict()) -> dict:
     out = {}
     for k_node, v_node in zip(node.keys, node.values):
         key = ast.literal_eval(k_node)
-        v_node_type = compute_type(v_node, known_types=known_types)  # validate
+        v_node_type = compute_type(v_node, known_types=known_types, constant_table=constant_table)  # validate
         out[key] = v_node_type
     return out
+
 
 def dict_from_ast_literal(node: ast.AST,
                           known_types = set()) -> dict:

@@ -1,7 +1,7 @@
 import ast
 from typing import Union
 from Translator.Objects.DSTypes import DSList, DSRecord
-
+from Translator.Tools import ast_to_object
 
 class Constant:
     def __init__(self,
@@ -164,7 +164,6 @@ class Constant:
         """
         if isinstance(value, ast.Tuple):
             print("Converting tuple to dict for assignment:", value)
-            print("Dump:", ast.dump(value, indent=4))
             value = value.elts[0]
         value = ast_to_object(value)
         if not chain:
@@ -209,87 +208,3 @@ class Constant:
 
 
 
-### Auxiliary functions to merge with others
-
-def ast_to_object(node):
-    """
-    Recursively convert AST literal trees (Dict, List, Tuple, Constant, BinOp, etc.)
-    into actual Python objects (dicts, lists, numbers, strings, etc.).
-    
-    Keeps symbolic names or expressions as strings.
-    """
-    if node is None:
-        return None
-    
-    if not isinstance(node, ast.AST):
-        return node
-
-    # --- Literal values ---
-    if isinstance(node, ast.Constant):
-        return node.value
-
-    # --- Variable name (symbolic reference) ---
-    elif isinstance(node, ast.Name):
-        return node.id
-
-    # --- Dictionary literal ---
-    elif isinstance(node, ast.Dict):
-        result = {}
-        for k_node, v_node in zip(node.keys, node.values):
-            if k_node is None:  # handle dict unpacking (**kwargs), unlikely for your DSL
-                continue
-            key = ast_to_object(k_node)
-            val = ast_to_object(v_node)
-            result[key] = val
-        return result
-
-    # --- List or tuple literal ---
-    elif isinstance(node, (ast.List, ast.Tuple)):
-        return [ast_to_object(e) for e in node.elts]
-
-    # --- Binary operations (e.g. 1 + x) ---
-    elif isinstance(node, ast.BinOp):
-        left = ast_to_object(node.left)
-        right = ast_to_object(node.right)
-        op = _op_to_str(node.op)
-        return f"({left} {op} {right})"
-
-    # --- Unary operations (e.g. -x) ---
-    elif isinstance(node, ast.UnaryOp):
-        op = _op_to_str(node.op)
-        operand = ast_to_object(node.operand)
-        return f"({op}{operand})"
-
-    # --- Attribute access (e.g. obj.field) ---
-    elif isinstance(node, ast.Attribute):
-        value = ast_to_object(node.value)
-        return f"{value}.{node.attr}"
-
-    # --- Function calls (e.g. f(a,b)) ---
-    elif isinstance(node, ast.Call):
-        func = ast_to_object(node.func)
-        args = [ast_to_object(a) for a in node.args]
-        return f"{func}({', '.join(map(str, args))})"
-
-    else:
-        raise TypeError(f"Unsupported AST node type: {type(node)}")
-    
-
-def _op_to_str(op):
-    """Convert AST operator node to string representation."""
-    if isinstance(op, ast.Add):
-        return "+"
-    elif isinstance(op, ast.Sub):
-        return "-"
-    elif isinstance(op, ast.Mult):
-        return "*"
-    elif isinstance(op, ast.Div):
-        return "/"
-    elif isinstance(op, ast.Pow):
-        return "**"
-    elif isinstance(op, ast.USub):
-        return "-"
-    elif isinstance(op, ast.UAdd):
-        return "+"
-    else:
-        raise TypeError(f"Unsupported operator type: {type(op)}")

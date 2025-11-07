@@ -12,7 +12,7 @@ class Predicate(CodeBlock):
         self.name = name_override if name_override is not None else func_node.name
         # Printing the tree of the function for debugging
         self.input_names = [a.arg for a in func_node.args.args]
-        self.input_types = [compute_type(a.annotation, known_types=types)
+        self.input_types = [compute_type(a.annotation, known_types=types, constant_table=constant_table)
                             if a.annotation != None else DSInt()
                             for a in func_node.args.args]
         # TODO collect the types of the inputs from annotations
