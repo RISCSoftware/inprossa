@@ -92,23 +92,14 @@ def pack_item(items: Items, chosen_items: ChosenItemsArray):
     for i, item in enumerate(items):
         if chosen_items[i]:
             accumulated_weight = accumulated_weight + item.weight
-            objective = objective + item.value
-    return accumulated_weight, objective
+            objective = objective - item.value
+    return accumulated_weight
 
-accumulated_weight, objective = pack_item(ITEMS, chosen_items)
+accumulated_weight = pack_item(ITEMS, chosen_items)
 
 assert accumulated_weight > 0
 assert accumulated_weight < MAX_WEIGHT
 """
-    code = """
-def my_func(x: int, y: int):
-    z = x + y
-    return z
-
-a: int = 5
-b: int = 10
-c: int = my_func(a, b)
-    """
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

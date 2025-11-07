@@ -6,12 +6,8 @@ Item = DSRecord({
     "weight": DSInt()
 })
 
-ITEM1 : Item
-ITEM1.value = 15
-ITEM1.weight = 12
-ITEM2 : Item
-ITEM2.value = 50
-ITEM2.weight = 70
+ITEM1 : Item = {"value": 15, "weight": 12}
+ITEM2 : Item = {"value": 50, "weight": 70}
 ITEM3 : Item
 ITEM3.value = 80
 ITEM3.weight = 100
