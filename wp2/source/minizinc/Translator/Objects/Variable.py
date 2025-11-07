@@ -63,17 +63,17 @@ class Variable:
 
         if isinstance(assigned_fields, int):
             if assigned_fields == 1:
-                chains.append(prefix)
+                chains = [prefix]
             return chains
 
         if isinstance(assigned_fields, list):
             for idx, val in enumerate(assigned_fields):
-                chains.extend(self.collect_assigned_chains(val, [("list", str(idx + 1))] + prefix))
+                chains.extend(self.collect_assigned_chains(val, prefix + [("list", str(idx + 1))]))
             return chains
 
         if isinstance(assigned_fields, dict):
             for key, val in assigned_fields.items():
-                chains.extend(self.collect_assigned_chains(val, [("dict", key)] + prefix))
+                chains.extend(self.collect_assigned_chains(val, prefix + [("dict", key)]))
             return chains
 
         raise TypeError(f"Unsupported assigned_fields type: {type(assigned_fields)}")

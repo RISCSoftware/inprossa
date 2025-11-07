@@ -714,24 +714,23 @@ translation_tests += [
         "code": """
 pieces : DSList(2, DSList(3, int))
 pieces = [[2,1,5],[2,12,53]]
-pieces[1] = pieces[1]
+pieces[1] = pieces[2]
 """,
         "expected_translation": """array[1..1] of var int: objective;
-array[1..3] of var array[1..2] of array[1..3] of int: pieces;
+array[1..2] of array[1..2] of array[1..3] of var int: pieces;
 constraint objective[1] = 0;
-constraint pieces[2][1][1] = [[2, 1, 5], [2, 12, 53]][1][1];
-constraint pieces[2][1][2] = [[2, 1, 5], [2, 12, 53]][1][2];
-constraint pieces[2][1][3] = [[2, 1, 5], [2, 12, 53]][1][3];
-constraint pieces[2][2][1] = [[2, 1, 5], [2, 12, 53]][2][1];
-constraint pieces[2][2][2] = [[2, 1, 5], [2, 12, 53]][2][2];
-constraint pieces[2][2][3] = [[2, 1, 5], [2, 12, 53]][2][3];
-constraint pieces[3][2][1] = pieces[2][2][1];
-constraint pieces[3][3][1] = pieces[2][3][1];
-constraint pieces[3][2][2] = pieces[2][2][2];
-constraint pieces[3][3][2] = pieces[2][3][2];
-constraint pieces[3][1][1] = pieces[2][1][1];
-constraint pieces[3][1][2] = pieces[2][1][2];
-constraint pieces[3][1][3] = pieces[2][1][3];
+constraint pieces[1][1][1] = [[2, 1, 5], [2, 12, 53]][1][1];
+constraint pieces[1][1][2] = [[2, 1, 5], [2, 12, 53]][1][2];
+constraint pieces[1][1][3] = [[2, 1, 5], [2, 12, 53]][1][3];
+constraint pieces[1][2][1] = [[2, 1, 5], [2, 12, 53]][2][1];
+constraint pieces[1][2][2] = [[2, 1, 5], [2, 12, 53]][2][2];
+constraint pieces[1][2][3] = [[2, 1, 5], [2, 12, 53]][2][3];
+constraint pieces[2][2][1] = pieces[1][2][1];
+constraint pieces[2][2][2] = pieces[1][2][2];
+constraint pieces[2][2][3] = pieces[1][2][3];
+constraint pieces[2][1][1] = pieces[1][2][1];
+constraint pieces[2][1][2] = pieces[1][2][2];
+constraint pieces[2][1][3] = pieces[1][2][3];
 solve minimize objective[1];"""
     },
 ]

@@ -135,9 +135,10 @@ class DSList:
         self.elem_type = compute_type(elem_type, known_types=known_types)
         if name is None:
             self.name = self.representation()
+            self.var_name = self.representation(with_vars=True)
         else:
             self.name = name
-        self.var_name = f"var {self.name}"
+            self.var_name = f"var {self.name}"
 
     def representation(self, with_vars=False):
         representation = f"array[1..{self.length}] of "
@@ -164,9 +165,10 @@ class DSRecord:
         self.types_dict = type_dict_from_ast_literal(fields, known_types=known_types)
         if name is None:
             self.name = self.representation()
+            self.var_name = self.representation(with_vars=True)
         else:
             self.name = name
-        self.var_name = f"var {self.name}"
+            self.var_name = f"var {self.name}"
 
     def fields_declarations(self):
         field_defs = []
