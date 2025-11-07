@@ -106,12 +106,10 @@ class MiniZincTranslator:
         parts += self.get_constraints(block)
 
         # 5) Solve (default)
-        if self.objective is None:
-            parts.append("solve satisfy;")
-        else:
-            sense, expr = self.objective
-            parts.append(f"solve {sense} {expr};")
+        parts.append(self.get_objective(block))
         return ";\n".join(parts)
+    
+    # TODO these three methods could be moved to CodeBlock?
 
     def get_symbol_declarations(self, block):
         """Declare constants as MiniZinc symbols (not evolving)."""
@@ -126,3 +124,10 @@ class MiniZincTranslator:
 
     def get_constraints(self, block):
         return [str(c) for c in block.constraints if c is not None]
+    
+    def get_objective(self, block):
+        # Look for 'objective' variable in block
+        obj_var = block.variable_table["objective"]
+        obj_var_ver_name = obj_var.versioned_name()
+        return f"solve minimize {obj_var_ver_name};"
+
