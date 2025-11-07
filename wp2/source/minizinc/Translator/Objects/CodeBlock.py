@@ -765,7 +765,8 @@ class CodeBlock:
             if var not in self.variable_table:
                 self.new_evolving_variable(var, type_=type_)
             # TODO call execute_block_assign to handle assignment
-            self.execute_block_assign(stmt.target, stmt.value, loop_scope)
+            if stmt.value is not None:
+                self.execute_block_assign(stmt.target, stmt.value, loop_scope)
             # value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None
             # if value is not None:
             #     self.create_deep_equality_constraint(self.variable_table[var], [], value, stmt.value, loop_scope)
