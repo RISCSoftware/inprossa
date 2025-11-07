@@ -103,7 +103,7 @@ class CodeBlock:
 
             # Loop variable
             if name in loop_scope:
-                print("Substituting loop var:", name, "->", loop_scope[name])
+                # Substituting loop var: name -> loop_scope[name]
                 return str(loop_scope[name])
 
             # Constant (e.g., MAX_LENGTH)
@@ -143,13 +143,53 @@ class CodeBlock:
         elif isinstance(expr, ast.Call):
             func_name = expr.func.id if isinstance(expr.func, ast.Name) else ast.unparse(expr.func)
 
-            # Only supports abs, max, min (not user-defined here)
-            if func_name in {"abs", "max", "min"}:
-                args = [self.rewrite_expr(arg, loop_scope) for arg in expr.args]
+            # --- Step 1: classify function ---
+            quantifiers = {"exists", "forall", "any", "all"}
+            aggregators = {"sum", "max", "min"}
+            builtin_funcs = {"abs"}
+
+            # --- Step 2: handle built-ins early ---
+            if func_name in builtin_funcs:
+                args = [self.rewrite_expr(a, loop_scope) for a in expr.args]
                 return f"{func_name}({', '.join(args)})"
-            else:
-                if func_name[:2] != "DS":
-                    raise ValueError(f"Unsupported function call in expression: {func_name}")
+
+            # --- Step 3: ignore DS-types ---
+            if func_name.startswith("DS"):
+                return self._translate_DS_call(expr, loop_scope)
+
+            # --- Step 4: only process interesting functions ---
+            if func_name not in (quantifiers | aggregators):
+                raise ValueError(f"Unsupported function call in expression: {func_name}")
+
+            # --- Step 5: detect generator form ---
+            arg = expr.args[0] if expr.args else None
+            is_generator = isinstance(arg, ast.GeneratorExp)
+
+            # --- Step 6: generator version ---
+            # For example, sum(x for x in A)
+            if is_generator:
+                gen = arg
+                target = gen.generators[0].target.id
+                iter_ = self.rewrite_expr(gen.generators[0].iter, loop_scope)
+                elt_expr = self.rewrite_expr(gen.elt, loop_scope)
+
+                # MiniZinc syntax uses same name as func_name, except any→exists, all→forall
+                func_map = {"any": "exists", "all": "forall"}
+                mz_func = func_map.get(func_name, func_name)
+                return f"{mz_func}({target} in {iter_})({elt_expr})"
+
+            # --- Step 7: explicit arguments version ---
+            # For example, sum([a, b, c])
+            args = [self.rewrite_expr(a, loop_scope) for a in expr.args]
+
+            if func_name in {"exists", "any"}:
+                return "(" + " \\/ ".join(args) + ")"
+            elif func_name in {"forall", "all"}:
+                return "(" + " /\\ ".join(args) + ")"
+            elif func_name in aggregators:
+                # sum([a,b]) or max([a,b])
+                return f"{func_name}([{', '.join(args)}])"
+
 
         elif isinstance(expr, ast.List):
             # Elements rewritten recursively so Names/Calls/etc. are handled
@@ -190,8 +230,6 @@ class CodeBlock:
         else:
             # Fallback: use source-like syntax
             print("Fallback: use source-like syntax\n", expr, type(expr))
-            if isinstance(expr, ast.AST):
-                print("expr dump:", ast.dump(expr, include_attributes=False))
             return ast_to_object(expr)
 
     # --- Execute blocks (assignments, for, if, functions, type declarations, asserts...) ---
@@ -512,9 +550,7 @@ class CodeBlock:
 
         # Iterate through values and execute body with updated loop variable bindings
         for k, item in enumerate(iter_values, start=1):
-            print("Loop iteration with scope:", loop_scope, item)
             new_scope = self._bind_loop_variables(stmt, loop_scope, loop_vars, meta, k, item)
-            print("Loop iteration with scope:", new_scope)
             self.execute_block(stmt.body, new_scope)
 
     def _resolve_range_iter(self, stmt):
@@ -597,7 +633,6 @@ class CodeBlock:
 
         # enumerate(...)
         if hasattr(stmt.iter, "func") and isinstance(stmt.iter.func, ast.Name) and stmt.iter.func.id == "enumerate":
-            print("CASE 1:")
             index_var, element_var = loop_vars
             index_val, element_val = item
             new_scope[index_var] = index_val
@@ -613,7 +648,6 @@ class CodeBlock:
 
         # for t in CONST_ARRAY
         if meta.get("kind") == "const":
-            print("CASE 2:")
             (loop_var,) = loop_vars
             array_name = meta["array_name"]
             new_scope[loop_var] = f"{array_name}[{k}]"
@@ -641,11 +675,8 @@ class CodeBlock:
         Merges variable versions after an if-else branch by using the highest index
         """
         merged_idx = max(idx_if, idx_else)
-        print(f"Merging variable '{var}': if-version={idx_if}, else-version={idx_else} -> merged-version={merged_idx}")
         if var not in self.variable_table:
             self.new_evolving_variable(var)
-        else:
-            print("Versions", self.variable_table[var].versions)
         self.variable_table[var].versions = merged_idx
         constraints = dict()
 

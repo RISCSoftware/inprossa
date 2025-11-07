@@ -90,11 +90,8 @@ class Variable:
                     raise KeyError(f"Field '{step}' not found in assigned_fields.")
                 target = target[step]
             elif step_type == "list":
-                print("target before step", target, step, len(target))
                 if not isinstance(step, int):
                     step = int(step)
-                    print(step > len(target))
-                print(step <= 0, step > len(target))
                 if step <= 0 or step > len(target):
                     raise IndexError(f"Index {step} out of range")
                 target = target[step - 1]

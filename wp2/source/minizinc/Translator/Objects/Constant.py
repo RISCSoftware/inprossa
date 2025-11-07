@@ -107,7 +107,6 @@ class Constant:
             return target
         # --- 1. Dicts: e.g. {"x":1,"y":2}
         elif isinstance(value_node, ast.Dict):
-            print("Option 1")
             for key_node, val_node in zip(value_node.keys, value_node.values):
                 # extract key name (must be str constant or name)
                 if isinstance(key_node, ast.Constant):
@@ -123,7 +122,6 @@ class Constant:
 
         # --- 2. Lists or tuples: e.g. [1,2,3] or [(x:1), (x:2)]
         elif isinstance(value_node, (ast.List, ast.Tuple)):
-            print("Option 2")
             if not isinstance(target, list):
                 raise TypeError("Expected list target for list AST node")
             for i, elem_node in enumerate(value_node.elts):
@@ -132,7 +130,6 @@ class Constant:
             return target
         # --- 3. Constants or other expressions
         else:
-            print("Option 3")
             return self.code_block.rewrite_expr(value_node, loop_scope=self.loop_scope)
         
     def from_stmt_value_to_value(self, stmt_value):
