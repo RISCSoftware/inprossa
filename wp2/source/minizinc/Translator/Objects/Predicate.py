@@ -1,6 +1,7 @@
 import ast
 from Translator.Objects.CodeBlock import CodeBlock
 from Translator.Objects.DSTypes import DSInt, compute_type
+from Translator.Objects.Constraint import Constraint
 
     
 class Predicate(CodeBlock):
