@@ -5,6 +5,7 @@ from Translator.Objects.DSTypes import DSInt, DSList, compute_type
 from Translator.Objects.Variable import Variable
 from itertools import product
 from Translator.Objects.Constant import Constant, ast_to_object
+from Translator.Tools import ExpressionRewriter
 import copy
 class CodeBlock:
     """
@@ -47,179 +48,6 @@ class CodeBlock:
     def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
         self.variable_table[name] = Variable(name, type_=type_, versions=versions, known_types=self.types, constant_table=self.constant_table)
-
-    def rewrite_expr(self, expr, loop_scope):
-        """
-        Converts a Python expression AST into a MiniZinc-compatible string
-        """
-        
-        if isinstance(expr, ast.BinOp):
-            # Handle binary operations like x + y
-            left = self.rewrite_expr(expr.left, loop_scope)
-            right = self.rewrite_expr(expr.right, loop_scope)
-            op = {
-                ast.Add: "+",
-                ast.Sub: "-",
-                ast.Mult: "*",
-                ast.Div: "div",
-                ast.Mod: "mod",
-                ast.Pow: "^"
-            }.get(type(expr.op), "?")
-            return f"({left} {op} {right})"
-
-        elif isinstance(expr, ast.Compare):
-            # Handle comparisons like x < y or x == y
-            left = self.rewrite_expr(expr.left, loop_scope)
-            right = self.rewrite_expr(expr.comparators[0], loop_scope)
-            op = {
-                ast.Lt: "<",
-                ast.LtE: "<=",
-                ast.Gt: ">",
-                ast.GtE: ">=",
-                ast.Eq: "=",
-                ast.NotEq: "!="
-            }.get(type(expr.ops[0]), "?")
-            return f"({left} {op} {right})"
-
-        elif isinstance(expr, ast.BoolOp):
-            # Handle logical operations: and / or
-            op = {
-                # "and": "/\\",
-                ast.And: "/\\",
-                ast.Or: "\\/"
-            }.get(type(expr.op), "?")
-            values = [self.rewrite_expr(v, loop_scope) for v in expr.values]
-            return f"({' {} '.format(op).join(values)})"
-        
-        elif isinstance(expr, ast.UnaryOp):
-            # Handle unary operations: not / -
-            if isinstance(expr.op, ast.Not):
-                operand = self.rewrite_expr(expr.operand, loop_scope)
-                return f"(not {operand})"
-            
-
-        elif isinstance(expr, ast.Name):
-            name = expr.id
-
-            # Loop variable
-            if name in loop_scope:
-                # Substituting loop var: name -> loop_scope[name]
-                return str(loop_scope[name])
-
-            # Constant (e.g., MAX_LENGTH)
-            if name.isupper():
-                return name
-
-            # Now all variables must exist already
-            # # Not constant, not loop var — must be a normal variable
-            # if name not in self.variable_table:
-            #     # First-time reference (e.g., used in an expression before assignment)
-            #     self.new_evolving_variable(name)
-
-            return self.variable_table[name].versioned_name()
-
-        elif isinstance(expr, ast.Constant):
-            # Handle literals: numbers, booleans
-            return str(expr.value)
-
-        elif isinstance(expr, ast.Subscript):
-            # Handle array access like VALUES[i]
-            base = self.rewrite_expr(expr.value, loop_scope)
-
-            # Get the index expression, which can be a Name, Constant, or BinOp
-            index = expr.slice
-
-            index_str = self.rewrite_expr(index, loop_scope)
-            # print the whole tree under expr
-            return f"{base}[{index_str}]"
-        
-        elif isinstance(expr, ast.Attribute):
-            # Handle attribute access like record.field
-            value_str = self.rewrite_expr(expr.value, loop_scope)
-            attr_str = expr.attr
-            return f"{value_str}.{attr_str}"
-
-        elif isinstance(expr, ast.Call):
-            func_name = expr.func.id if isinstance(expr.func, ast.Name) else ast.unparse(expr.func)
-
-            # --- Step 1: classify function ---
-            quantifiers = {"exists", "forall", "any", "all"}
-            aggregators = {"sum", "max", "min"}
-            builtin_funcs = {"abs", "len"}
-
-            # --- Step 2: handle built-ins early ---
-            if func_name in builtin_funcs:
-                if func_name == "len":
-                    func_name = "length"
-                args = [self.rewrite_expr(a, loop_scope) for a in expr.args]
-                return f"{func_name}({', '.join(args)})"
-
-            # --- Step 3: ignore DS-types ---
-            if func_name.startswith("DS"):
-                return self._translate_DS_call(expr, loop_scope)
-            
-            
-
-            # --- Step 4: only process interesting functions ---
-            if func_name not in (quantifiers | aggregators):
-                raise ValueError(f"Unsupported function call in expression: {func_name}")
-
-            # --- Step 5: detect generator form ---
-            arg = expr.args[0] if expr.args else None
-            is_generator = isinstance(arg, ast.GeneratorExp)
-
-            # --- Step 6: generator version ---
-            # For example, sum(x for x in A)
-            if is_generator:
-                gen = arg
-                target = gen.generators[0].target.id
-                iter_ = self.rewrite_expr(gen.generators[0].iter, loop_scope)
-                elt_expr = self.rewrite_expr(gen.elt, loop_scope)
-
-                # MiniZinc syntax uses same name as func_name, except any→exists, all→forall
-                func_map = {"any": "exists", "all": "forall"}
-                mz_func = func_map.get(func_name, func_name)
-                return f"{mz_func}({target} in {iter_})({elt_expr})"
-
-            # --- Step 7: explicit arguments version ---
-            # For example, sum([a, b, c])
-            args = [self.rewrite_expr(a, loop_scope) for a in expr.args]
-
-            if func_name in {"exists", "any"}:
-                return "(" + " \\/ ".join(args) + ")"
-            elif func_name in {"forall", "all"}:
-                return "(" + " /\\ ".join(args) + ")"
-            elif func_name in aggregators:
-                # sum([a,b]) or max([a,b])
-                return f"{func_name}([{', '.join(args)}])"
-
-
-        elif isinstance(expr, ast.List):
-            # Elements rewritten recursively so Names/Calls/etc. are handled
-            elts = expr.elts
-            contents = []
-            dims = []
-            for e in elts:
-                new_content = self.rewrite_expr(e, loop_scope)
-                dim = []
-                dims.append(dim)
-                contents.append(new_content)
-            # Join elements with commas
-            inner = ", ".join(self.rewrite_expr(e, loop_scope) for e in elts)
-            list_str = f"[{inner}]"
-            return list_str
-            
-        elif isinstance(expr, ast.Expression):
-            return self.rewrite_expr(expr.body, loop_scope)
-
-        elif isinstance(expr, str):
-            return expr
-            
-
-        else:
-            # Fallback: use source-like syntax
-            print("Fallback: use source-like syntax\n", expr, type(expr))
-            return ast_to_object(expr)
 
     # --- Execute blocks (assignments, for, if, functions, type declarations, asserts...) ---
 
@@ -282,7 +110,7 @@ class CodeBlock:
                     raise ValueError(f"Unknown predicate/function called: {fname}")
 
         # Rewrite right-hand side expression
-        rhs_expr = self.rewrite_expr(rhs, loop_scope)
+        rhs_expr = ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(rhs)
 
             
         # Subscript assignment: e.g., a[1] = 5
@@ -332,10 +160,10 @@ class CodeBlock:
             old_obj_name = obj_name
             print("OBJ NAME:", obj_name)
             if isinstance(my_lhs, ast.Attribute):
-                assigned_chain.insert(0, ("dict", self.rewrite_expr(my_lhs.attr, loop_scope)))
+                assigned_chain.insert(0, ("dict", ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.attr)))
                 my_lhs = my_lhs.value
             elif isinstance(my_lhs, ast.Subscript):
-                assigned_chain.insert(0, ("list", self.rewrite_expr(my_lhs.slice, loop_scope)))
+                assigned_chain.insert(0, ("list", ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.slice)))
                 my_lhs = my_lhs.value
             
             if hasattr(my_lhs, "id"):
@@ -448,19 +276,19 @@ class CodeBlock:
                 # Taking into account the output vars actualise version and assigned fields accordingly
                 self.find_original_variable_and_assign(elt)
                 # Write the output expression with appropriate versions
-                out_exprs.append(self.rewrite_expr(elt, loop_scope))
+                out_exprs.append(ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(elt))
         else:
             # Single output
             # Taking into account the output var actualise version and assigned fields accordingly
             self.find_original_variable_and_assign(lhs)
                 # Write the output expression with appropriate versions
-            out_exprs.append(self.rewrite_expr(lhs, loop_scope))
+            out_exprs.append(ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(lhs))
 
         if len(out_exprs) != pred.n_outputs:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_outputs} outputs, got {len(out_exprs)}")
 
         # Inputs on RHS call
-        in_exprs = [self.rewrite_expr(arg, loop_scope) for arg in rhs.args]
+        in_exprs = [ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(arg) for arg in rhs.args]
         if len(in_exprs) != pred.n_inputs:
             raise ValueError(f"Predicate '{pred.name}': expected {pred.n_inputs} inputs, got {len(in_exprs)}")
 
@@ -723,7 +551,7 @@ class CodeBlock:
 
     def execute_block_if(self, stmt, loop_scope):
         # Handle if-statements with symbolic branching
-        cond_expr = self.rewrite_expr(stmt.test, loop_scope)
+        cond_expr = ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(stmt.test)
         pre_branch_index = copy.deepcopy(self.variable_table)
 
         # Run both if and else branches independently
@@ -756,7 +584,7 @@ class CodeBlock:
 
     def execute_block_assert(self, stmt, loop_scope):
         # Handle assert statements
-        test_expr = self.rewrite_expr(stmt.test, loop_scope)
+        test_expr = ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(stmt.test)
         self.constraints.append(Constraint(test_expr))
 
     # --- TYPE DECLARATIONS ---

@@ -1,7 +1,7 @@
 import ast
 from typing import Union
 from Translator.Objects.DSTypes import DSList, DSRecord
-from Translator.Tools import ast_to_object
+from Translator.Tools import ast_to_object, ExpressionRewriter
 
 class Constant:
     def __init__(self,
@@ -130,7 +130,7 @@ class Constant:
             return target
         # --- 3. Constants or other expressions
         else:
-            return self.code_block.rewrite_expr(value_node, loop_scope=self.loop_scope)
+            return ExpressionRewriter(self.loop_scope, code_block = self.code_block).rewrite_expr(value_node)
         
     def from_stmt_value_to_value(self, stmt_value):
         """Process the stmt_value AST to compute the actual value."""
