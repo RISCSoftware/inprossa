@@ -60,6 +60,14 @@ pieces : DSList(2, DSList(1, int))
 pieces = [[1],[2]]
 pieces[2] = pieces[1]
 """
+    code = """
+def positive(a:int):
+    assert a > 0
+
+assert positive(5)
+positive(-3)
+
+"""
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

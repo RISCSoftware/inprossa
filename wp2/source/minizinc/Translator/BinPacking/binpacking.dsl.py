@@ -1,36 +1,30 @@
-BOX_CAPACITIES = [5, 5, 5, 5]
-ITEM_WEIGHTS = [4, 2, 5, 3, 1]
+from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 
-nboxes = len(BOX_CAPACITIES)
-nitems = len(ITEM_WEIGHTS)
+code = """
+BOX_CAPACITIES : DSList(4, DSInt()) = [5, 5, 5, 5]
+ITEM_WEIGHTS : DSList(5, DSInt()) = [4, 2, 5, 3, 1]
 
-#BoxAssignments: list = [[-1 for i in ITEM_WEIGHTS] for b in BOX_CAPACITIES]
+NBOXES : int = 4
+NITEMS : int = 5
 
-#assignments: DSList(nboxes, DSList(nitems, DSBool))
-# alternative
-assignments: DSList(nitems, DSInt(1, nboxes))
+assignments: DSList(5, DSInt(1, 4))
 
-# use a slack variable or mark not yet assigned items
-
-# objective: min(objective)
-
-# Functions/Predicates
-def check_exact_one(assignments):
-    for i in range(nboxes):
-        for j in range(nitems):
-            t_assignments[j,i] = assignments[i,j]
-    
-    for j in range(nitems):
-        assert sum(t_assignments[j]) == 1
-
-def not_exceed(assignments, objective):
-    for i in range(nboxes):
+def not_exceed(assignments: DSList(5, DSInt(1, 5))):
+    cap: DSList(4, DSInt(0, 20))
+    for i in range(1, 5):
         cap[i] = 0
-        for j in range(nitems):
-            #if assignments[i,j] == 1:
-            if assignments[i] == j:
-                cap[i] += ITEM_WEIGHTS[j]
+        for j in range(1, 6):
+            if assignments[j] == i:
+                cap[i] = cap[i] + ITEM_WEIGHTS[j]
 
         assert cap[i] <= BOX_CAPACITIES[i] # + slack
         if cap[i] > 0:
-            objective += 1
+            objective = objective + 1
+
+not_exceed(assignments)
+"""
+translator = MiniZincTranslator(code)
+model = translator.unroll_translation()
+print("\n")
+print(model)
+print("\n")

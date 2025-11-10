@@ -146,16 +146,20 @@ class CodeBlock:
             # --- Step 1: classify function ---
             quantifiers = {"exists", "forall", "any", "all"}
             aggregators = {"sum", "max", "min"}
-            builtin_funcs = {"abs"}
+            builtin_funcs = {"abs", "len"}
 
             # --- Step 2: handle built-ins early ---
             if func_name in builtin_funcs:
+                if func_name == "len":
+                    func_name = "length"
                 args = [self.rewrite_expr(a, loop_scope) for a in expr.args]
                 return f"{func_name}({', '.join(args)})"
 
             # --- Step 3: ignore DS-types ---
             if func_name.startswith("DS"):
                 return self._translate_DS_call(expr, loop_scope)
+            
+            
 
             # --- Step 4: only process interesting functions ---
             if func_name not in (quantifiers | aggregators):
@@ -256,6 +260,14 @@ class CodeBlock:
             elif isinstance(stmt, ast.FunctionDef):
                 # ignore: functions handled by MiniZincTranslator/Predicate
                 continue
+            elif isinstance(stmt, ast.Call) and isinstance(stmt.func, ast.Name):
+                fname = stmt.func.id
+                if fname in self.predicates:
+                    return self._handle_predicate_call_assign(None, stmt, loop_scope, self.predicates[fname])
+                else:
+                    raise ValueError(f"Unknown predicate/function called: {fname}")
+            elif isinstance(stmt, ast.Expr):
+                self.execute_block([stmt.value], loop_scope)
             else:
                 raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")
 
@@ -306,7 +318,7 @@ class CodeBlock:
         # Detect and record constant definitions (uppercase names)
         if var.isupper():
             # TODO allow if the constant is an int
-            raise Exception("Constant definitions should indicate their type")
+            raise Exception("Constant definitions should indicate their type:", var)
 
         # For evolving variables, emit a versioned constraint
         if var not in self.variable_table:
@@ -323,12 +335,17 @@ class CodeBlock:
         obj_name = " "
         my_lhs = lhs
         assigned_chain = [] # to store the attribute/subscript chain
+        print("my lhs:", ast.dump(my_lhs, include_attributes=False) if isinstance(my_lhs, ast.AST) else my_lhs)
         if isinstance(my_lhs, ast.Name):
             original_name = my_lhs.id
         else:
             original_name = None
+        print("Finding original variable for lhs:", original_name)
+        print(self.variable_table)
+        i = 0
         while obj_name not in self.variable_table and obj_name not in self.constant_table:
             old_obj_name = obj_name
+            print("OBJ NAME:", obj_name)
             if isinstance(my_lhs, ast.Attribute):
                 assigned_chain.insert(0, ("dict", self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True)))
                 my_lhs = my_lhs.value
@@ -344,6 +361,10 @@ class CodeBlock:
                         self.new_evolving_variable(obj_name)
                     else:
                         raise ValueError(f"Variable '{obj_name}' not defined in variable table.")
+            print("OBJ NAME:", obj_name)
+            i += 1
+            if i > 20:
+                raise ValueError("Too many iterations finding original variable.")
 
         if obj_name in self.variable_table:
             var_obj = self.variable_table[obj_name]
@@ -433,7 +454,10 @@ class CodeBlock:
 
         # Outputs on LHS
         out_exprs = []
-        if isinstance(lhs, ast.Tuple):
+        if lhs is None:
+            # No outputs
+            out_exprs = []
+        elif isinstance(lhs, ast.Tuple):
             # Multiple outputs
             for elt in lhs.elts:
                 # Taking into account the output vars actualise version and assigned fields accordingly
