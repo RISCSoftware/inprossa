@@ -56,6 +56,7 @@ class CodeBlock:
         for stmt in block:
             # Handle assignment statements
             if isinstance(stmt, ast.Assign):
+                print("Executing assignment on:", ast.dump(stmt, include_attributes=False))
                 self.execute_block_assign(stmt.targets[0], stmt.value, loop_scope)
 
             elif isinstance(stmt, ast.For):

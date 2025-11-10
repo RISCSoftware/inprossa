@@ -139,11 +139,17 @@ class ExpressionRewriter:
             builtin_funcs = {"abs", "len"}
 
             # --- Step 2: handle built-ins early ---
-            if func_name in builtin_funcs:
-                if func_name == "len":
-                    func_name = "length"
+            if func_name == "abs":
                 args = [self.rewrite_expr(a) for a in expr.args]
                 return f"{func_name}({', '.join(args)})"
+            
+            if func_name == "len":
+                arg_name = expr.args[0].id
+                if arg_name in self.variable_table:
+                    length = self.variable_table[arg_name].type.length
+                elif arg_name in self.constant_table:
+                    length = self.constant_table[arg_name].type.length
+                return f"{length}"
 
             # --- Step 3: ignore DS-types ---
             if func_name.startswith("DS"):

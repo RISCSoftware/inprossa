@@ -3,7 +3,7 @@ def cutting_machine(board_list: DSList(N_BOARDS, Board),
                     cuts_list_list: DSList(N_BOARDS, CutList)):
     pieces: DSList(N_PIECES, Piece)
     for board_index, board in enumerate(board_list):
-        cut_list = cuts_list_list[board_index]
+        cut_list : DSList(MAX_N_CUTS_PER_BOARD, DSInt(0, MAX_BOARD_LENGTH)) = cuts_list_list[board_index]
         assert cut_list[1] == 0
         assert cut_list[MAX_N_CUTS_PER_BOARD] == board.length
         curved_intervals_board : DSList(MAX_N_CUTS_PER_BOARD - 1, Interval) = board.curved_intervals
@@ -19,11 +19,14 @@ def cutting_machine(board_list: DSList(N_BOARDS, Board),
                     # No piece of length 0 unless it is the last piece
                     # This reduces the spaces of solutions
                     # But also removes valid solutions if there is more than one reordering machine (unless the filtering machine puts all the empty pieces at the end, instead of just replacing discarded pieces with empty pieces)
-                quality = all(
+                if all(
                    interval.start <= cut_list[cut_index] and
                    cut_list[cut_index - 1] <= interval.end
                    for interval in board.bad_intervals
-                   )
+                   ):
+                    quality = True
+                else:
+                    quality = False
                 pieces[(board_index - 1) * (MAX_N_CUTS_PER_BOARD - 1) + cut_index - 1] = Piece(piece_length, quality)
     return pieces
 """
