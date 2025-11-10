@@ -10,10 +10,10 @@ NITEMS : int = 5
 assignments: DSList(NITEMS, DSInt(1, NBOXES))
 
 def not_exceed(assignments: DSList(NITEMS, DSInt(1, NBOXES))):
-    cap: DSList(4, DSInt(0, sum(ITEM_WEIGHTS)))
-    for i in range(1, 5):
+    cap: DSList(NBOXES, DSInt(0, sum(ITEM_WEIGHTS)))
+    for i in range(1, NBOXES + 1):
         cap[i] = 0
-        for j in range(1, 6):
+        for j in range(1, NITEMS + 1):
             if assignments[j] == i:
                 cap[i] = cap[i] + ITEM_WEIGHTS[j]
 

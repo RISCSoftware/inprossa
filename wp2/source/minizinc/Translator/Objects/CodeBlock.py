@@ -148,17 +148,13 @@ class CodeBlock:
         obj_name = " "
         my_lhs = lhs
         assigned_chain = [] # to store the attribute/subscript chain
-        print("my lhs:", ast.dump(my_lhs, include_attributes=False) if isinstance(my_lhs, ast.AST) else my_lhs)
         if isinstance(my_lhs, ast.Name):
             original_name = my_lhs.id
         else:
             original_name = None
-        print("Finding original variable for lhs:", original_name)
-        print(self.variable_table)
         i = 0
         while obj_name not in self.variable_table and obj_name not in self.constant_table:
             old_obj_name = obj_name
-            print("OBJ NAME:", obj_name)
             if isinstance(my_lhs, ast.Attribute):
                 assigned_chain.insert(0, ("dict", ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.attr)))
                 my_lhs = my_lhs.value
@@ -174,7 +170,6 @@ class CodeBlock:
                         self.new_evolving_variable(obj_name)
                     else:
                         raise ValueError(f"Variable '{obj_name}' not defined in variable table.")
-            print("OBJ NAME:", obj_name)
             i += 1
             if i > 20:
                 raise ValueError("Too many iterations finding original variable.")
@@ -333,7 +328,7 @@ class CodeBlock:
 
             if func_id == "range":
                 # range(start, end)
-                iter_values, loop_vars = self._resolve_range_iter(stmt)
+                iter_values, loop_vars = self._resolve_range_iter(stmt, loop_scope)
                 meta.update(kind="range", array_name=None)
 
             # enumerate([...]) or enumerate(PIECES)
@@ -390,7 +385,7 @@ class CodeBlock:
             new_scope = self._bind_loop_variables(stmt, loop_scope, loop_vars, meta, k, item)
             self.execute_block(stmt.body, new_scope)
 
-    def _resolve_range_iter(self, stmt):
+    def _resolve_range_iter(self, stmt, loop_scope):
         
         if len(stmt.iter.args) == 1:
             # range(end) → start=1, end=arg0
@@ -402,21 +397,23 @@ class CodeBlock:
             end_node = stmt.iter.args[1]
 
         # Evaluate start
-        if isinstance(start_node, ast.Constant):
-            start_val = start_node.value
-        elif isinstance(start_node, ast.Name) and start_node.id in self.constant_table:
-            start_val = int(self.constant_table[start_node.id].value_structure) # TODO generalise other ways of accessing constants and their parts
-        else:
-            raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
+        start_val = ExpressionRewriter(loop_scope, code_block=self).get_expr_value(start_node)
+        # if isinstance(start_node, ast.Constant):
+        #     start_val = start_node.value
+        # elif isinstance(start_node, ast.Name) and start_node.id in self.constant_table:
+        #     start_val = int(self.constant_table[start_node.id].value_structure) # TODO generalise other ways of accessing constants and their parts
+        # else:
+        #     raise ValueError(f"Unsupported start in range: {ast.unparse(start_node)}")
 
         # Evaluate end
-        if isinstance(end_node, ast.Constant):
-            end_val = end_node.value
-        elif isinstance(end_node, ast.Name) and end_node.id in self.constant_table:
-            end_val = int(self.constant_table[end_node.id].value_structure)
+        end_val = ExpressionRewriter(loop_scope, code_block=self).get_expr_value(end_node)
+        # if isinstance(end_node, ast.Constant):
+        #     end_val = end_node.value
+        # elif isinstance(end_node, ast.Name) and end_node.id in self.constant_table:
+        #     end_val = int(self.constant_table[end_node.id].value_structure)
 
-        else:
-            raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
+        # else:
+        #     raise ValueError(f"Unsupported end in range: {ast.unparse(end_node)}")
 
         # Now unroll the loop using resolved values
         iter_values = list(range(start_val, end_val))
@@ -454,7 +451,6 @@ class CodeBlock:
             iter_values = [(i, f"{versioned_const_name}[{i}]") for i in range(1, n + 1)]  # positions
             loop_vars = [elt.id for elt in stmt.target.elts]
             # Edit the second loop var to be the array access
-            print("loop_vars", loop_vars, iter_values)
         else:
             raise ValueError(f"Unsupported enumerate argument: {ast.unparse(arg)}")
         return iter_values, loop_vars

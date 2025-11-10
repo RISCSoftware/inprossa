@@ -33,13 +33,12 @@ class MiniZincTranslator:
         and creating a list of top-level statements.
         """
         tree = ast.parse(self.code)
-        for node in tree.body:
-            print(ast.dump(node, indent=4))
+        # for node in tree.body:
+        #     print(ast.dump(node, indent=4))
         for node in tree.body:
             # 0) Constants
             # if is an annassignment and lhs is uppercase
             if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id.isupper():
-                print("Constant table at annassignment:", self.constants)
                 const_name = node.target.id
                  # Evaluate type
                 code_block = CodeBlock(constant_table=self.constants, predicates=self.predicates, types=self.types)
@@ -59,7 +58,6 @@ class MiniZincTranslator:
                 node.value.func.id.startswith("DS")):
 
                 type_name = node.targets[0].id
-                print("Constant table at type definition:", self.constants)
                 mz_type = DSType(node.value, type_name, known_types=self.types, constant_table=self.constants).return_type()
                 self.types[type_name] = mz_type
 

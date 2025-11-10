@@ -163,7 +163,6 @@ class Constant:
             assign_chain(fam, [("dict","children"),("list",1),("dict","age")], 12)
         """
         if isinstance(value, ast.Tuple):
-            print("Converting tuple to dict for assignment:", value)
             value = value.elts[0]
         value = ast_to_object(value)
         if not chain:
@@ -180,8 +179,6 @@ class Constant:
             return structure
 
         (kind, key), *rest = chain
-        print("Assigning chain step:", kind, key, "Rest:", rest, "Current structure:", structure)
-        print("Value to assign:", value)
 
         # descend into substructure
         if kind == "dict":
@@ -189,7 +186,6 @@ class Constant:
                 raise TypeError(f"Expected dict at this step, got {type(structure)}")
             if key not in structure:
                 structure[key] = {} if rest else None
-            print("Before recursive assign:", structure[key])
             structure[key] = self.assign_chain(structure[key], rest, value)
 
         elif kind == "list":
@@ -197,7 +193,6 @@ class Constant:
                 raise TypeError(f"Expected list at this step, got {type(structure)}")
             if key >= len(structure):
                 raise IndexError(f"List index {key} out of range (len={len(structure)})")
-            print("Before recursive assign:", structure[key])
             structure[key] = self.assign_chain(structure[key], rest, value)
 
         else:

@@ -22,6 +22,18 @@ class ExpressionRewriter:
             self.constant_table = constant_table
             self.types = types
 
+    def get_expr_value(self, expr):
+        """
+        Converts a Python expression AST into a numerical value
+        """
+        string_expr = self.rewrite_expr(expr)
+        ast_string_expr = ast.parse(string_expr).body[0]
+        if isinstance(ast_string_expr, ast.Expr):
+            ast_string_expr = ast_string_expr.value
+        return ast_to_evaluation_constants(ast_string_expr, self.constant_table)
+
+        
+
     def rewrite_expr(self, expr):
         """
         Converts a Python expression AST into a MiniZinc-compatible string
@@ -193,12 +205,15 @@ class ExpressionRewriter:
 
         elif isinstance(expr, str):
             return expr
+        
+        elif isinstance(expr, (int, float)):
+            return str(expr)
             
 
         else:
             # Fallback: use source-like syntax
             print("Fallback: use source-like syntax\n", expr, type(expr))
-            return ast_to_object(expr)
+            return expr
 
 
 def ast_to_evaluation_constants(node: ast.AST, constant_table: Optional[dict] = None) -> dict:
@@ -212,12 +227,10 @@ def ast_to_evaluation_constants(node: ast.AST, constant_table: Optional[dict] = 
         constant_table = {}
 
     if isinstance(node, ast.Constant):
-        print("looking for Constant:", node.value)
         value = constant_table.get(node.value, node.value)
         return node.value
 
     elif isinstance(node, ast.Name) or isinstance(node, str):
-        print("looking for Name:")
         if isinstance(node, ast.Name):
             node = node.id
 
@@ -228,9 +241,7 @@ def ast_to_evaluation_constants(node: ast.AST, constant_table: Optional[dict] = 
 
     elif isinstance(node, ast.BinOp):
         right = ast_to_evaluation_constants(node.right, constant_table)
-        print("Right:", ast.dump(node.right) if isinstance(node.right, ast.AST) else node.right)
         left = ast_to_evaluation_constants(node.left, constant_table)
-        print("Left:", ast.dump(node.left) if isinstance(node.left, ast.AST) else node.left, " Right:", ast.dump(node.right) if isinstance(node.right, ast.AST) else node.right)
         if isinstance(node.op, ast.Add):
             value = left + right
         elif isinstance(node.op, ast.Sub):
@@ -252,7 +263,6 @@ def ast_to_evaluation_constants(node: ast.AST, constant_table: Optional[dict] = 
             raise TypeError(f"Unsupported unary operator: {type(node.op)}")
 
     elif node is None or isinstance(node, (int, float)):
-        print("looking for other:", node)
         value = node
 
     else:

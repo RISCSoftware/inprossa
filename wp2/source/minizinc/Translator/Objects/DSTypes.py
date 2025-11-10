@@ -14,7 +14,6 @@ from Translator.Tools import ast_to_evaluation_constants, ExpressionRewriter
 
 
 def remove_ast(input, constant_table: Optional[dict] = None):
-    print("Removing AST from input:", input, type(input), ast.dump(input) if isinstance(input, ast.AST) else "N/A")
     if isinstance(input, ast.Name):
         if constant_table is not None and input.id in constant_table:
             return constant_table[input.id]
@@ -38,8 +37,14 @@ class DSInt:
                  constant_table: Optional[dict] = None
                  ):
         self.known_types = known_types
-        self.lb = ExpressionRewriter(constant_table=constant_table).rewrite_expr(lb)
-        self.ub = ExpressionRewriter(constant_table=constant_table).rewrite_expr(ub)
+        if lb is not None:
+            self.lb = ExpressionRewriter(constant_table=constant_table).rewrite_expr(lb)
+        else:
+            self.lb = None
+        if ub is not None:
+            self.ub = ExpressionRewriter(constant_table=constant_table).rewrite_expr(ub)
+        else:
+            self.ub = None
         if name is None:
             self.name = self.representation()
         else:
@@ -55,7 +60,6 @@ class DSInt:
             representation = "var "
         else:
             representation = ""
-
         if self.lb is None and self.ub is None:
             representation += "int"
             return representation
@@ -78,8 +82,8 @@ class DSFloat:
                  constant_table: Optional[dict] = None
                  ):
         self.known_types = known_types
-        self.lb = ast_to_evaluation_constants(lb, constant_table=constant_table)
-        self.ub = ast_to_evaluation_constants(ub, constant_table=constant_table)
+        self.lb = ExpressionRewriter(constant_table=constant_table).rewrite_expr(lb)
+        self.ub = ExpressionRewriter(constant_table=constant_table).rewrite_expr(ub)
         if name is None:
             self.name = self.representation()
         else:
@@ -141,10 +145,8 @@ class DSList:
                  constant_table: Optional[dict] = None
                  ):
         self.known_types = known_types
-        print("Constant table: ", constant_table)
-        self.length = ast_to_evaluation_constants(length, constant_table=constant_table)
+        self.length = ExpressionRewriter(constant_table=constant_table).get_expr_value(length)
         if not isinstance(self.length, int):
-            print("Length after evaluation:", self.length, type(self.length))
             raise ValueError("DSList length must be an integer or a string representing an integer.")
         self.elem_type = compute_type(
             elem_type,
@@ -172,7 +174,6 @@ class DSList:
         return declaration
 
     def initial_assigned_fields(self):
-        print("LLength:", self.length)
         return [self.elem_type.initial_assigned_fields() for _ in range(self.length)]
 
 class DSRecord:
@@ -225,7 +226,6 @@ class DSType:
         self.name = type_name
         self.type_node = type_node
         self.type_object_name = type_node.func.id
-        print("Constant table in DSType:", constant_table)
         self.positional_args = [remove_ast(arg) for arg in type_node.args]
         self.arguments = {kw.arg: kw.value for kw in type_node.keywords}
         # Call the function to parse arguments
