@@ -110,10 +110,11 @@ class CodeBlock:
             if name.isupper():
                 return name
 
-            # Not constant, not loop var — must be a normal variable
-            if name not in self.variable_table:
-                # First-time reference (e.g., used in an expression before assignment)
-                self.new_evolving_variable(name)
+            # Now all variables must exist already
+            # # Not constant, not loop var — must be a normal variable
+            # if name not in self.variable_table:
+            #     # First-time reference (e.g., used in an expression before assignment)
+            #     self.new_evolving_variable(name)
 
             return self.variable_table[name].versioned_name()
 

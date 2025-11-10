@@ -214,6 +214,7 @@ solve minimize objective[1];"""
     {
         "name": "test_simple_assert",
         "code": """
+x : int
 assert x > 0
 """,
         "expected_translation": """array[1..1] of var int: objective;
@@ -471,6 +472,7 @@ translation_tests += [
         "name": "test_absolute_value",
         "code": """
 I : int = 0
+x : int
 assert abs(x - I) == 1
 """,
         "expected_translation": """int: I = 0;
@@ -484,6 +486,7 @@ solve minimize objective[1];"""
         "name": "test_not_declared_variable",
         "code": """
 I : int = 0
+x : int
 assert x > I
 """,
         "expected_translation": """int: I = 0;
