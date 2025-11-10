@@ -165,9 +165,18 @@ class ExpressionRewriter:
                 gen = arg
                 target = gen.generators[0].target.id
                 iter_ = self.rewrite_expr(gen.generators[0].iter)
-                elt_expr = self.rewrite_expr(gen.elt)
+                
+                # Crear loop_scope temporal
+                new_scope = self.loop_scope.copy()
+                new_scope[target] = target
+                
+                elt_expr = ExpressionRewriter(
+                    loop_scope=new_scope,
+                    variable_table=self.variable_table,
+                    constant_table=self.constant_table,
+                    types=self.types,
+                ).rewrite_expr(gen.elt)
 
-                # MiniZinc syntax uses same name as func_name, except any→exists, all→forall
                 func_map = {"any": "exists", "all": "forall"}
                 mz_func = func_map.get(func_name, func_name)
                 return f"{mz_func}({target} in {iter_})({elt_expr})"
