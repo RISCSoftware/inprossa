@@ -10,7 +10,7 @@ And Records will have a dict of field_name:str -> field_type:DS...
 """
 import ast
 from typing import Optional, Union, Dict
-from Translator.Tools import ast_to_evaluation_constants
+from Translator.Tools import ast_to_evaluation_constants, ExpressionRewriter
 
 
 def remove_ast(input, constant_table: Optional[dict] = None):
@@ -38,8 +38,8 @@ class DSInt:
                  constant_table: Optional[dict] = None
                  ):
         self.known_types = known_types
-        self.lb = ast_to_evaluation_constants(lb, constant_table=constant_table)
-        self.ub = ast_to_evaluation_constants(ub, constant_table=constant_table)
+        self.lb = ExpressionRewriter(constant_table=constant_table).rewrite_expr(lb)
+        self.ub = ExpressionRewriter(constant_table=constant_table).rewrite_expr(ub)
         if name is None:
             self.name = self.representation()
         else:

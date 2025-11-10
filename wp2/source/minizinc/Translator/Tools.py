@@ -11,7 +11,7 @@ minizinc_original_types = {
 
 
 class ExpressionRewriter:
-    def __init__(self, loop_scope, variable_table=None, constant_table=None, types=None, code_block=None):
+    def __init__(self, loop_scope = dict(), variable_table=dict(), constant_table=dict(), types=dict(), code_block=None):
         self.loop_scope = loop_scope
         if code_block is not None:
             self.variable_table = code_block.variable_table
@@ -170,7 +170,7 @@ class ExpressionRewriter:
                 return "(" + " /\\ ".join(args) + ")"
             elif func_name in aggregators:
                 # sum([a,b]) or max([a,b])
-                return f"{func_name}([{', '.join(args)}])"
+                return f"{func_name}({', '.join(args)})"
 
 
         elif isinstance(expr, ast.List):
