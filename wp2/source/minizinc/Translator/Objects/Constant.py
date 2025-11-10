@@ -144,7 +144,7 @@ class Constant:
 
                 # rewrite_expr if not purely evaluable
                 if evaluated is None:
-                    rewritten = self.code_block.rewrite_expr(tree, get_numeral=True, loop_scope=self.loop_scope)
+                    rewritten = self.code_block.rewrite_expr(tree, loop_scope=self.loop_scope)
                     evaluated = self.to_number(rewritten)
 
                 return evaluated

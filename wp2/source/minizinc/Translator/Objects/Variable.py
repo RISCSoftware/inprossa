@@ -14,12 +14,13 @@ class Variable:
                  type_=None,
                  versions=None,
                  annotation=None,
-                 known_types=None):
+                 known_types=None,
+                 constant_table=None):
         self.name = name
         if annotation is not None:
-            self.type = compute_type(annotation, known_types=known_types)
+            self.type = compute_type(annotation, known_types=known_types, constant_table=constant_table)
         else:
-            self.type = compute_type(type_, known_types=known_types) if type_ is not None else DSInt()
+            self.type = compute_type(type_, known_types=known_types, constant_table=constant_table) if type_ is not None else DSInt()
         self.versions = versions
 
         # TODO from each type, we can create an object indicating which of its fields have already been assigned

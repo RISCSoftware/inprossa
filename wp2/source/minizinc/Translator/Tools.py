@@ -22,14 +22,18 @@ def ast_to_evaluation_constants(node: ast.AST, constant_table: Optional[dict] = 
 
     if isinstance(node, ast.Constant):
         print("looking for Constant:", node.value)
-        return constant_table.get(node.value, node.value)
+        value = constant_table.get(node.value, node.value)
         return node.value
 
-    elif isinstance(node, ast.Name):
-        if node.id in constant_table:
-            return constant_table[node.id].value_structure
+    elif isinstance(node, ast.Name) or isinstance(node, str):
+        print("looking for Name:")
+        if isinstance(node, ast.Name):
+            node = node.id
+
+        if node in constant_table:
+            value = constant_table[node].value_structure
         else:
-            raise ValueError(f"Name {node.id} not found in constant table.")
+            raise ValueError(f"Name {node} not found in constant table.")
 
     elif isinstance(node, ast.BinOp):
         right = ast_to_evaluation_constants(node.right, constant_table)
@@ -37,30 +41,38 @@ def ast_to_evaluation_constants(node: ast.AST, constant_table: Optional[dict] = 
         left = ast_to_evaluation_constants(node.left, constant_table)
         print("Left:", ast.dump(node.left) if isinstance(node.left, ast.AST) else node.left, " Right:", ast.dump(node.right) if isinstance(node.right, ast.AST) else node.right)
         if isinstance(node.op, ast.Add):
-            return left + right
+            value = left + right
         elif isinstance(node.op, ast.Sub):
-            return left - right
+            value = left - right
         elif isinstance(node.op, ast.Mult):
-            return left * right
+            value = left * right
         elif isinstance(node.op, ast.Div):
-            return left / right
+            value = left / right
         else:
             raise TypeError(f"Unsupported binary operator: {type(node.op)}")
 
     elif isinstance(node, ast.UnaryOp):
         operand = ast_to_evaluation_constants(node.operand, constant_table)
         if isinstance(node.op, ast.UAdd):
-            return +operand
+            value = +operand
         elif isinstance(node.op, ast.USub):
-            return -operand
+            value = -operand
         else:
             raise TypeError(f"Unsupported unary operator: {type(node.op)}")
-        
-    elif node is None or isinstance(node, ast.AST) is False:
-        return node
+
+    elif node is None or isinstance(node, (int, float)):
+        print("looking for other:", node)
+        value = node
 
     else:
-        raise TypeError(f"Unsupported AST node type for evaluation: {type(node)}")
+        raise TypeError(f"Unsupported AST node type for evaluation: {type(node)}, {ast.dump(node)}")
+    
+    if isinstance(value, str) and value.isdigit():
+        if '.' in value:
+            value = float(value)
+        else:
+            value = int(value)
+    return value
 
 
 ### Auxiliary functions to merge with others

@@ -143,6 +143,9 @@ class DSList:
         self.known_types = known_types
         print("Constant table: ", constant_table)
         self.length = ast_to_evaluation_constants(length, constant_table=constant_table)
+        if not isinstance(self.length, int):
+            print("Length after evaluation:", self.length, type(self.length))
+            raise ValueError("DSList length must be an integer or a string representing an integer.")
         self.elem_type = compute_type(
             elem_type,
             known_types=known_types,

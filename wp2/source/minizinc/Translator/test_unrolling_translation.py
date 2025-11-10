@@ -902,11 +902,14 @@ class TestMiniZincTranslation(unittest.TestCase):
                     print(expected)
 
 failed = 0
+failed_tests = []
 for test in translation_tests:
     print(f"Test {test['name']}")
     translator = MiniZincTranslator(test["code"])
     result = translator.unroll_translation()
     if result != test["expected_translation"]:
+        failed += 1
+        failed_tests.append(test["name"])
         print(f"Test {test['name']} failed:")
         print("Code:")
         print(test["code"])
@@ -914,8 +917,8 @@ for test in translation_tests:
         print(test["expected_translation"])
         print("Got:")
         print(result)
-        failed += 1
 print(f"Total failed tests: {failed}")
+print(f"Failed tests: {failed_tests}")
 
 # if __name__ == "__main__":
 #     unittest.main()

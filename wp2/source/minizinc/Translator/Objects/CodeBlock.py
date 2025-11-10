@@ -46,17 +46,17 @@ class CodeBlock:
 
     def new_evolving_variable(self, name, type_=None, versions=1):
         """New variable is detected, we add it to the variable index and create its declaration."""
-        self.variable_table[name] = Variable(name, type_=type_, versions=versions, known_types=self.types)
+        self.variable_table[name] = Variable(name, type_=type_, versions=versions, known_types=self.types, constant_table=self.constant_table)
 
-    def rewrite_expr(self, expr, loop_scope, return_dimensions=False, get_numeral=False, no_more_vars=False):
+    def rewrite_expr(self, expr, loop_scope):
         """
         Converts a Python expression AST into a MiniZinc-compatible string
         """
         
         if isinstance(expr, ast.BinOp):
             # Handle binary operations like x + y
-            left = self.rewrite_expr(expr.left, loop_scope, get_numeral=get_numeral)
-            right = self.rewrite_expr(expr.right, loop_scope, get_numeral=get_numeral)
+            left = self.rewrite_expr(expr.left, loop_scope)
+            right = self.rewrite_expr(expr.right, loop_scope)
             op = {
                 ast.Add: "+",
                 ast.Sub: "-",
@@ -108,12 +108,10 @@ class CodeBlock:
 
             # Constant (e.g., MAX_LENGTH)
             if name.isupper():
-                if get_numeral:
-                    return str(self.constant_table[name].value)
                 return name
 
             # Not constant, not loop var — must be a normal variable
-            if name not in self.variable_table and not no_more_vars:
+            if name not in self.variable_table:
                 # First-time reference (e.g., used in an expression before assignment)
                 self.new_evolving_variable(name)
 
@@ -201,31 +199,17 @@ class CodeBlock:
             contents = []
             dims = []
             for e in elts:
-                if isinstance(e, ast.List) and return_dimensions:
-                    # Nested list: get dimensions of inner list
-                    new_content, dim = self.rewrite_expr(e, loop_scope, return_dimensions=True)
-                else:
-                    new_content = self.rewrite_expr(e, loop_scope)
-                    dim = []
+                new_content = self.rewrite_expr(e, loop_scope)
+                dim = []
                 dims.append(dim)
                 contents.append(new_content)
             # Join elements with commas
             inner = ", ".join(self.rewrite_expr(e, loop_scope) for e in elts)
             list_str = f"[{inner}]"
-            if return_dimensions:
-                # Check all dimensions are the same
-                for d in dims:
-                    if d != dims[0]:
-                        raise ValueError(f"List elements have inconsistent dimensions: {dims}")
-                else:
-                    old_dims = dims[0] if dims else []
-                    dims = [len(elts)] + old_dims
-                    return list_str, dims
-            else:
-                return list_str
+            return list_str
             
         elif isinstance(expr, ast.Expression):
-            return self.rewrite_expr(expr.body, loop_scope, get_numeral=get_numeral)
+            return self.rewrite_expr(expr.body, loop_scope)
 
         elif isinstance(expr, str):
             return expr
@@ -273,7 +257,7 @@ class CodeBlock:
 
     # --- ASSIGNMENTS ---
 
-    def execute_block_assign(self, lhs, rhs, loop_scope, no_more_vars=False):
+    def execute_block_assign(self, lhs, rhs, loop_scope):
         """
         Handle assignment statements, including:
             - predicate call assignments: c, d = f(a, b)
@@ -347,10 +331,10 @@ class CodeBlock:
             old_obj_name = obj_name
             print("OBJ NAME:", obj_name)
             if isinstance(my_lhs, ast.Attribute):
-                assigned_chain.insert(0, ("dict", self.rewrite_expr(my_lhs.attr, loop_scope, no_more_vars=True)))
+                assigned_chain.insert(0, ("dict", self.rewrite_expr(my_lhs.attr, loop_scope)))
                 my_lhs = my_lhs.value
             elif isinstance(my_lhs, ast.Subscript):
-                assigned_chain.insert(0, ("list", self.rewrite_expr(my_lhs.slice, loop_scope, no_more_vars=True)))
+                assigned_chain.insert(0, ("list", self.rewrite_expr(my_lhs.slice, loop_scope)))
                 my_lhs = my_lhs.value
             
             if hasattr(my_lhs, "id"):
@@ -777,7 +761,7 @@ class CodeBlock:
     # --- TYPE DECLARATIONS ---
 
     def execute_block_annassign(self, stmt, loop_scope):
-        type_ = compute_type(stmt.annotation, known_types=self.types)
+        type_ = compute_type(stmt.annotation, known_types=self.types, constant_table=self.constant_table)
         var = stmt.target.id
         if var.isupper():
             # Save in constants; name, value and type
