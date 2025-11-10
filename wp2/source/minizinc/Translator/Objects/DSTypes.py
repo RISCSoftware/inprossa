@@ -147,7 +147,7 @@ class DSList:
         self.known_types = known_types
         self.length = ExpressionRewriter(constant_table=constant_table).get_expr_value(length)
         if not isinstance(self.length, int):
-            raise ValueError("DSList length must be an integer or a string representing an integer.")
+            raise ValueError(f"DSList length must be an integer or a string representing an integer, not {self.length}")
         self.elem_type = compute_type(
             elem_type,
             known_types=known_types,

@@ -6,7 +6,8 @@ def cutting_machine(board_list: DSList(N_BOARDS, Board),
         cut_list = cuts_list_list[board_index]
         assert cut_list[1] == 0
         assert cut_list[MAX_N_CUTS_PER_BOARD] == board.length
-        for interval in board.curved_intervals:
+        curved_intervals_board : DSList(MAX_N_CUTS_PER_BOARD - 1, Interval) = board.curved_intervals
+        for interval in curved_intervals_board:
             assert any(interval.start <= cut and cut <= interval.end for cut in cut_list)
         for cut_index in range(len(cut_list)):
             # Impose ordered cuts

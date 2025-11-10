@@ -36,53 +36,6 @@ class Constant:
         else:
             return str(value)
 
-    def to_number(self, s):
-        # Convert string to numeric if possible
-        if isinstance(s, (int, float, list)):
-            return s
-        try:
-            return int(s)
-        except ValueError:
-            try:
-                return float(s)
-            except ValueError:
-                return s
-
-
-    def substitute_constants(self, tree, const_table):
-        """Replace ast.Name nodes with ast.Constant if known."""
-        class ConstSubstituter(ast.NodeTransformer):
-            def __init__(self, table):
-                self.table = table
-            def visit_Name(self, node):
-                if node.id in self.table:
-                    val = self.table[node.id].value
-                    # 🔹 Allow nested lists or numbers
-                    return ast.copy_location(ast.Constant(value=val), node)
-                return node
-        return ConstSubstituter(const_table).visit(tree)
-
-
-    def safe_eval(self, tree):
-        """
-        Try to evaluate simple numeric/list expressions safely after constant substitution.
-        Only allows literals, lists, tuples, binops, and numeric constants.
-        """
-        allowed_nodes = (
-            ast.Expression, ast.Constant, ast.List, ast.Tuple,
-            ast.BinOp, ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow,
-            ast.UnaryOp, ast.USub, ast.UAdd
-        )
-
-        for node in ast.walk(tree):
-            if not isinstance(node, allowed_nodes):
-                return None  # contains something too complex → skip evaluation
-
-        try:
-            return eval(compile(tree, filename="<ast>", mode="eval"))
-        except Exception:
-            return None
-
     def build_empty_structure(self, ds_type):
         """
         Build a Python structure matching the DS type shape.
@@ -130,27 +83,8 @@ class Constant:
             return target
         # --- 3. Constants or other expressions
         else:
-            return ExpressionRewriter(self.loop_scope, code_block = self.code_block).rewrite_expr(value_node)
-        
-    def from_stmt_value_to_value(self, stmt_value):
-        """Process the stmt_value AST to compute the actual value."""
-        if stmt_value is not None:
-            try:
-                # Substitute known constants before evaluation
-                tree = self.substitute_constants(stmt_value, self.code_block.constant_table)
-
-                # Try evaluating the AST directly (safe subset)
-                evaluated = self.safe_eval(tree)
-
-                # rewrite_expr if not purely evaluable
-                if evaluated is None:
-                    rewritten = self.code_block.rewrite_expr(tree, loop_scope=self.loop_scope)
-                    evaluated = self.to_number(rewritten)
-
-                return evaluated
-            except Exception as e:
-                # fallback if not evaluable
-                return stmt_value
+            evaluation = ExpressionRewriter(self.loop_scope, code_block = self.code_block).get_expr_value(value_node)
+            return evaluation
 
     def assign_chain(self, structure, chain, value):
         """

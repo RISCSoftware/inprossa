@@ -30,9 +30,9 @@ class ExpressionRewriter:
         ast_string_expr = ast.parse(string_expr).body[0]
         if isinstance(ast_string_expr, ast.Expr):
             ast_string_expr = ast_string_expr.value
-        return ast_to_evaluation_constants(ast_string_expr, self.constant_table)
-
-        
+        expr_value = ast_to_evaluation_constants(ast_string_expr, self.constant_table)
+    
+        return expr_value
 
     def rewrite_expr(self, expr):
         """

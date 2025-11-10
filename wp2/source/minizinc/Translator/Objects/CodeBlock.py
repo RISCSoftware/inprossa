@@ -65,6 +65,7 @@ class CodeBlock:
                 self.execute_block_if(stmt, loop_scope)
 
             elif isinstance(stmt, ast.Assert):
+                print("Executing assert on:", ast.dump(stmt, include_attributes=False))
                 self.execute_block_assert(stmt, loop_scope)
 
             elif isinstance(stmt, ast.AnnAssign):
@@ -159,7 +160,7 @@ class CodeBlock:
                 assigned_chain.insert(0, ("dict", ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.attr)))
                 my_lhs = my_lhs.value
             elif isinstance(my_lhs, ast.Subscript):
-                assigned_chain.insert(0, ("list", ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.slice)))
+                assigned_chain.insert(0, ("list", ExpressionRewriter(loop_scope, code_block=self).get_expr_value(my_lhs.slice)))
                 my_lhs = my_lhs.value
             
             if hasattr(my_lhs, "id"):
