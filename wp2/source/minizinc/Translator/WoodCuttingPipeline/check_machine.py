@@ -19,7 +19,9 @@ def checking_machine(pieces: DSList(MAX_PIECES, elem_type = Piece)):
     n_length = 0
     n_prev_layer = 0
     new_beam = True
+    current_index = 0
     for piece in pieces:
+        current_index = current_index + 1
         length = length + piece.length
         n_length = n_length + 1
         assert length <= BEAM_LENGTH

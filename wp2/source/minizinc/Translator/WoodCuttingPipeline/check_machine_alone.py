@@ -11,8 +11,10 @@ depth = 0
 length = 0
 n_length = 0
 n_prev_layer = 0
+current_index = 0
 new_beam = True
 for piece in PIECES:
+    current_index = current_index + 1
     length = length + piece
     n_length = n_length + 1
     assert length <= MAX_LENGTH
