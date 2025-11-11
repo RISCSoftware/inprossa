@@ -161,7 +161,7 @@ class CodeBlock:
                 assigned_chain.insert(0, ("dict", ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.attr)))
                 my_lhs = my_lhs.value
             elif isinstance(my_lhs, ast.Subscript):
-                assigned_chain.insert(0, ("list", ExpressionRewriter(loop_scope, code_block=self).get_expr_value(my_lhs.slice)))
+                assigned_chain.insert(0, ("list", str(ExpressionRewriter(loop_scope, code_block=self).get_expr_value(my_lhs.slice))))
                 my_lhs = my_lhs.value
             
             if hasattr(my_lhs, "id"):
