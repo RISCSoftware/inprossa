@@ -1,4 +1,4 @@
-code_cutting_machine = f"""
+code_cutting_machine = """
 def cutting_machine(board_list: DSList(N_BOARDS, Board),
                     cuts_list_list: DSList(N_BOARDS, CutList)):
     pieces: DSList(N_PIECES, Piece)
@@ -27,6 +27,6 @@ def cutting_machine(board_list: DSList(N_BOARDS, Board),
                     quality = True
                 else:
                     quality = False
-                pieces[(board_index - 1) * (MAX_N_CUTS_PER_BOARD - 1) + cut_index - 1] = Piece(piece_length, quality)
+                pieces[(board_index - 1) * (MAX_N_CUTS_PER_BOARD - 1) + cut_index] = {"quality": quality, "length": piece_length}
     return pieces
 """

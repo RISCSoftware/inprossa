@@ -72,6 +72,14 @@ class CodeBlock:
             elif isinstance(stmt, ast.AnnAssign):
                 self.execute_block_annassign(stmt, loop_scope)
 
+            elif isinstance(stmt, ast.AugAssign):
+                # --- handle a += b ---
+                expanded = ast.Assign(
+                    targets=[stmt.target],
+                    value=ast.BinOp(left=stmt.target, op=stmt.op, right=stmt.value)
+                )
+                self.execute_block_assign(expanded.targets[0], expanded.value, loop_scope)
+
             elif isinstance(stmt, ast.FunctionDef):
                 # ignore: functions handled by MiniZincTranslator/Predicate
                 continue
