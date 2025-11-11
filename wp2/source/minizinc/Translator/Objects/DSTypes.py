@@ -286,6 +286,7 @@ def compute_type(
         known_types: Optional[set] = None,
         constant_table: Optional[dict] = None
         ) -> DSType:
+    print("Knwon types:", known_types)
     if isinstance(type_node, (DSInt, DSFloat, DSBool, DSList, DSRecord)):
         returned_type = type_node
         return returned_type

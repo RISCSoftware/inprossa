@@ -151,6 +151,29 @@ class ExpressionRewriter:
                     length = self.constant_table[arg_name].type.length
                 return f"{length}"
 
+            # --- Detect existing object of type record constructor call ---
+            if func_name in self.types and hasattr(self.types[func_name], 'types_dict'):
+                record_type = self.types[func_name]
+                fields = list(record_type.types_dict.keys())
+
+                field_value_pairs = []
+
+                # --- 1. Positional arguments ---
+                if expr.args:
+                    for field_name, val_node in zip(fields, expr.args):
+                        val_str = self.rewrite_expr(val_node)
+                        field_value_pairs.append((field_name, val_str))
+
+                # --- 2. Keyword arguments ---
+                for kw in expr.keywords:
+                    val_str = self.rewrite_expr(kw.value)
+                    field_value_pairs.append((kw.arg, val_str))
+
+                # --- 3. Build record string ---
+                # Multi-line pretty output (for readability)
+                inner = ",\n        ".join(f"{k}: {v}" for k, v in field_value_pairs)
+                return "(\n        " + inner + "\n    )"
+
             # --- Step 3: ignore DS-types ---
             if func_name.startswith("DS"):
                 raise ValueError(f"DS-type constructor should not appear in expressions: {expr}")

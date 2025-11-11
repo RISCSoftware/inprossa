@@ -1,18 +1,4 @@
 code_constants = f"""
-GIVEN_INITIAL_BOARDS = [
-    Board(length=20,
-          bad_intervals=[Interval(5,6), Interval(15,16)],
-          curved_intervals=[Interval(10,12)]
-    ),
-    Board(length=15,
-          bad_intervals=[Interval(3,4)],
-          curved_intervals=[Interval(7,9)],
-    ),
-    Board(length=25,
-          bad_intervals=[Interval(8,10), Interval(18,20)],
-          curved_intervals=[Interval(5,7), Interval(12,14)]
-    )
-]
 
 # The following can be deduced from GIVEN_INITIAL_BOARDS
 N_BOARDS : int = 3
