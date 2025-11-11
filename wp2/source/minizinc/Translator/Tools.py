@@ -214,6 +214,18 @@ class ExpressionRewriter:
             inner = ", ".join(self.rewrite_expr(e) for e in elts)
             list_str = f"[{inner}]"
             return list_str
+        
+        elif isinstance(expr, ast.Dict):
+            # Convert Python dict literal to MiniZinc record literal
+            fields = []
+            for k_node, v_node in zip(expr.keys, expr.values):
+                key = self.rewrite_expr(k_node)
+                val = self.rewrite_expr(v_node)
+                # Remove quotes if key is a string literal
+                if key.startswith("'") and key.endswith("'"):
+                    key = key[1:-1]
+                fields.append(f"{key}: {val}")
+            return "(" + ", ".join(fields) + ")"
             
         elif isinstance(expr, ast.Expression):
             return self.rewrite_expr(expr.body)

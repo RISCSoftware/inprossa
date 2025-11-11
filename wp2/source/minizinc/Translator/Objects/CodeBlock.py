@@ -113,6 +113,7 @@ class CodeBlock:
 
         # Rewrite right-hand side expression
         rhs_expr = ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(rhs)
+        print("RHS expression in CodeBlock rewritten to:", ast.dump(rhs_expr, indent=4) if isinstance(rhs_expr, ast.AST) else rhs_expr, type(rhs_expr))
 
             
         # Subscript assignment: e.g., a[1] = 5

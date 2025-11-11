@@ -61,13 +61,22 @@ pieces = [[1],[2]]
 pieces[2] = pieces[1]
 """
     code = """
-def positive(a:int):
-    assert a > 0
-
-assert positive(5)
-positive(-3)
+MyRec = DSRecord({
+    "field1": int,
+    "weight": DSInt()
+})
+b : MyRec = {"field1": 10, "weight": 5}
 
 """
+#     code = """
+
+# Item = DSRecord({
+#     "value": int,
+#     "weight": DSInt()
+# })
+
+# ITEM1 : Item = {"value": 15, "weight": 12}
+# """
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

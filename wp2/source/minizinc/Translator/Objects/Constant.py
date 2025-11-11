@@ -84,6 +84,7 @@ class Constant:
         # --- 3. Constants or other expressions
         else:
             evaluation = ExpressionRewriter(self.loop_scope, code_block = self.code_block).get_expr_value(value_node)
+            print("RHS expression in Constant rewritten to:", ast.dump(evaluation, indent=4) if isinstance(evaluation, ast.AST) else evaluation, type(evaluation))
             return evaluation
 
     def assign_chain(self, structure, chain, value):
