@@ -49,7 +49,7 @@ class DSInt:
             self.name = self.representation()
         else:
             self.name = name
-        self.var_name = f"var {self.name}"
+        self.var_name = self.representation(with_vars=True)
 
     def emit_definition(self):
         declaration = f"type {self.name} = {self.representation()}"
@@ -88,7 +88,7 @@ class DSFloat:
             self.name = self.representation()
         else:
             self.name = name
-        self.var_name = f"var {self.name}"
+        self.var_name = self.representation(with_vars=True)
 
     def emit_definition(self):
         declaration = f"type {self.name} = {self.representation()}"
@@ -124,7 +124,7 @@ class DSBool:
             self.name = self.representation()
         else:
             self.name = name
-        self.var_name = f"var {self.name}"
+        self.var_name = self.representation(with_vars=True)
 
     def emit_definition(self):
         return f"type {self.name} = bool"
@@ -155,10 +155,9 @@ class DSList:
             )
         if name is None:
             self.name = self.representation()
-            self.var_name = self.representation(with_vars=True)
         else:
             self.name = name
-            self.var_name = f"var {self.name}"
+        self.var_name = self.representation(with_vars=True)
 
     def representation(self, with_vars=False):
         representation = f"array[1..{self.length}] of "
@@ -192,24 +191,23 @@ class DSRecord:
             )
         if name is None:
             self.name = self.representation()
-            self.var_name = self.representation(with_vars=True)
         else:
             self.name = name
-            self.var_name = f"var {self.name}"
+        self.var_name = self.representation(with_vars=True)
 
-    def fields_declarations(self):
+    def fields_declarations(self, with_vars=False):
         field_defs = []
         for fname, ftype in self.types_dict.items():
-            field_defs.append(f"{ftype.name}: {fname}")
+            if with_vars:
+                field_defs.append(f"{ftype.representation(with_vars=with_vars)}: {fname}")
+            else:
+                field_defs.append(f"{ftype.name}: {fname}")
         fields_str = ",\n    ".join(field_defs)
         return fields_str
     
     def representation(self, with_vars=False):
-        self.fields_declar = self.fields_declarations()
-        repre = ""
-        if with_vars:
-            repre += "var "
-        return f"{repre}record(\n    {self.fields_declar}\n)"
+        self.fields_declar = self.fields_declarations(with_vars=with_vars)
+        return f"record(\n    {self.fields_declar}\n)"
 
     def emit_definition(self):
         return f"type {self.name} = {self.representation()}"

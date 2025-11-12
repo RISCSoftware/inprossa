@@ -105,15 +105,10 @@ GIVEN_INITIAL_BOARDS : DSList(3, Board) = [
 ]
 
 """
-#     code = """
-
-# Item = DSRecord({
-#     "value": int,
-#     "weight": DSInt()
-# })
-
-# ITEM1 : Item = {"value": 15, "weight": 12}
-# """
+    code = """
+x : DSList(5, int)
+assert any(x[cut] > 0 for cut in range(1, 6))
+"""
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

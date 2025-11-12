@@ -736,6 +736,39 @@ constraint pieces[2][1][2] = pieces[1][2][2];
 constraint pieces[2][1][3] = pieces[1][2][3];
 solve minimize objective[1];"""
     },
+    {
+        "name": "test_assign_record",
+        "code": """
+Item = DSRecord({
+    "value": int,
+    "weight": DSList(3, int)
+})
+item : Item
+""",
+        "expected_translation": """type Item = record(
+    int: value,
+    array[1..3] of int: weight
+);
+array[1..1] of var int: objective;
+array[1..1] of record(
+    var int: value,
+    array[1..3] of var int: weight
+): item;
+constraint objective[1] = 0;
+solve minimize objective[1];"""
+    },
+    {
+        "name": "test_assign_list",
+        "code": """
+x : DSList(5, int)
+assert any(x[cut] > 0 for cut in range(1, 6))
+""",
+        "expected_translation": """array[1..1] of var int: objective;
+array[1..1] of array[1..5] of var int: x;
+constraint objective[1] = 0;
+constraint exists(cut in 1..5)((x[1][cut] > 0));
+solve minimize objective[1];"""
+    },
 ]
 
 

@@ -3,13 +3,13 @@ def cutting_machine(board_list: DSList(N_BOARDS, Board),
                     cuts_list_list: DSList(N_BOARDS, CutList)):
     pieces: DSList(N_PIECES, Piece)
     for board_index, board in enumerate(board_list):
-        cut_list : DSList(MAX_N_CUTS_PER_BOARD, DSInt(0, MAX_BOARD_LENGTH)) = cuts_list_list[board_index]
+        cut_list : DSList(MAX_N_CUTS_PER_BOARD, DSInt(0, MAX_BOARD_LENGTH)) = cuts_list_list[board_index].position_list
         assert cut_list[1] == 0
         assert cut_list[MAX_N_CUTS_PER_BOARD] == board.length
         curved_intervals_board : DSList(MAX_N_CUTS_PER_BOARD - 1, Interval) = board.curved_intervals
         for interval in curved_intervals_board:
-            assert any(interval.start <= cut and cut <= interval.end for cut in cut_list)
-        for cut_index in range(len(cut_list)):
+            assert any(interval.start <= cut_list[cut] and cut_list[cut] <= interval.end for cut in range(1, MAX_N_CUTS_PER_BOARD + 1))
+        for cut_index in range(1, MAX_N_CUTS_PER_BOARD):
             # Impose ordered cuts
             if cut_index > 1:
                 piece_length = cut_list[cut_index - 1] - cut_list[cut_index]

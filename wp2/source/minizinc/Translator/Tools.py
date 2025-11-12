@@ -139,6 +139,17 @@ class ExpressionRewriter:
             builtin_funcs = {"abs", "len"}
 
             # --- Step 2: handle built-ins early ---
+            if func_name == "range":
+                # MiniZinc uses '..' instead of range()
+                args = [self.rewrite_expr(a) for a in expr.args]
+                if len(args) == 1:
+                    second = self.get_expr_value(expr.args[0]) - 1
+                    return f"1..{second}"
+                elif len(args) == 2:
+                    second = self.get_expr_value(expr.args[1]) - 1
+                    return f"{args[0]}..{second}"
+                else:
+                    raise ValueError("range() with step not supported in MiniZinc translation")
             if func_name == "abs":
                 args = [self.rewrite_expr(a) for a in expr.args]
                 return f"{func_name}({', '.join(args)})"
