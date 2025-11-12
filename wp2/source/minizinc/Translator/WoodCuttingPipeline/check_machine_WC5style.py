@@ -5,7 +5,7 @@ def checking_machine(pieces: list[Piece]):
     length = 0
     n_length = 0
     n_prev_layer = 0
-    new_beam = True
+    new_beam = 1
     all_lengths : Annotated[list[int], "len = N_PIECES"]
     for piece_index, piece in enumerate(pieces):
         length = length + piece.length
@@ -19,10 +19,10 @@ def checking_machine(pieces: list[Piece]):
             n_length = 0
             length = 0
             if depth == BEAM_DEPTH:
-                new_beam = True
+                new_beam = 1
                 depth = 0
         else:
-            new_beam = False
+            new_beam = 0
             for i in range(1, MAX_PIECES_PER_BEAM):
                 if i < n_prev_layer:
                     start = current_index - n_length - n_prev_layer + 1

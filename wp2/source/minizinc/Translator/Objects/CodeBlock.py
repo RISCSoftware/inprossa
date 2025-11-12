@@ -56,7 +56,6 @@ class CodeBlock:
         for stmt in block:
             # Handle assignment statements
             if isinstance(stmt, ast.Assign):
-                print("Executing assignment on:", ast.dump(stmt, include_attributes=False))
                 self.execute_block_assign(stmt.targets[0], stmt.value, loop_scope)
 
             elif isinstance(stmt, ast.For):
@@ -66,7 +65,6 @@ class CodeBlock:
                 self.execute_block_if(stmt, loop_scope)
 
             elif isinstance(stmt, ast.Assert):
-                print("Executing assert on:", ast.dump(stmt, include_attributes=False))
                 self.execute_block_assert(stmt, loop_scope)
 
             elif isinstance(stmt, ast.AnnAssign):
@@ -121,7 +119,6 @@ class CodeBlock:
 
         # Rewrite right-hand side expression
         rhs_expr = ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(rhs)
-        print("RHS expression in CodeBlock rewritten to:", ast.dump(rhs_expr, indent=4) if isinstance(rhs_expr, ast.AST) else rhs_expr, type(rhs_expr))
 
             
         # Subscript assignment: e.g., a[1] = 5

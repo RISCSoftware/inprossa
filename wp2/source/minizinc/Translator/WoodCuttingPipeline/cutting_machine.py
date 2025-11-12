@@ -24,9 +24,9 @@ def cutting_machine(board_list: DSList(N_BOARDS, Board),
                    cut_list[cut_index - 1] <= interval.end
                    for interval in board.bad_intervals
                    ):
-                    quality = True
+                    quality = 1
                 else:
-                    quality = False
+                    quality = 0
                 pieces[(board_index - 1) * (MAX_N_CUTS_PER_BOARD - 1) + cut_index] = {"quality": quality, "length": piece_length}
     return pieces
 """

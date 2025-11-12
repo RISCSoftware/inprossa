@@ -12,7 +12,7 @@ length = 0
 n_length = 0
 n_prev_layer = 0
 current_index = 0
-new_beam = True
+new_beam = 1
 for piece in PIECES:
     current_index = current_index + 1
     length = length + piece
@@ -24,10 +24,10 @@ for piece in PIECES:
         n_length = 0
         length = 0
         if depth == MAX_DEPTH:
-            new_beam = True
+            new_beam = 1
             depth = 0
     else:
-        new_beam = False
+        new_beam = 0
         for i in range(1, MAX_N_LENGTH):
             if i < n_prev_layer:
                 start = current_index - n_length - n_prev_layer + 1

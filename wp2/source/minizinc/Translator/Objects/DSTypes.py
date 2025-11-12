@@ -239,6 +239,8 @@ class DSType:
             self.type_obj = DSList(name=self.name, *self.positional_args, **self.arguments, known_types=known_types, constant_table=constant_table)
         elif self.type_object_name == "DSRecord":
             self.type_obj = DSRecord(name=self.name, *self.positional_args, **self.arguments, known_types=known_types, constant_table=constant_table)
+        else:
+            raise ValueError(f"Unknown DS type constructor: {self.type_object_name}")
 
     def return_type(self):
         return self.type_obj
@@ -286,7 +288,6 @@ def compute_type(
         known_types: Optional[set] = None,
         constant_table: Optional[dict] = None
         ) -> DSType:
-    print("Knwon types:", known_types)
     if isinstance(type_node, (DSInt, DSFloat, DSBool, DSList, DSRecord)):
         returned_type = type_node
         return returned_type

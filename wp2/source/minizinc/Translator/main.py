@@ -75,10 +75,10 @@ BEAM_LENGTH : int = 10
 # Length of the beams to be produced
 BEAM_DEPTH : int = 5
 # Number of layers of pieces in each beam
-MAX_PIECES_PER_BEAM = 5
+MAX_PIECES_PER_BEAM : int = 5
 # Maximum number of pieces per beam layer
-MIN_DIST_BETWEEN_PIECES = 1
-FORBIDDEN_INTERVALS = [[3,4], [7,8]]
+MIN_DIST_BETWEEN_PIECES : int = 1
+FORBIDDEN_INTERVALS : DSList(2, DSList(2, int)) = [[3,4], [7,8]]
 Interval = DSRecord({
     "start": DSInt(0, MAX_BOARD_LENGTH),
     "end": DSInt(0, MAX_BOARD_LENGTH)
@@ -91,7 +91,7 @@ Board = DSRecord({
 })
 GIVEN_INITIAL_BOARDS : DSList(3, Board) = [
     Board(length=20,
-          bad_intervals=[Interval(5,6), Interval(15,16)],
+          bad_intervals=[Interval(5,6+4), Interval(15,16)],
           curved_intervals=[Interval(10,12)]
     ),
     Board(length=15,

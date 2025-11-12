@@ -14,9 +14,9 @@ class Constant:
         self.name = name
         self.type = type_
         self.loop_scope = {} if loop_scope is None else loop_scope
-        empty_structure = self.build_empty_structure(self.type)
+        self.empty_structure = self.build_empty_structure(self.type)
         self.value_structure = self.fill_structure(
-            empty_structure,
+            self.empty_structure,
             stmt_value)
 
 
@@ -83,8 +83,12 @@ class Constant:
             return target
         # --- 3. Constants or other expressions
         else:
-            evaluation = ExpressionRewriter(self.loop_scope, code_block = self.code_block).get_expr_value(value_node)
-            print("RHS expression in Constant rewritten to:", ast.dump(evaluation, indent=4) if isinstance(evaluation, ast.AST) else evaluation, type(evaluation))
+            if self.empty_structure is None:
+                # It's a base type constant
+                evaluation = ExpressionRewriter(self.loop_scope, code_block = self.code_block).get_expr_value(value_node)
+            else:
+                # It's a structure assignment
+                evaluation = ExpressionRewriter(self.loop_scope, code_block = self.code_block).rewrite_expr(value_node)
             return evaluation
 
     def assign_chain(self, structure, chain, value):

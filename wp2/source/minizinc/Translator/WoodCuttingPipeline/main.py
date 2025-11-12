@@ -8,4 +8,9 @@ from objects import code_objects
 from constants import code_constants
 from given_objects import code_given_objects
 full_code = code_constants + code_objects + code_given_objects + code_pipeline + code_reordering_machine + code_cutting_machine + code_filtering_machine + code_check_machine
-MiniZincTranslator(full_code).unroll_translation()
+
+translator = MiniZincTranslator(full_code)
+model = translator.unroll_translation()
+print("\n")
+print(model)
+print("\n")

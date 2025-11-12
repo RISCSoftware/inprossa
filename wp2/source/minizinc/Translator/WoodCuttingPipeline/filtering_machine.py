@@ -6,11 +6,11 @@ def filtering_machine(list_to_filter: DSList(N_PIECES, Piece),
     filtered_list : DSList(N_PIECES, Piece)
     for i in range(N_PIECES):
         if keep_decisions[i]:
-            assert list_to_filter[i].quality == True
+            assert list_to_filter[i].quality == 1
             filtered_list[i] = list_to_filter[i]
         else:
             objective += list_to_filter[i].length
-            filtered_list[i] = {"quality": True, "length": 0}
+            filtered_list[i] = {"quality": 1, "length": 0}
 
     return filtered_list
 """
