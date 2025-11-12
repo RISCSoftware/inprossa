@@ -25,7 +25,7 @@ MyInt2 = DSInt(lb=LB, ub=UB)
         "expected_translation": """type MyInt2 = LB..UB;
 int: MAX_N = 10;
 int: LB = 0;
-int: UB = MAX_N;
+int: UB = 10;
 array[1..1] of var int: objective;
 constraint objective[1] = 0;
 solve minimize objective[1];"""

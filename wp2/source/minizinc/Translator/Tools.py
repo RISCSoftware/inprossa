@@ -258,6 +258,9 @@ class ExpressionRewriter:
         
         elif isinstance(expr, (int, float)):
             return str(expr)
+        
+        elif expr is None:
+            return None
             
 
         else:
