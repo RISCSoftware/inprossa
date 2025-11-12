@@ -7,6 +7,7 @@ initial_boards: DSList(N_BOARDS, Board) = GIVEN_INITIAL_BOARDS
 # Swapping boards
 
 swapping_decisions_boards: DSList(N_BOARDS - 1, bool)
+swapped_boards: DSList(N_BOARDS, Board) = GIVEN_INITIAL_BOARDS
 swapped_boards = reordering_board_machine(initial_boards, swapping_decisions_boards) # It's necessary to specify the length if we want to use it for boards and pieces
 
 
