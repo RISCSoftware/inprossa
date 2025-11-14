@@ -144,9 +144,11 @@ class ExpressionRewriter:
                 args = [self.rewrite_expr(a) for a in expr.args]
                 if len(args) == 1:
                     second = self.get_expr_value(expr.args[0]) - 1
+                    print("SEcond:", second)
                     return f"1..{second}"
                 elif len(args) == 2:
                     second = self.get_expr_value(expr.args[1]) - 1
+                    print("SEcond:", second)
                     return f"{args[0]}..{second}"
                 else:
                     raise ValueError("range() with step not supported in MiniZinc translation")

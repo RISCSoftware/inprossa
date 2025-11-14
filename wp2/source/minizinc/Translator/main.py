@@ -106,8 +106,10 @@ GIVEN_INITIAL_BOARDS : DSList(3, Board) = [
 
 """
     code = """
-x : DSList(5, int)
-assert any(x[cut] > 0 for cut in range(1, 6))
+def my_fun():
+    pieces : DSList(3, int)
+
+my_fun()
 """
     # code = code_check_machine
     translator = MiniZincTranslator(code)
@@ -115,34 +117,3 @@ assert any(x[cut] > 0 for cut in range(1, 6))
     print("\n")
     print(model)
     print("\n")
-
-
-
-
-class Interval:
-    def __init__(self, start:int, end:int):
-        self.start = start
-        self.end = end
-
-    def impose_ordered(self):
-        assert self.start <= self.end
-
-    def impose_contained(self, length):
-        assert self.start <= length
-        assert self.end <= length
-
-N_BAD_INTERVALS = 5
-
-class Board:
-    def __init__(self, length: int, bad_intervals: list[Interval]):
-        self.length = length
-        self.bad_intervals = bad_intervals
-
-    def impose_ordered(self):
-        for interval in self.bad_intervals:
-            interval.impose_ordered()
-
-    def impose_contained(self):
-        for interval in self.bad_intervals:
-            interval.impose_contained(self.length)
-
