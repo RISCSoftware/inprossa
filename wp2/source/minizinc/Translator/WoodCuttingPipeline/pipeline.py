@@ -20,18 +20,18 @@ pieces = cutting_machine(swapped_boards, cuts_list_list)
 
 # Filtering pieces
 
-keep_decisions: DSList(N_PIECES, bool)
-filtered_pieces: DSList(N_PIECES, Piece)
-filtered_pieces = filtering_machine(pieces, keep_decisions)
+# keep_decisions: DSList(N_PIECES, bool)
+# filtered_pieces: DSList(N_PIECES, Piece)
+# filtered_pieces = filtering_machine(pieces, keep_decisions)
 
-# Reordering pieces
+# # Reordering pieces
 
-swapping_decisions: DSList(N_PIECES - 1, bool)
-reordered_pieces: DSList(N_PIECES, Piece)
-reordered_pieces = reordering_piece_machine(filtered_pieces, swapping_decisions)
+# swapping_decisions: DSList(N_PIECES - 1, bool)
+# reordered_pieces: DSList(N_PIECES, Piece)
+# reordered_pieces = reordering_piece_machine(filtered_pieces, swapping_decisions)
 
 
-# Checking pieces
+# # Checking pieces
 
-checking_machine(reordered_pieces)
+# checking_machine(reordered_pieces)
 """
