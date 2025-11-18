@@ -54,43 +54,46 @@ class CodeBlock:
     def execute_block(self, block, loop_scope):
         """Recursively execute a block of Python statements, updating symbolic state"""
         for stmt in block:
-            # Handle assignment statements
-            if isinstance(stmt, ast.Assign):
-                self.execute_block_assign(stmt.targets[0], stmt.value, loop_scope)
+            try:
+                # Handle assignment statements
+                if isinstance(stmt, ast.Assign):
+                    self.execute_block_assign(stmt.targets[0], stmt.value, loop_scope)
 
-            elif isinstance(stmt, ast.For):
-                self.execute_block_for(stmt, loop_scope)
+                elif isinstance(stmt, ast.For):
+                    self.execute_block_for(stmt, loop_scope)
 
-            elif isinstance(stmt, ast.If):
-                self.execute_block_if(stmt, loop_scope)
+                elif isinstance(stmt, ast.If):
+                    self.execute_block_if(stmt, loop_scope)
 
-            elif isinstance(stmt, ast.Assert):
-                self.execute_block_assert(stmt, loop_scope)
+                elif isinstance(stmt, ast.Assert):
+                    self.execute_block_assert(stmt, loop_scope)
 
-            elif isinstance(stmt, ast.AnnAssign):
-                self.execute_block_annassign(stmt, loop_scope)
+                elif isinstance(stmt, ast.AnnAssign):
+                    self.execute_block_annassign(stmt, loop_scope)
 
-            elif isinstance(stmt, ast.AugAssign):
-                # --- handle a += b ---
-                expanded = ast.Assign(
-                    targets=[stmt.target],
-                    value=ast.BinOp(left=stmt.target, op=stmt.op, right=stmt.value)
-                )
-                self.execute_block_assign(expanded.targets[0], expanded.value, loop_scope)
+                elif isinstance(stmt, ast.AugAssign):
+                    # --- handle a += b ---
+                    expanded = ast.Assign(
+                        targets=[stmt.target],
+                        value=ast.BinOp(left=stmt.target, op=stmt.op, right=stmt.value)
+                    )
+                    self.execute_block_assign(expanded.targets[0], expanded.value, loop_scope)
 
-            elif isinstance(stmt, ast.FunctionDef):
-                # ignore: functions handled by MiniZincTranslator/Predicate
-                continue
-            elif isinstance(stmt, ast.Call) and isinstance(stmt.func, ast.Name):
-                fname = stmt.func.id
-                if fname in self.predicates:
-                    return self._handle_predicate_call_assign(None, stmt, loop_scope, self.predicates[fname])
+                elif isinstance(stmt, ast.FunctionDef):
+                    # ignore: functions handled by MiniZincTranslator/Predicate
+                    continue
+                elif isinstance(stmt, ast.Call) and isinstance(stmt.func, ast.Name):
+                    fname = stmt.func.id
+                    if fname in self.predicates:
+                        return self._handle_predicate_call_assign(None, stmt, loop_scope, self.predicates[fname])
+                    else:
+                        raise ValueError(f"Unknown predicate/function called: {fname}")
+                elif isinstance(stmt, ast.Expr):
+                    self.execute_block([stmt.value], loop_scope)
                 else:
-                    raise ValueError(f"Unknown predicate/function called: {fname}")
-            elif isinstance(stmt, ast.Expr):
-                self.execute_block([stmt.value], loop_scope)
-            else:
-                raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")
+                    raise ValueError(f"Unsupported statement: {ast.dump(stmt, include_attributes=False)}")
+            except Exception as e:
+                raise Exception(f"Error processing statement: {ast.unparse(stmt)}") from e
 
     # --- ASSIGNMENTS ---
 
