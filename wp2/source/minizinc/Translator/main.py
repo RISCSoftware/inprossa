@@ -1,6 +1,6 @@
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from Translator.WoodCuttingPipeline.check_machine import code_check_machine
-
+from Translator.Objects.MinizincRunner import MiniZincRunner
 
 # ===== Example usage =====
 if __name__ == "__main__":
@@ -117,3 +117,8 @@ my_fun()
     print("\n")
     print(model)
     print("\n")
+
+    
+    runner = MiniZincRunner()
+    result = runner.run(model)
+    print(result)

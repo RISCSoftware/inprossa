@@ -4,6 +4,7 @@ from cutting_machine import code_cutting_machine
 from filtering_machine import code_filtering_machine
 from check_machine import code_check_machine
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
+from Translator.Objects.MinizincRunner import MiniZincRunner
 from objects import code_objects
 from constants import code_constants
 from given_objects import code_given_objects
@@ -14,3 +15,7 @@ model = translator.unroll_translation()
 print("\n")
 print(model)
 print("\n")
+
+runner = MiniZincRunner()
+result = runner.run(model)
+print(result)
