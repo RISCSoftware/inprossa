@@ -1,6 +1,7 @@
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from Translator.WoodCuttingPipeline.check_machine import code_check_machine
 from Translator.Objects.MinizincRunner import MiniZincRunner
+from Translator.Objects.trial import run_mzn_and_detect_inconsistency
 
 # ===== Example usage =====
 if __name__ == "__main__":
@@ -119,8 +120,17 @@ for i in range(1, 7):
 for i in range(1, 7):
     assignment = assignments[i]
     used_boxes[assignment.box_id] = 1
-
 """
+#     code = """
+# bad_intervals_board : DSList(5, int)
+# if all(
+#     interval > 0 and interval < 10
+#     for interval in bad_intervals_board
+#     ):
+#     quality = 1
+# else:
+#     quality = 0
+# """
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()
@@ -129,6 +139,9 @@ for i in range(1, 7):
     print("\n")
 
     
-    runner = MiniZincRunner()
-    result = runner.run(model)
-    print(result)
+    # runner = MiniZincRunner()
+    # result = runner.run(model)
+    # print(result)
+
+    # Test dump_fzn
+    fzn_path = run_mzn_and_detect_inconsistency(model)

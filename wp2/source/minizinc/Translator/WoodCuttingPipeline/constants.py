@@ -1,9 +1,9 @@
 code_constants = f"""
 
 # The following can be deduced from GIVEN_INITIAL_BOARDS
-N_BOARDS : int = 2
+N_BOARDS : int = 1
 MAX_BOARD_LENGTH : int = 30
-MAX_N_INTERVALS : int = 2
+MAX_N_INTERVALS : int = 1
 # Maximum number of bad (or curved) intervals per board
 MAX_N_CUTS_PER_BOARD : int = 2
 # Maximum number of cuts per board (including the two fixed cuts at the start and end of the board)

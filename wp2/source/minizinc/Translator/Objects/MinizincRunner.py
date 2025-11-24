@@ -26,6 +26,7 @@ class MiniZincRunner:
 
         # run
         instance = minizinc.Instance(self.solver, model)
-        result = instance.solve()
+        result = instance.solve(fzn_filename="dump.fzn")
+
 
         return result
