@@ -91,11 +91,18 @@ class Variable:
                     raise KeyError(f"Field '{step}' not found in assigned_fields.")
                 target = target[step]
             elif step_type == "list":
-                if not isinstance(step, int):
+                print(f"step before check: {step} of type {type(step)}")
+                if isinstance(step, int) or (isinstance(step, str) and step.isdigit()):
                     step = int(step)
-                if step <= 0 or step > len(target):
-                    raise IndexError(f"Index {step} out of range")
-                target = target[step - 1]
+                    if step <= 0 or step > len(target):
+                        raise IndexError(f"Index {step} out of range")
+                    
+                    target = target[step - 1]
+                else:
+                    # We receive something strange like a variable name instead of an index
+                    # Then we assume it is already assigned just in case
+                    # TODO: we should now mark as assigned all variables this could refer to
+                    return True
             else:
                 raise TypeError(f"Invalid access step: {step}")
             
@@ -133,12 +140,17 @@ class Variable:
                 target[step] = self.mark_chain_as_assigned(chain, target[step])
                 return target
             elif step_type == "list":
-                if not isinstance(step, int):
+                if isinstance(step, int) or (isinstance(step, str) and step.isdigit()):
                     step = int(step)
-                if step <= 0 or step > len(target):
-                    raise IndexError(f"Index {step} out of range")
-                target[step - 1] = self.mark_chain_as_assigned(chain, target[step - 1])
-                return target
+                    if step <= 0 or step > len(target):
+                        raise IndexError(f"Index {step} out of range")
+                    target[step - 1] = self.mark_chain_as_assigned(chain, target[step - 1])
+                    return target
+                else:
+                    # We receive something strange like a variable name instead of an index
+                    # Then we assume it is already assigned just in case
+                    # And we mark all elements as assigned
+                    return self._mark_all_recursive_inplace(target)
             else:
                 raise TypeError(f"Invalid access step: {step}")
         
@@ -168,9 +180,15 @@ class Variable:
                     raise KeyError(f"Field '{step}' not found in type {self.type}.")
                 fields = fields[step]
             elif step_type == "list":
-                if not isinstance(step, int):
+                if isinstance(step, int) or (isinstance(step, str) and step.isdigit()):
                     step = int(step) - 1
-                fields = fields[step]
+                    fields = fields[step]
+                else:
+                    # We receive something strange like a variable name instead of an index
+                    # Then we assume it is already assigned just in case
+                    # For now we return the first element's fields as all are equal
+                    # TODO something equivalent should be done for dictionaries
+                    fields = fields[0]
             else:
                 raise TypeError(f"Invalid access step: {step}")
         return fields

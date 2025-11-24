@@ -106,10 +106,20 @@ GIVEN_INITIAL_BOARDS : DSList(3, Board) = [
 
 """
     code = """
-def my_fun():
-    pieces : DSList(3, int)
+BoxAssignment = DSRecord({
+    "box_id": int,
+    "x": int,
+    "y": int
+})
+assignments: DSList(length=6, elem_type=BoxAssignment)
+used_boxes : DSList(length=6, elem_type=DSBool())
+assignment: BoxAssignment
+for i in range(1, 7):
+    used_boxes[i] = 0
+for i in range(1, 7):
+    assignment = assignments[i]
+    used_boxes[assignment.box_id] = 1
 
-my_fun()
 """
     # code = code_check_machine
     translator = MiniZincTranslator(code)

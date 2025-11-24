@@ -1,4 +1,5 @@
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
+from Translator.Objects.MinizincRunner import MiniZincRunner
 
 code = """
 BOX_CAPACITIES : DSList(4, DSInt()) = [5, 5, 5, 5]
@@ -28,3 +29,8 @@ model = translator.unroll_translation()
 print("\n")
 print(model)
 print("\n")
+
+
+runner = MiniZincRunner()
+result = runner.run(model)
+print(result)
