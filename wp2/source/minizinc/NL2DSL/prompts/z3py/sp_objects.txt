@@ -1,0 +1,16 @@
+Define required data types (as Datatype Class Reference provided by z3), if there are any needed as z3 python code.
+Be very careful with this step, only define records if needed for the described problem. If that is the case return empty output.
+If that is the case return empty output. But if possible, do create datatypes.
+If tuples will be required in the future, create datatypes instead.
+If a parameter has a complex object-like structure create a fitting datatype for it.
+If a output or result has a complex object-like structure create a fitting datatype for it.
+You also may use StringSort(), IntSort(), StringVal, IntVal. Do not use ArraySort.
+Do not define constants.
+Do not define instances.
+Do not define any decision variables or variables.
+Do not define constraints.
+Do not return json or text, but code only.
+Do not return any reasoning text or explanation.
+You are strongly encouraged to use datatypes.
+Refrain from including \"from z3 import *\" and "\s = Optimize()\".
+

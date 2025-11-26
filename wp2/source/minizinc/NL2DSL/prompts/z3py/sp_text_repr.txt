@@ -1,0 +1,22 @@
+Create a very short, concise textual description of:
+    1. possible non-python record-like datatypes types with object fields, that may be created specifically for this problem. Just objects, no array of objects.
+    2. constants (input), each with a suggested variable name and values,
+    3. decision variables (output), each with a suggested name and description.
+    4. an objective, that is calculated.
+    5. and constraints for the problem below.
+The result must not be code or json, just text or pseudo-code.
+The result must be written in a way that a software engineer may create a program from it.
+Also mention the specific values of variables, constants etc. Mention values of each object field of each constant object or constant array of objects.
+Output the descriptions in the following format:
+--- Objects ---
+<placeholder for datatypes for LLM>
+--- Constants ---
+<placeholder for constants for LLM>
+--- Decision variables ---
+<placeholder for decision variables for LLM>
+--- Objective function ---
+<placeholder for obj. function for LLM>
+--- Constraints ---
+<placeholder for constraints for LLM>
+
+Problem Description:
