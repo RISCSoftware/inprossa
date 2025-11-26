@@ -84,7 +84,6 @@ Interval = DSRecord({
     "start": DSInt(0, MAX_BOARD_LENGTH),
     "end": DSInt(0, MAX_BOARD_LENGTH)
 })
-
 Board = DSRecord({
     "length": DSInt(0, MAX_BOARD_LENGTH),
     "bad_intervals": DSList(MAX_N_INTERVALS, Interval),
@@ -107,29 +106,13 @@ GIVEN_INITIAL_BOARDS : DSList(3, Board) = [
 
 """
     code = """
-BoxAssignment = DSRecord({
-    "box_id": int,
-    "x": int,
-    "y": int
-})
-assignments: DSList(length=6, elem_type=BoxAssignment)
-used_boxes : DSList(length=6, elem_type=DSBool())
-assignment: BoxAssignment
-for i in range(1, 7):
-    used_boxes[i] = 0
-for i in range(1, 7):
-    assignment = assignments[i]
-    used_boxes[assignment.box_id] = 1
+used_boxes : DSList(length=2, elem_type=DSBool())
+ml : int
+if ml < 5:
+    my_var : DSList(length=2, elem_type=DSBool()) = 3
 """
 #     code = """
-# bad_intervals_board : DSList(5, int)
-# if all(
-#     interval > 0 and interval < 10
-#     for interval in bad_intervals_board
-#     ):
-#     quality = 1
-# else:
-#     quality = 0
+# objective = 1
 # """
     # code = code_check_machine
     translator = MiniZincTranslator(code)

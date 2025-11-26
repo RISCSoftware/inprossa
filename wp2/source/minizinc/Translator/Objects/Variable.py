@@ -82,7 +82,7 @@ class Variable:
     def is_chain_unassigned(self, access_chain):
         """
         Returns True if the path specified by `access_chain`
-        is marked as assigned (1) in `assigned_fields`.
+        is marked as unassigned (0) in `assigned_fields`.
         """
         target = self.assigned_fields
         for step_type, step in access_chain:
@@ -91,7 +91,6 @@ class Variable:
                     raise KeyError(f"Field '{step}' not found in assigned_fields.")
                 target = target[step]
             elif step_type == "list":
-                print(f"step before check: {step} of type {type(step)}")
                 if isinstance(step, int) or (isinstance(step, str) and step.isdigit()):
                     step = int(step)
                     if step <= 0 or step > len(target):
@@ -102,7 +101,7 @@ class Variable:
                     # We receive something strange like a variable name instead of an index
                     # Then we assume it is already assigned just in case
                     # TODO: we should now mark as assigned all variables this could refer to
-                    return True
+                    return False
             else:
                 raise TypeError(f"Invalid access step: {step}")
             

@@ -514,13 +514,29 @@ class CodeBlock:
     
     # --- IF ---
 
-    def merge_variable(self, var, idx_if, idx_else):
+    def merge_variable(self, var, idx_if, idx_else, var_type_if, var_type_else):
         """
         Merges variable versions after an if-else branch by using the highest index
         """
         merged_idx = max(idx_if, idx_else)
         if var not in self.variable_table:
-            self.new_evolving_variable(var)
+            # Variable not seen before, create it with appropriate type
+            # if one branch did not assign it, use the type from the other branch
+            if var_type_if != var_type_else:
+                if isinstance(var_type_if, DSInt):
+                    if isinstance(var_type_else, DSInt):
+                        # if both branches assigned it with different not default types, raise error
+                        raise ValueError(f"Variable '{var}' has incompatible types in if-else branches: {var_type_if} vs {var_type_else}")
+                    else:
+                        # If branch if is default int, use else branch type
+                        var_type = var_type_else
+                else:
+                    # If branch else is default int, use if branch type
+                    var_type = var_type_if
+            else:
+                # types are the same, use either
+                var_type = var_type_if
+            self.new_evolving_variable(var, type_=var_type)
         self.variable_table[var].versions = merged_idx
         constraints = dict()
 
@@ -565,13 +581,19 @@ class CodeBlock:
         branch_if_constraints, index_after_if = self.execute_branch(stmt.body, loop_scope, pre_branch_index)
         branch_else_constraints, index_after_else = self.execute_branch(stmt.orelse or [], loop_scope, pre_branch_index)
 
-        # Merge variable versions from both branches
+        print(f"index after if: { {var: var_obj.type for var, var_obj in index_after_if.items()} }")
+        print(f"index after else: { {var: var_obj.type for var, var_obj in index_after_else.items()} }")
+
+        # Merge variable dictionaries from both branches
         all_vars = set(index_after_if) | set(index_after_else)
         for var in all_vars:
             idx_before = pre_branch_index.get(var, Variable(name="", versions=0))
             idx_if = index_after_if.get(var, idx_before).versions
+            var_type_if = index_after_if.get(var, idx_before).type
             idx_else = index_after_else.get(var, idx_before).versions
-            constraints = self.merge_variable(var, idx_if, idx_else)
+            var_type_else = index_after_else.get(var, idx_before).type
+            
+            constraints = self.merge_variable(var, idx_if, idx_else, var_type_if, var_type_else)
             if "if" in constraints:
                 branch_if_constraints.append(constraints["if"])
             if "else" in constraints:
