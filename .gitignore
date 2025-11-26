@@ -15,3 +15,6 @@ venv/
 # Common editor/IDE folders
 .vscode/
 .idea/
+
+# LLM API key
+*.api_key

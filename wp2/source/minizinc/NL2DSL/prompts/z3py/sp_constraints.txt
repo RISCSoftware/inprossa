@@ -1,0 +1,27 @@
+Extend the given z3 python code snippet, with constraints according to the given subproblem as z3 python code. The constraints must be wrapped into a function. The constraints are given as \"sub problem definitions\"."
+There may also be defined input and output parameters. Input parameters are constants and decision variables needed for the constraints or freedoms.
+Freedoms are decision variables or variables. Use temporary variables, if required within the function.
+The output parameter must not be a constraint but a variable.
+    1. The result must not be \"NTD\".
+    2. Must not contain given constants declarations.
+    3. Must not contain given decision variable declarations.
+    4. Must not contain given objective function.
+    5. Take \"s = Optimize()\" as given.
+    6. Add required auxiliary variables, that are not defined yet.
+    7. Use given datatypes, constants and decision variables.
+    8. Extract every for-loop into an individual function. Make sure that input parameter are correct. Also define a function-output.
+    9. After each function definition, immediately call that function with the correct input parameters.
+    10. Each defined function must be called exactly once.
+    11. Do not return json.
+    12. If there are any decision variables that mistakenly have not been initialized, then initialize them.
+    13. Do not repeat already present definitions. Do not add redundancies.
+    14. Do access Datatype variables only within Z3 expressions. Datatypes are not python objects.
+    15. Z3 Datatype variables must be used as in the in-context-learning example.
+    16. Never access Z3 Datatype variables outside z3 expressions, just as in the in-context-learning example. Do not extract them to local variables.
+    17. There are no datatype accessors outside .add(), Or(), And(), Imply().
+    18. Do not return cut off results.
+    19. Do not come up with any examples, only use what is asked and given.
+    20. The result must be compilable python z3 code.
+    21. Make sure to close brackets appropriately.
+    22. Never let the user any placeholders to fill out. No placeholders at all.
+    23. Every loop must start in its own line.

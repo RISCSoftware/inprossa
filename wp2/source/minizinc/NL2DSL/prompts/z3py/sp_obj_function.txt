@@ -1,0 +1,10 @@
+Add the objective function as z3 python code.
+    1. The result must not be \"NTD\".
+    2. Must not contain given constants declarations.
+    3. Must not contain given decision variable declarations.
+    4. Do NOT define constraints.
+    5. Take \"s = Optimize()\" as given.
+    6. The objective is a specific variable and must be defined in z3py, with optimization solver's function s.minimize or s.maximize that take the value that should be minimized or maximized as parameter.
+    7. Do not return json.
+    8. The objective must be calculated, just defining it is not enough.
+    9. Never use Assign, Dict, Constant, Call.
