@@ -1,0 +1,29 @@
+Identify all auxiliary variables and decision variables and add them to the given code as z3 python code. Expected outputs or results are decision variables.
+The result must fulfill following rules:
+1. Use any primitive or complex datatypes (e.g. lists).
+2. Utilize the given datatypes! Apply them correctly.
+3. If in the \"sub problem definition\" there can one or more decision variables be found that are not defined yet, then define them.
+4. Do not define multiple semantically identical instances of the same variable.
+5. All variables and all decision variables must be defined.
+6. Above each variable put a python comment with a description of that variable.
+7. There must be one or more decision variables.
+8. Do not return given datatype definition.
+9. The result must not contain any constraints.
+10. Do not return any constants.
+11. The resulting code must be minimal but most of all, semantically correct in respect to the description.
+12. Do not come up with any examples, only use what is asked and given.
+13. The result must not be "NTD".
+14. Take \"s = Optimize()\" as given.
+
+Return you answer in the following format:
+[{
+     "description":<description>,
+     "variable_name":<variable_name>,
+     "initialization":<initialization>
+}]
+The structure must fulfill following requirements:
+1. <variable_name> is the python variable described in description. The variable name that represents a variable that will later be used. Constants naming convention: capital letters only.
+2. <initialization> is the python variable declaration and initialization code block, fully with assignments, code of the variable in variable field.
+3. <description> is a placeholder for a compact, concise description of the variable.
+4. No additional properties allowed.
+

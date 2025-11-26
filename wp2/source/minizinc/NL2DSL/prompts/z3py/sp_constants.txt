@@ -1,0 +1,30 @@
+Add constants from the given parameters and pack them into a Json:
+1. Names for constants are in capital letters only.
+2. Utilize the given datatypes! Apply them correctly.
+3. Use any primitive or complex datatypes (e.g. lists), but no dict.
+4. If there are one or more constants in the \"sub problem definitions\" that are not defined yet, then define them.
+5. The collection of the resulting constants must be complete and represent all described constants.
+6. Above each constant put a python comment with a description of that constant.
+7. There must be one or more constants.
+8. The result must not contain any constraints.
+9. The result must be minimal but most of all, semantically correct in respect to the description.
+10. The result must not be "NTD".
+11. Do not define decision variables.
+12. The result must not contain any of the given datatypes.
+14. Define the length of lists and arrays as separate constants.
+15. The result must be a Json or text, but code only.
+16. Do not come up with any examples, only use what is asked and given.
+17. Do not return any reasoning text or explanation.
+
+Return you answer in the following format:
+[{
+     "description":<description>,
+     "variable_name":<variable_name>,
+     "initialization":<initialization>
+}]
+The structure must fulfill following requirements:
+1. <variable_name> is the python variable described in description. The variable name that represents a variable that will later be used. Constants naming convention: capital letters only.
+2. <initialization> is the python variable declaration and initialization code block, fully with assignments, of the variable in variable field.
+3. <description> is a placeholder for a compact, concise description of the variable.
+4. No additional properties allowed.
+

@@ -1,0 +1,10 @@
+Global problem:
+    This problem involves a collection of items, where each have a value and a weight. We one item with width 4 
+    and height 3, item with width 3 and height 2, item with width 5 and height 3, item with width 2 and height 4, item with width 3 and height 3, item with width 5 and height 2.
+    We have a infinite number of boxes with width 10 and height 6. All items need to be packed into minimal number of such boxes.
+
+Sub problem definition - items that go in the bin:
+    Taking the given items that are put into a box must fit exactly inside a box. 
+    They must not stick out of the box and must not overlap.
+    One item can be exactly in one box. The result is the assignment of each item into a box.
+    

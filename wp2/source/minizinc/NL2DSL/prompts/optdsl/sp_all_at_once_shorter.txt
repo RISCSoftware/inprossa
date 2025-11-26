@@ -1,0 +1,17 @@
+Give a complete encoding of the following problem in OptDSL. Return only compilable python code.
+1. If tuples will be required in the future, create objects instead.
+2. If a parameter has a complex object-like structure create a fitting datatype for it.
+3. If a output or result has a complex object-like structure create a fitting datatype for it.
+4. Names for constants (input variables) are written in upper capital letters only.
+5. Names for decision variables (output variables) and auxilary variables are written in lower letters only.
+6. Define the length of arrays as separate integer constants.
+7. Make sure to always close all open brackets.
+8. The collection of the resulting constants must be complete and represent all described constants.
+9. There must be one or more constants.
+10. All variables and all decision variables must be defined. There must be one or more decision variables.
+11. Do not define multiple semantically identical instances of the same variable.
+12. All constants, variables and all decision variables must have an explicit type (int, float, object type, DSInt(), DSBool, etc.).18.
+13. Use the OptDSL from the system prompt and the in-context-learning example.
+14. The objective variable as OptDSL code. The objective variable is a variable that is named \"objective\" which is always ready-to-use and available in OptDSL. If the objective is defined as a decision variable assign it to objective variable.
+15. The objective must be in code and it must be calculated.
+16. If there are one or more constants in the \"sub problem definitions\" that are not defined yet, then define them in the current section.

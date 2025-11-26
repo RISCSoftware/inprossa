@@ -1,0 +1,21 @@
+Global example:
+    In a wood processing factory, a collection of wooden boards is processed by various machines, one board at a time.
+    Each board has a length and may have none, one or multiple bad areas and none, one or multiple curved areas. 
+    An area is given as start and end position of the board's length. A board may be cut 10 times at most.
+    Each board of the collection is processed by a cutting machine and the resulting list of cut pieces then given to a filtering machine.
+    In the very end, we get a collection of pieces, where each piece has a length and a boolean indicator if the piece has good or bad quality.
+    We want to find the minimum cut-off of wood, by finding the best way where to cut the boards into pieces.
+    Output: list of where to perform cuts per board, a list of pieces and which pieces to keep or not.
+
+Sub problem cutting machine:
+    The cutting machine recieves a list of boards from the assembly line. Cutting is only possible within the length of the
+    board. The cutting machine is only allowed to cut a board within designated curved area or bad areas, marked on the board.
+    In the end, a list of cut pieces leave the cutting_machine. The quality of a piece is determined by the fact that there are
+    two consecutive cuts around a bad interval. There must be at least one cut in each curved area of a board. A list of cuts
+    determines at what positions of a board cuts are made. A piece must not have a length greater 0. There must not be any pieces of length 0.
+
+Sub problem filtering machine:
+    A collection of wooden pieces is filtered by quality. A piece has a length which must be lower than a maximum board length 50
+    and a boolean quality indicator. Maximum number of possible pieces is 30. Pieces must be kept if the quality indicator is set
+    to true, and thrown away otherwise. The result is a filtered list of pieces with good pieces only.
+    The goal is a minimal length of cutoff.

@@ -1,0 +1,32 @@
+Give a complete encoding of the following problem in OptDSL. Return only compilable python code.
+1. If tuples will be required in the future, create objects instead.
+2. If a parameter has a complex object-like structure create a fitting datatype for it.
+3. If a output or result has a complex object-like structure create a fitting datatype for it.
+4. Names for constants (input variables) are written in upper capital letters only.
+5. Names for decision variables (output variables) and auxilary variables are written in lower letters only.
+6. Use any primitive or complex objects (e.g. lists), but no dict.
+7. Define the length of arrays as separate integer constants.
+8. Make sure to always close all open brackets.
+9. If there are one or more constants in the \"sub problem definitions\" that are not defined yet, then define them in the current section.
+10. The collection of the resulting constants must be complete and represent all described constants.
+11. Above each constant put a python comment with a description of that constant.
+12. There must be one or more constants.
+13. The result must not be a Json.
+14. Do not define multiple semantically identical instances of the same variable.
+15. All variables and all decision variables must be defined.
+16. All constants, variables and all decision variables must have an explicit type (int, float, object type, DSInt(), DSBool, etc.).
+17. Above each variable put a python comment with a description of that variable.
+18. There must be one or more decision variables.
+19. Use the OptDSL from the system prompt and the in-context-learning example.
+20. The objective variable as OptDSL code. The objective variable is a variable that is named \"objective\" which is always ready-to-use and available in OptDSL. If the objective is defined as a decision variable assign it to objective variable.
+21. The objective must be in code and it must be calculated.
+22. You are obliged to use the given object types, list types, constants and decision variables
+23. Define the constraints within a function as OptDSL python code. The constraints are given as \"sub problem definitions\"."
+There may also be defined input and output parameters. Input parameters are constants and decision variables needed for the constraints or freedoms.
+Freedoms are decision variables or variables. Use temporary variables, if required within the function. Define equality and inequality constraints as asserts only.
+24. The output parameter must not be a constraint but a variable.
+25. If specific constants and decision variables are required for the formulation of the subproblems, then define them specifically.
+26. Extract every for-loop into an individual function. Make sure that input parameter are correct. Also define a function-output.
+27. After each function definition, immediately call that function with the correct input parameters
+28. Do not use the function len(), instead define the required array length manually with hard coded correct number.
+29. You are prohibited from using DSList directly as function parameter type. Use a declared type instead. See In-context learning example for function heads.
