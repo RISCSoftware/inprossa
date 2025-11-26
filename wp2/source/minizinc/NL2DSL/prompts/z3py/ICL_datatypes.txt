@@ -1,0 +1,31 @@
+<In-contex-learning start>
+# 1. Define the Person datatype
+Person = Datatype('Person')
+Person.declare('mk_person', ('name', StringSort()), ('age', IntSort()), ('address', StringSort()))
+Person = Person.create()
+
+# 2. Create some constants/variables of that type
+p1 = Const('p1', Person)       # a person variable
+# Build a concrete instance of Person
+alice = Person.mk_person(StringVal("Alice"),
+                          30,
+                          StringVal("123 Main St"))
+
+# 3. Set up a solver and add constraints
+s = Solver()
+# Suppose p1 must be a person older than 20 living on “123 Main St”
+s.add(p1 == alice)
+s.add(Person.age(p1) > 20)
+s.add(Person.address(p1) == "123 Main St")
+
+# 4. Check and extract model
+if s.check() == sat:
+    m = s.model()
+    print("Model:", m)
+    # Access fields
+    print("Name:", m[p1].arg(0))
+    print("Age:", m[p1].arg(1))
+    print("Address:", m[p1].arg(2))
+else:
+    print("Unsatisfiable")
+<In-contex-learning end>

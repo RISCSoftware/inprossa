@@ -1,0 +1,207 @@
+OptDSL is a python-like (pythonic) high-level constraint modelling language for formulizing optimization problems in a programmatical fashion. Eventually, OptDSL is translated into Minizinc.
+1.	OptDSL is python where constants have python native primitive types int, float. For strings do not use str, but float. Decision variables must be of primitive type DSInt(), DSFloat() or DSBool(), or of complex type DSList(length=<length>, elem_type=<type>) or DSRecord. For DSInt set sensible lower (lb) and upper bound (ub) for DSInt.
+2.  Object type creation with DSRecord and initialization of a variable with an object type must be two separate steps. For object type creation and variable initialization, each attribute needs to be explicitly set manually with accessing each attribute or initializing it as dict or json.
+3.  Object fields may be accessed and used in asserts. Object fields can not be assigned a value.
+4.	Indices in a DSList start at 1, not 0. Consequently, when iterating with a variable through a list we need, LIST_LEN = <length of list> + 1 for i in range(1, LIST_LEN) for a DSList list.
+5.  DSList is a fixed-size list, that has two mandatory attributes: "length" and "elem_type". No list comprehension allowed. For the field elem_type do not inline DSRecords, but use defined object types. But do not inline other DS types (e.g. DSInt(), DSFloat(), DSBool()). DSList does not support functions append() and extend().
+6.  Do not use Python's len(), max() or min() functions. Variables must not be of type "dict" or set.
+7.	Constraints are defined within a python function. Define input parameter. There must at least be one input parameter. All decision variables that are required for constraint formulation and are defined at root, must be given as input parameters. Constants can be accessed everywhere and do not have to be given as input parameter. Only returning names or tuple of names is supported.
+8.	After each function definition, immediately call that function with the correct input parameters.
+9.	Constraints are defined as asserts, like in a test. For constraint definition use equality, inequality and relation expressions. Make use of the python-built-in function any() and all() in combination with assert, if applicable.
+10.	Allowed operators for assert-constraints: all, any, >=, <=, ==, !=, <, >, or, and, not. No other operators are allowed.
+
+OptDSL adheres to following EBNF grammar (extended backus-naur form):
+-------------------
+Block := Statement*
+Statement := ConstDecl | VarDecl | FunDef | SimpleStmt
+
+# Top-level type declarations
+DSTypeExp := DSIntType | DSFloatType | DSBoolType | DSListType | DSRecordType
+ArgumentList := ID*
+FunArg([]) := # Nothing
+FunArgs(First :: Rest) := # [ID1, ID2, ID3, ...,  IDn] := ID1 :: [ID2, ID3, ...,  IDn]
+    Expr, FunArgs(Rest) |
+    First "=" Expr, NamedFunArgs(Rest) |
+    NamedFunArgs(Rest)
+NamedFunArgs(First :: Rest) :=
+    First "=" Expr, NamedFunArgs(Rest) |
+    NamedFunArgs(Rest)
+DSIntType := "DSInt" "(" FunArgs(["lb", "ub"]) ")"
+DSFloatType := "DSFloat" "(" FunArgs(["lb", "ub"]) ")"
+DSBoolType := "DSBool" "(" ")"
+DSListType := "DSList" "(" FunArgs(["length", "elem_type"]) ")"
+DSRecordType := "DSRecord" "(" "{" RecordField ("," RecordField)* "}" ")"
+RecordField := STR ":" TypeRef
+TypeRef := "int" | "float" | "bool" | ID | DSTypeExp
+
+# Constants
+ConstDecl := UPPER_ID ":" TypeRef "=" ConstExpr
+ConstExpr := Literal | ListLiteral | RecordLiteral | ID
+ListLiteral := "[" ConstExpr? "]"
+RecordLiteral := "{" RecordFieldLiteral ("," RecordFieldLiteral)* "}"
+RecordFieldLiteral := STR ":" ConstExpr
+
+# Variables and assignments
+VarDecl := ID ":" TypeRef ("=" Expr)?
+
+# Functions
+FunDef := "def" ID "(" ParamList? ")" ":" Block
+ParamList := Param ("," Param)*
+Param := ID ":" TypeRef ("=" Expr)?
+FunCall := ID "(" ArgList? ")"
+ArgList := (Arg ("," Arg)*)?
+Arg := (ID "=")? Expr
+
+# Simple statements in blocks
+SimpleStmt := AssignStmt
+    | AssertStmt
+    | ForStmt
+    | IfStmt
+    | ReturnStmt
+AssignStmt := Target "=" Expr // covers x=â€¦, a[i]=â€¦, obj.f=â€¦
+Target := ID
+    | Target "." ID
+    | Target "[" Expr "]"
+AssertStmt := "assert" Expr
+ReturnStmt := "return" Expr
+
+Control flow
+ForStmt := "for" ID "in" Iterable ":" Block
+| "for" ID "," ID "in" "enumerate" "(" Iterable ")" ":" Block
+Iterable := ID | ListLiteral | "range" "(" Expr "," Expr ")"
+IfStmt := "if" Expr ":" Block ElseClause?
+ElseClause := "else" ":" Block
+
+Expressions
+Exps := Expr ("," Expr)*
+Expr := ID
+| Literal # No variables inside
+| ListLiteral
+| RecordLiteral
+| FunCall
+| "(" Expr ")" # to give priorities
+| Expr BinOp Expr
+| UnOp Expr
+| "objective" BinOp Expr
+| "objective" "==" Expr
+Literal := INT | FLOAT | "True" | "False"
+BinOp := "+" | "-" | "*" | "/" | "%"
+| "==" | "!=" | "<" | "<=" | ">" | ">="
+| "and" | "or"
+UnOp := "-" | "not"
+
+Lexical / structural conventions
+ID: Python identifier.
+UPPER_ID: identifier in all caps (and _), used for constants.
+INT: integer literal.
+FLOAT: floating-point literal.
+STR: quoted string literal.
+-------------------
+
+In-context learning full translation example for OptDSL - START
+-------------------
+Global problem:
+Prompt:
+´´´ json
+{
+    "input" = {
+        "MAX_ALLOWED_WEIGHT": 110,
+        "ITEMS": [
+            {
+                "name": "item1"
+                "value": 15,
+                "weight": 12
+            },
+            {
+                "name": "item2",
+                "value": 50,
+                "weight": 70
+            },
+            {
+                "name": "item3",
+                "value": 80,
+                "weight": 100
+            },
+            {
+                "name": "item4",
+                "value": 80,
+                "weight": 20
+            },
+            {
+                "name": "item5",
+                "value": 20,
+                "weight": 12
+            },
+            {
+                "name": "item6",
+                "value": 25,
+                "weight": 5
+            }
+        ]
+    },
+    "output": [
+        {
+            "description": "Chosen Items",
+            "mandatory_variable_name": "chosen_items",
+            "suggested_shape": "boolean array"
+        },
+        {
+            "description": "Accumulated Value, which is the objective to maximize"
+            "mandatory_variable_name": "accumulated_value",
+            "suggested_shape": "integer"
+        }
+    ]
+}
+´´´
+Global problem description:
+This problem involves a collection of items, where each have a value and a weight. The goal is to decide which items are chosen to put into a schoolbag that a maximal accumulated value is achieved.
+
+Sub problem description - items that go in the bag:
+In the bag only go items from the given collection, such that the cumulative weight of all chosen items must never exceed the maximum allowed weight of 110.
+At the same time, we want to achieve a maximum of accumulated item value. One or more items are chosen and put into the schoolbag. The result are the chosen items.
+
+
+Expected result:
+´´´ python
+Item = DSRecord({
+    "value": int,
+    "weight": DSInt()
+})
+
+ITEM1 : Item = {"value": 15, "weight": 12}
+ITEM2 : Item = {"value": 50, "weight": 70}
+ITEM3 : Item
+ITEM3.value = 80
+ITEM3.weight = 100
+ITEM4 : Item
+ITEM4.value = 80
+ITEM4.weight = 20
+ITEM5 : Item
+ITEM5.value = 20
+ITEM5.weight = 12
+ITEM6 : Item
+ITEM6.value = 25
+ITEM6.weight = 5
+Items = DSList(length = 6, elem_type = Item)
+ITEMS : Items = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
+N_ITEMS : int = 6
+MAX_WEIGHT : int = 110
+chosen_items : ChosenItemsArray
+
+def pack_item(items: Items, chosen_items: DSList(6, DSBool())):
+    accumulated_weight = 0
+    objective: int = 0
+    for i in range(1, N_ITEMS + 1):
+        if chosen_items[i]:
+            item : Item = items[i]
+            accumulated_weight = accumulated_weight + item.weight
+            objective = objective - item.value
+    return accumulated_weight
+
+accumulated_weight = pack_item(ITEMS, chosen_items)
+
+assert accumulated_weight > 0
+assert accumulated_weight < MAX_WEIGHT
+´´´
+-------------------
+In-context learning full translation example for OptDSL - END

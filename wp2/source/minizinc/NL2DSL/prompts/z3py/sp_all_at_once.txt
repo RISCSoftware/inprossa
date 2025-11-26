@@ -1,0 +1,27 @@
+Give a complete encoding of the following problem in z3py. Return only compilable python code.
+1. If tuples will be required in the future, create datatypes instead.
+2. If a parameter has a complex object-like structure create a fitting datatype for it.
+3. If a output or result has a complex object-like structure create a fitting datatype for it.
+3. You also may use StringSort(), IntSort(), StringVal, IntVal. Do not use ArraySort. Do not use ListSort.
+4. Names for constants are in capital letters only.
+5. Use any primitive or complex datatypes (e.g. lists), but no dict.
+6. If there are one or more constants in the \"sub problem definitions\" that are not defined yet, then define them.
+7. The collection of the resulting constants must be complete and represent all described constants.
+8. Above each constant put a python comment with a description of that constant.
+9. There must be one or more constants.
+10. Define constructors/accessors.
+11. The result must be a Json.
+12. Do not define multiple semantically identical instances of the same variable.
+13. All variables and all decision variables must be defined.
+14. Above each variable put a python comment with a description of that variable.
+15. There must be one or more decision variables.
+16. Include \"s = Optimize()\".
+17. The objective function must be defined in z3py, with optimization solver's function s.minimize and s.maximize that take the value that should be minimized or maximized as parameter.
+18. The objective must be calculated somehow.
+19. Define the constraints within a function as z3 python code. The constraints are given as \"sub problem definitions\"."
+There may also be defined input and output parameters. Input parameters are constants and decision variables needed for the constraints or freedoms.
+Freedoms are decision variables or variables. Use temporary variables, if required within the function.
+20. The output parameter must not be a constraint but a variable.
+21. If specific constants and decision variables are required for the formulation of the subproblems, then define them specifically.
+22. Extract every for-loop into an individual function. Make sure that input parameter are correct. Also define a function-output.
+23. After each function definition, immediately call that function with the correct input parameters

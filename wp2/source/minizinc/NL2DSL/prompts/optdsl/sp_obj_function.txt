@@ -1,0 +1,20 @@
+Add the objective variable as OptDSL code. The objective variable is a variable that is named \"objective\".
+    1. Do not return \"NTD\".
+    2. Must not contain given constants declarations.
+    3. Must not contain given decision variable declarations.
+    4. Do NOT define constraints.
+    5. Do not return json.
+    6. Do not write any explanations, OptDSL code only. Python comments are allowed.
+    7. Do not declare "objective". Do not define a type for it. It is an environment variable, that can be used out-of-the-box.
+    8. If the objective is defined as a decision variable, set it equal to objective variable with assert.
+    9. Add a function called "calculate_objective" where you calculate the objective variable or variable that represents the objective. This function must contain a calculation. Add streamliners for the objective, lower and upper bounds.
+    10. When assigning a decision variable or a temporary variable which stores the return value of the function, to \"objective\", you must write it as follows:
+    assert objective == <value>, where you replace <value> with decision variable or the temporary variable that represents the objective.
+    11. You may use the assert call within the calculation function or outside, where you store the return value of the function into a temporary variable with correct type.
+
+
+Return you answer in the following format:
+´´´python
+# --- Objective ---
+<solution>
+´´´ replace <solution> with the code. <solution> must not be empty.
