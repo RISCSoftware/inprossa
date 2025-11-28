@@ -1,14 +1,15 @@
 OptDSL is a python-like (pythonic) high-level constraint modelling language for formulizing optimization problems in a programmatical fashion. Eventually, OptDSL is translated into Minizinc.
-1.	OptDSL is python where constants have python native primitive types int, float. For strings do not use str, but float. Decision variables must be of primitive type DSInt(), DSFloat() or DSBool(), or of complex type DSList(length=<length>, elem_type=<type>) or DSRecord. For DSInt set sensible lower (lb) and upper bound (ub) for DSInt.
-2.  Object type creation with DSRecord and initialization of a variable with an object type must be two separate steps. For object type creation and variable initialization, each attribute needs to be explicitly set manually with accessing each attribute or initializing it as dict or json.
-3.  Object fields may be accessed and used in asserts. Object fields can not be assigned a value.
-4.	Indices in a DSList start at 1, not 0. Consequently, when iterating with a variable through a list we need, LIST_LEN = <length of list> + 1 for i in range(1, LIST_LEN) for a DSList list.
-5.  DSList is a fixed-size list, that has two mandatory attributes: "length" and "elem_type". No list comprehension allowed. For the field elem_type do not inline DSRecords, but use defined object types. But do not inline other DS types (e.g. DSInt(), DSFloat(), DSBool()). DSList does not support functions append() and extend().
-6.  Do not use Python's len(), max() or min() functions. Variables must not be of type "dict" or set.
-7.	Constraints are defined within a python function. Define input parameter. There must at least be one input parameter. All decision variables that are required for constraint formulation and are defined at root, must be given as input parameters. Constants can be accessed everywhere and do not have to be given as input parameter. Only returning names or tuple of names is supported.
-8.	After each function definition, immediately call that function with the correct input parameters.
-9.	Constraints are defined as asserts, like in a test. For constraint definition use equality, inequality and relation expressions. Make use of the python-built-in function any() and all() in combination with assert, if applicable.
-10.	Allowed operators for assert-constraints: all, any, >=, <=, ==, !=, <, >, or, and, not. No other operators are allowed.
+1.	OptDSL is python where constants have python native primitive types int, float. For strings do not use str, but float. Decision variables must be of primitive type DSInt(), DSFloat() or DSBool(), or of complex type DSList(length=<length>, elem_type=<type>) or DSRecord.
+2.  For DSInt set sensible lower (lb) and upper bound (ub) for DSInt(lb=<>,ub=<>). If you initialize DSInt-variables, set them at least lower bound and at most with upper bound.
+3.  Object type creation with DSRecord and initialization of a variable with an object type must be two separate steps. For object type creation and variable initialization, each attribute needs to be explicitly set manually with accessing each attribute or initializing it as dict or json.
+4.  Object fields may be accessed and used in asserts. Object fields can not be assigned a value.
+5.	Indices in a DSList start at 1, not 0. Consequently, when iterating with a variable through a list we need, LIST_LEN = <length of list> + 1 for i in range(1, LIST_LEN) for a DSList list.
+6.  DSList is a fixed-size list, that has two mandatory attributes: "length" and "elem_type". No list comprehension allowed. For the field elem_type do not inline DSRecords, but use defined object types. But do not inline other DS types (e.g. DSInt(), DSFloat(), DSBool()). DSList does not support functions append() and extend().
+7.  Do not use Python's len(), max() or min() functions. Variables must not be of type "dict" or set. For loops with range() only use constants and integers.
+8.	Constraints are defined within a python function. Define input parameter. There must at least be one input parameter. All decision variables that are required for constraint formulation and are defined at root, must be given as input parameters. Constants can be accessed everywhere and do not have to be given as input parameter. Only returning names or tuple of names is supported.
+9.	After each function definition, immediately call that function with the correct input parameters.
+10.	Constraints are defined as asserts, like in a test. For constraint definition use equality, inequality and relation expressions. Make use of the python-built-in function any() and all() in combination with assert, if applicable.
+11.	Allowed operators for assert-constraints: all, any, >=, <=, ==, !=, <, >, or, and, not. No other operators are allowed. Use brackets for nested operations.
 
 OptDSL adheres to following EBNF grammar (extended backus-naur form):
 -------------------
@@ -62,13 +63,14 @@ AssignStmt := Target "=" Expr // covers x=â€¦, a[i]=â€¦, obj.f=â€¦
 Target := ID
     | Target "." ID
     | Target "[" Expr "]"
+    | "objective"
 AssertStmt := "assert" Expr
 ReturnStmt := "return" Expr
 
 Control flow
 ForStmt := "for" ID "in" Iterable ":" Block
 | "for" ID "," ID "in" "enumerate" "(" Iterable ")" ":" Block
-Iterable := ID | ListLiteral | "range" "(" Expr "," Expr ")"
+Iterable := ID | ListLiteral | "range" "(" RangeExpr "," RangeExpr ")"
 IfStmt := "if" Expr ":" Block ElseClause?
 ElseClause := "else" ":" Block
 
@@ -82,12 +84,17 @@ Expr := ID
 | "(" Expr ")" # to give priorities
 | Expr BinOp Expr
 | UnOp Expr
-| "objective" BinOp Expr
-| "objective" "==" Expr
+| "objective" ArithmeticBinOp Expr
+RangeExpr := UPPER_ID
+| INT
+| RangeExpr ArithmeticBinOp RangeExpr
 Literal := INT | FLOAT | "True" | "False"
-BinOp := "+" | "-" | "*" | "/" | "%"
-| "==" | "!=" | "<" | "<=" | ">" | ">="
-| "and" | "or"
+BinOp := ArithmeticBinOp
+| RelationBinOp
+| LogicalBinOp
+ArithmeticBinOp := "+" | "-" | "*" | "/" | "%"
+RelationBinOp := "==" | "!=" | "<" | "<=" | ">" | ">="
+LogicalBinOp := "and" | "or"
 UnOp := "-" | "not"
 
 Lexical / structural conventions
