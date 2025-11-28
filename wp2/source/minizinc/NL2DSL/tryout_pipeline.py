@@ -1,3 +1,4 @@
+from minizinc_solver import MiniZincSolver
 from structures_utils import *
 
 
@@ -153,6 +154,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     raw_definitions += f"\n# --- Auxiliary Variables ---\n{decomposed_code["auxiliary variables"]}"
                 if execution_error is None and node.name.lower() in decomposed_code:
                     raw_definitions += f"\n# --- {node.name.lower()} ---\n{decomposed_code[node.name.lower()]}"
+                    raw_definitions = raw_definitions.replace(f"# --- Incorrect Code ---\n", "")
                     if decomposed_code[node.name.lower()] in node.get_partial_formulation_up_until_now():
                         execution_error = f"Semantic error - result does not represent the given subproblem."
                 elif execution_error is None and "incorrect code" in decomposed_code:
@@ -226,8 +228,39 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                         raw_definitions)
             else:
+                # Safety check: check if DSInts are correctly initialized according to lb and ub
+                if node. level == 3 or node. level == 4 or node. level == 5:
+                    pattern = re.compile(
+                        r"""^\s*(?P<var>[A-Za-z_]\w*)\s*:\s*[A-Za-z_]\w*\s*\(
+                             (?:.*?(?:\blb\s*=\s*(?P<lb>-?\d+))?)?
+                             (?:.*?(?:\bub\s*=\s*(?P<ub>-?\d+))?)?
+                           \)\s*=\s*(?P<val>-?\d+)\s*$""",
+                        re.VERBOSE
+                    )
+                    for i, line in enumerate(raw_definitions.splitlines()):
+                        m = pattern.match(line)
+                        if not m:
+                            continue
+                        var = m.group('var')
+                        lb = m.group('lb')
+                        ub = m.group('ub')
+                        val = m.group('val')
+                        if (lb is not None and val < lb) or (ub is not None and val > ub):
+                            raw_definitions = remove_programming_environment(llm.send_prompt(
+                                system_prompt=(
+                                                  get_system_prompt(
+                                                      "json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt(
+                                                      "format_sp")) + "\n" + get_icl(),
+                                prompt=f"´´´ python\n" +
+                                       (f"from z3 import * \n" if not constants.USE_OPTDSL else "") +
+                                       f"\n# --- Incorrect Code --- \n{raw_definitions} ´´´\n\n" +
+                                       f"In line {i} a decision variable DSInt is not initialized incorrectly. Correct the initialization to lb <= {var} <= ub, {line}\n"
+                                ,max_tokens=(800 if node.level == 4 else 500)
+                            ), node=node)
+                            if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
+                                raw_definitions)
+                # Safety check: Prevent false-positive exec-run-through by sneakily never calling function
                 if node.level == 4:
-                    # Safety check: Prevent false-positive exec-run-through by sneakily never calling function
                     not_twice_appearing_func = check_functions_appear_twice(raw_definitions)
                     if len(not_twice_appearing_func) > 0:
                         if constants.DEBUG_MODE_ON: print(f"The following functions are defined but never called, {not_twice_appearing_func}")
@@ -889,6 +922,18 @@ def build_up_formulation_iteratively(llm):
 Total failed steps: {N_FAILED_GENERATIONS}
 **************************
 ----------------------------------------------------------------------------""")
+    # Get solution from solver
+    minizinc_model = MiniZincTranslator(constraints_node.get_partial_formulation_up_until_now()).unroll_translation()
+    solution = MiniZincSolver().solve_with_command_line_minizinc(minizinc_model)
+    if solution is None:
+        print("Solver failed or UNSAT: Invalid encoding yielded invalid solution.")
+    else:
+        if "objective" in solution:
+            print(f"Solution for objective is: {solution.objective[len(solution.objective)-1]}")
+        else:
+            print("Solver succeeded, but no objective is available.")
+
+
 
 if __name__ == "__main__":
     llm = constants.LLM
