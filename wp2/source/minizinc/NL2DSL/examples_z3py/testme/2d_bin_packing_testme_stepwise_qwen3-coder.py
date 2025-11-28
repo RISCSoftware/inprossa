@@ -84,131 +84,12 @@ else:
     print("Unsatisfiable")
 '''
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
+from minizinc_solver import MiniZincSolver
 
-code = """
-
-
-Item = DSRecord({
-    "width": DSInt(),
-    "height": DSInt()
-})
-
-BoxAssignment = DSRecord({
-    "box_id": DSInt(),
-    "x": DSInt(),
-    "y": DSInt()
-})
-
-
-
-# --- Constants ---
-BOX_HEIGHT : int = 6
-BOX_WIDTH : int = 10
-ITEM1 : Item = {"width": 4, "height": 3}
-ITEM2 : Item = {"width": 3, "height": 2}
-ITEM3 : Item = {"width": 5, "height": 3}
-ITEM4 : Item = {"width": 2, "height": 4}
-ITEM5 : Item = {"width": 3, "height": 3}
-ITEM6 : Item = {"width": 5, "height": 2}
-ITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
-N_ITEMS : int = 6
-nr_used_boxes: DSInt()
-item_box_assignment: DSList(length=N_ITEMS, elem_type=BoxAssignment)
-x_y_positions: DSList(length=N_ITEMS, elem_type=BoxAssignment)
-
-
-# -- Objective --
-
-
-def calculate_objective(item_box_assignment: DSList(length=N_ITEMS, elem_type=BoxAssignment)) -> DSInt():
-    max_box_id = 0
-    for i in range(1, N_ITEMS + 1):
-        box_id = item_box_assignment[i].box_id
-        if box_id > max_box_id:
-            max_box_id = box_id
-    return max_box_id
-
-temp_objective = calculate_objective(item_box_assignment)
-assert objective == temp_objective
-
-# -- Constraints --
-
-
-# --- Auxiliary Variables ---
-# Leave empty, if not required.
-
-# --- Constraints ---
-def place_items_in_bins(
-    items: DSList(length=6, elem_type=Item),
-    assignments: DSList(length=6, elem_type=BoxAssignment),
-    box_width: int,
-    box_height: int
-):
-    for i in range(1, 7):
-        item = items[i]
-        assignment = assignments[i]
-        
-        # Ensure item fits within the box dimensions
-        assert assignment.x + item.width <= box_width
-        assert assignment.y + item.height <= box_height
-        
-        # Ensure item is placed within positive coordinates
-        assert assignment.x >= 0
-        assert assignment.y >= 0
-
-place_items_in_bins(ITEMS, item_box_assignment, BOX_WIDTH, BOX_HEIGHT)
-
-# --- Auxiliary Variables ---
-# Leave empty, if not required.
-
-# --- Constraints ---
-def no_overlap(
-    assignments: DSList(length=6, elem_type=BoxAssignment),
-    items: DSList(length=6, elem_type=Item)
-):
-    for i in range(1, 7):
-        for j in range(i + 1, 7):
-            assignment_i = assignments[i]
-            assignment_j = assignments[j]
-            item_i = items[i]
-            item_j = items[j]
-            
-            # Check if both items are in the same box
-            if assignment_i.box_id == assignment_j.box_id:
-                # Check for non-overlapping on x-axis
-                x_overlap = not (
-                    assignment_i.x + item_i.width <= assignment_j.x or
-                    assignment_j.x + item_j.width <= assignment_i.x
-                )
-                
-                # Check for non-overlapping on y-axis
-                y_overlap = not (
-                    assignment_i.y + item_i.height <= assignment_j.y or
-                    assignment_j.y + item_j.height <= assignment_i.y
-                )
-                
-                # If both x and y overlap, then there is a conflict
-                assert not (x_overlap and y_overlap)
-
-no_overlap(item_box_assignment, ITEMS)
-
-# --- Auxiliary Variables ---
-# Leave empty, if not required.
-
-# --- Constraints ---
-def ensure_one_box_per_item(
-    assignments: DSList(length=6, elem_type=BoxAssignment)
-):
-    assignment : BoxAssignment
-    for i in range(1, 7):
-        assignment = assignments[i]
-        # Ensure each item is assigned to exactly one box (assuming box_id starts at 1)
-        assert assignment.box_id >= 1
-
-ensure_one_box_per_item(item_box_assignment)
-"""
 code = """
 # -- Objects --
+
+
 Item = DSRecord({
     "width": DSInt(lb=1, ub=10),
     "height": DSInt(lb=1, ub=6)
@@ -226,6 +107,7 @@ Position = DSRecord({
 })
 
 
+
 # --- Constants ---
 BOX_HEIGHT : int = 6
 BOX_WIDTH : int = 10
@@ -240,21 +122,22 @@ nr_used_boxes : DSInt(lb=1, ub=6)
 item_box_assignment : DSList(length=6, elem_type=BoxAssignment)
 x_y_positions : DSList(length=6, elem_type=Position)
 N_ITEMS : int = 6
-N_item_box_assignment : int = 6
-N_x_y_positions : int = 6
 
 
 # -- Objective --
+
+
+# --- objective ---
 def calculate_objective(assignments: DSList(length=6, elem_type=BoxAssignment)) -> DSInt(lb=1, ub=6):
-    max_box_id: DSInt(lb=1, ub=6) = 0
+    max_box_id : DSInt(lb=1, ub=6) = 1
     for i in range(1, N_ITEMS + 1):
         box_id : DSInt(lb=1, ub=6) = assignments[i].box_id
         if box_id > max_box_id:
             max_box_id = box_id
     return max_box_id
 
-temp_objective : DSInt(lb=1, ub=6) = calculate_objective(item_box_assignment)
-objective = temp_objective
+nr_used_boxes = calculate_objective(item_box_assignment)
+objective = nr_used_boxes
 
 # -- Constraints --
 
@@ -262,65 +145,244 @@ objective = temp_objective
 # --- Auxiliary Variables ---
 # Leave empty, if not required.
 # --- constraints ---
-def ensure_items_fit_in_assigned_boxes(
-    items: DSList(length=6, elem_type=Item),
-    positions: DSList(length=6, elem_type=Position),
-    assignments: DSList(length=6, elem_type=BoxAssignment)
-):
+def items_fit_exactly_in_boxes(items: DSList(length=6, elem_type=Item), assignments: DSList(length=6, elem_type=BoxAssignment)):
     for i in range(1, N_ITEMS + 1):
         item : Item = items[i]
-        pos : Position = positions[i]
-        assign : BoxAssignment = assignments[i]
-        
-        # Ensure item fits within box boundaries
-        assert pos.x + item.width <= BOX_WIDTH
-        assert pos.y + item.height <= BOX_HEIGHT
-        
-        # Ensure item is placed within the assigned box
-        assert assign.x == pos.x
-        assert assign.y == pos.y
+        assignment : BoxAssignment = assignments[i]
+        assert assignment.x + item.width <= BOX_WIDTH
+        assert assignment.y + item.height <= BOX_HEIGHT
 
-ensure_items_fit_in_assigned_boxes(ITEMS, x_y_positions, item_box_assignment)
+items_fit_exactly_in_boxes(ITEMS, item_box_assignment)
 
 # --- Auxiliary Variables ---
 # Leave empty, if not required.
 # --- constraints ---
-def ensure_no_overlap(
+def no_overlap(assignments: DSList(length=6, elem_type=BoxAssignment), items: DSList(length=6, elem_type=Item)):
+    for i in range(1, N_ITEMS + 1):
+        for j in range(i + 1, N_ITEMS + 1):
+            assignment_i : BoxAssignment = assignments[i]
+            assignment_j : BoxAssignment = assignments[j]
+            item_i : Item = items[i]
+            item_j : Item = items[j]
+            
+            # Check if items are in the same box
+            same_box : bool = assignment_i.box_id == assignment_j.box_id
+            
+            # Check for non-overlapping in x-axis
+            no_overlap_x : bool = (assignment_i.x + item_i.width <= assignment_j.x) or (assignment_j.x + item_j.width <= assignment_i.x)
+            
+            # Check for non-overlapping in y-axis
+            no_overlap_y : bool = (assignment_i.y + item_i.height <= assignment_j.y) or (assignment_j.y + item_j.height <= assignment_i.y)
+            
+            # If in the same box, ensure they don't overlap
+            assert not same_box or (no_overlap_x or no_overlap_y)
+
+no_overlap(item_box_assignment, ITEMS)
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def assign_item_positions(assignments: DSList(length=6, elem_type=BoxAssignment), positions: DSList(length=6, elem_type=Position)):
+    for i in range(1, N_ITEMS + 1):
+        assignment : BoxAssignment = assignments[i]
+        position : Position = positions[i]
+        assert position.x == assignment.x
+        assert position.y == assignment.y
+
+assign_item_positions(item_box_assignment, x_y_positions)"""
+'''
+minizinc solution:
+objective = [0, 0, 3, 3, 3, 3];
+nr_used_boxes = [3];
+item_box_assignment = [[(box_id: 2, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+x_y_positions = [[(x: 0, y: 0), (x: 0, y: 0), (x: 0, y: 2), (x: 8, y: 0), (x: 5, y: 0), (x: 0, y: 0)]];
+assignments__calculate_objective__1 = [[(box_id: 2, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+box_id__calculate_objective__1 = [2, 3, 1, 1, 1, 1];
+max_box_id__calculate_objective__1 = [1, 2, 3, 3, 3, 3, 3];
+objective__calculate_objective__1 = [0];
+assignment__items_fit_exactly_in_boxes__1 = [(box_id: 2, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)];
+assignments__items_fit_exactly_in_boxes__1 = [[(box_id: 2, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+item__items_fit_exactly_in_boxes__1 = [(height: 3, width: 4), (height: 2, width: 3), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5)];
+items__items_fit_exactly_in_boxes__1 = [[(height: 3, width: 4), (height: 2, width: 3), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5)]];
+objective__items_fit_exactly_in_boxes__1 = [0];
+assignment_i__no_overlap__1 = [(box_id: 2, x: 0, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0)];
+assignment_j__no_overlap__1 = [(box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0), (box_id: 1, x: 0, y: 0)];
+assignments__no_overlap__1 = [[(box_id: 2, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+item_i__no_overlap__1 = [(height: 3, width: 4), (height: 3, width: 4), (height: 3, width: 4), (height: 3, width: 4), (height: 3, width: 4), (height: 2, width: 3), (height: 2, width: 3), (height: 2, width: 3), (height: 2, width: 3), (height: 3, width: 5), (height: 3, width: 5), (height: 3, width: 5), (height: 4, width: 2), (height: 4, width: 2), (height: 3, width: 3)];
+item_j__no_overlap__1 = [(height: 2, width: 3), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5), (height: 3, width: 3), (height: 2, width: 5), (height: 2, width: 5)];
+items__no_overlap__1 = [[(height: 3, width: 4), (height: 2, width: 3), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5)]];
+no_overlap_x__no_overlap__1 = [false, false, true, true, false, false, true, true, false, true, true, false, true, true, true];
+no_overlap_y__no_overlap__1 = [false, false, false, false, false, true, false, false, false, false, false, true, false, false, false];
+objective__no_overlap__1 = [0];
+same_box__no_overlap__1 = [false, false, false, false, false, false, false, false, false, true, true, true, true, true, true];
+assignment__assign_item_positions__1 = [(box_id: 2, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)];
+assignments__assign_item_positions__1 = [[(box_id: 2, x: 0, y: 0), (box_id: 3, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+objective__assign_item_positions__1 = [0];
+position__assign_item_positions__1 = [(x: 0, y: 0), (x: 0, y: 0), (x: 0, y: 2), (x: 8, y: 0), (x: 5, y: 0), (x: 0, y: 0)];
+positions__assign_item_positions__1 = [[(x: 0, y: 0), (x: 0, y: 0), (x: 0, y: 2), (x: 8, y: 0), (x: 5, y: 0), (x: 0, y: 0)]];
+_objective = 3;
+----------
+objective = [0, 0, 2, 2, 2, 2];
+nr_used_boxes = [2];
+item_box_assignment = [[(box_id: 2, x: 3, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+x_y_positions = [[(x: 3, y: 0), (x: 0, y: 0), (x: 0, y: 2), (x: 8, y: 0), (x: 5, y: 0), (x: 0, y: 0)]];
+assignments__calculate_objective__1 = [[(box_id: 2, x: 3, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+box_id__calculate_objective__1 = [2, 2, 1, 1, 1, 1];
+max_box_id__calculate_objective__1 = [1, 2, 2, 2, 2, 2, 2];
+objective__calculate_objective__1 = [0];
+assignment__items_fit_exactly_in_boxes__1 = [(box_id: 2, x: 3, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)];
+assignments__items_fit_exactly_in_boxes__1 = [[(box_id: 2, x: 3, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+item__items_fit_exactly_in_boxes__1 = [(height: 3, width: 4), (height: 2, width: 3), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5)];
+items__items_fit_exactly_in_boxes__1 = [[(height: 3, width: 4), (height: 2, width: 3), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5)]];
+objective__items_fit_exactly_in_boxes__1 = [0];
+assignment_i__no_overlap__1 = [(box_id: 2, x: 3, y: 0), (box_id: 2, x: 3, y: 0), (box_id: 2, x: 3, y: 0), (box_id: 2, x: 3, y: 0), (box_id: 2, x: 3, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0)];
+assignment_j__no_overlap__1 = [(box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0), (box_id: 1, x: 0, y: 0)];
+assignments__no_overlap__1 = [[(box_id: 2, x: 3, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+item_i__no_overlap__1 = [(height: 3, width: 4), (height: 3, width: 4), (height: 3, width: 4), (height: 3, width: 4), (height: 3, width: 4), (height: 2, width: 3), (height: 2, width: 3), (height: 2, width: 3), (height: 2, width: 3), (height: 3, width: 5), (height: 3, width: 5), (height: 3, width: 5), (height: 4, width: 2), (height: 4, width: 2), (height: 3, width: 3)];
+item_j__no_overlap__1 = [(height: 2, width: 3), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5), (height: 3, width: 3), (height: 2, width: 5), (height: 2, width: 5)];
+items__no_overlap__1 = [[(height: 3, width: 4), (height: 2, width: 3), (height: 3, width: 5), (height: 4, width: 2), (height: 3, width: 3), (height: 2, width: 5)]];
+no_overlap_x__no_overlap__1 = [true, false, true, false, false, false, true, true, false, true, true, false, true, true, true];
+no_overlap_y__no_overlap__1 = [false, false, false, false, false, true, false, false, false, false, false, true, false, false, false];
+objective__no_overlap__1 = [0];
+same_box__no_overlap__1 = [true, false, false, false, false, false, false, false, false, true, true, true, true, true, true];
+assignment__assign_item_positions__1 = [(box_id: 2, x: 3, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)];
+assignments__assign_item_positions__1 = [[(box_id: 2, x: 3, y: 0), (box_id: 2, x: 0, y: 0), (box_id: 1, x: 0, y: 2), (box_id: 1, x: 8, y: 0), (box_id: 1, x: 5, y: 0), (box_id: 1, x: 0, y: 0)]];
+objective__assign_item_positions__1 = [0];
+position__assign_item_positions__1 = [(x: 3, y: 0), (x: 0, y: 0), (x: 0, y: 2), (x: 8, y: 0), (x: 5, y: 0), (x: 0, y: 0)];
+positions__assign_item_positions__1 = [[(x: 3, y: 0), (x: 0, y: 0), (x: 0, y: 2), (x: 8, y: 0), (x: 5, y: 0), (x: 0, y: 0)]];
+_objective = 2;
+'''
+code = """# -- Objects --
+
+
+Item = DSRecord({
+    "width": DSInt(lb=1, ub=10),
+    "height": DSInt(lb=1, ub=6)
+})
+
+ItemBoxAssignment = DSRecord({
+    "item_index": DSInt(lb=1, ub=6),
+    "box_index": DSInt(lb=1, ub=6)
+})
+
+XYPosition = DSRecord({
+    "item_index": DSInt(lb=1, ub=6),
+    "x": DSInt(lb=0, ub=10),
+    "y": DSInt(lb=0, ub=6)
+})
+
+
+
+# --- Constants ---
+BOX_HEIGHT : int = 6
+BOX_WIDTH : int = 10
+ITEM1 : Item = {"width": 4, "height": 3}
+ITEM2 : Item = {"width": 3, "height": 2}
+ITEM3 : Item = {"width": 5, "height": 3}
+ITEM4 : Item = {"width": 2, "height": 4}
+ITEM5 : Item = {"width": 3, "height": 3}
+ITEM6 : Item = {"width": 5, "height": 2}
+ITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
+nr_used_boxes : DSInt(lb=1, ub=6)
+item_box_assignment : DSList(length=6, elem_type=ItemBoxAssignment)
+x_y_positions : DSList(length=6, elem_type=XYPosition)
+N_ITEMS : int = 6
+N_item_box_assignment : int = 6
+N_x_y_positions : int = 6
+
+
+# -- Objective --
+
+
+# --- objective ---
+def calculate_objective(assignment: DSList(length=6, elem_type=ItemBoxAssignment)) -> int:
+    max_box_index = 0
+    for i in range(1, N_ITEMS + 1):
+        box_idx : int = assignment[i].box_index
+        if box_idx > max_box_index:
+            max_box_index = box_idx
+    return max_box_index
+
+calculated_objective_value = calculate_objective(item_box_assignment)
+objective = calculated_objective_value
+
+# -- Constraints --
+
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def items_fit_exactly_in_boxes(
     items: DSList(length=6, elem_type=Item),
-    positions: DSList(length=6, elem_type=Position),
-    assignments: DSList(length=6, elem_type=BoxAssignment)
+    assignment: DSList(length=6, elem_type=ItemBoxAssignment),
+    positions: DSList(length=6, elem_type=XYPosition),
+    nr_boxes: DSInt(lb=1, ub=6)
+):
+    # Ensure items don't exceed box dimensions
+    for i in range(1, N_ITEMS + 1):
+        item : Item = items[i]
+        pos : XYPosition = positions[i]
+        assign : ItemBoxAssignment = assignment[i]
+        
+        # Item must fit within box boundaries
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+        
+        # Assignment index consistency
+        assert assign.item_index == i
+
+items_fit_exactly_in_boxes(ITEMS, item_box_assignment, x_y_positions, nr_used_boxes)
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def no_overlap(
+    items: DSList(length=6, elem_type=Item),
+    assignment: DSList(length=6, elem_type=ItemBoxAssignment),
+    positions: DSList(length=6, elem_type=XYPosition)
 ):
     for i in range(1, N_ITEMS + 1):
         for j in range(i + 1, N_ITEMS + 1):
             # Only check overlap if both items are in the same box
-            if assignments[i].box_id == assignments[j].box_id:
+            if assignment[i].box_index == assignment[j].box_index:
+                pos_i : XYPosition = positions[i]
+                pos_j : XYPosition = positions[j]
                 item_i : Item = items[i]
-                pos_i : Position = positions[i]
                 item_j : Item = items[j]
-                pos_j : Position = positions[j]
-                
-                # Check if rectangles overlap
-                assert pos_i.x >= pos_j.x + item_j.width or pos_j.x >= pos_i.x + item_i.width or \
-                       pos_i.y >= pos_j.y + item_j.height or pos_j.y >= pos_i.y + item_i.height
 
-ensure_no_overlap(ITEMS, x_y_positions, item_box_assignment)
+                # Check for non-overlapping conditions
+                # If any of these is true, there's no overlap
+                # We assert that at least one of these non-overlapping conditions holds
+                assert (
+                    pos_i.x + item_i.width <= pos_j.x or
+                    pos_j.x + item_j.width <= pos_i.x or
+                    pos_i.y + item_i.height <= pos_j.y or
+                    pos_j.y + item_j.height <= pos_i.y
+                )
+
+no_overlap(ITEMS, item_box_assignment, x_y_positions)
 
 # --- Auxiliary Variables ---
 # Leave empty, if not required.
 # --- constraints ---
-def ensure_item_in_one_box(
-    assignments: DSList(length=6, elem_type=BoxAssignment)
+def each_item_in_exactly_one_box(
+    assignment: DSList(length=6, elem_type=ItemBoxAssignment),
+    nr_boxes: DSInt(lb=1, ub=6)
 ):
     for i in range(1, N_ITEMS + 1):
-        box_id : DSInt(lb=1, ub=6) = assignments[i].box_id
-        assert box_id >= 1
-        assert box_id <= 6
+        assign : ItemBoxAssignment = assignment[i]
+        # Each item must be assigned to exactly one box
+        assert assign.box_index >= 1
+        assert assign.box_index <= nr_boxes
+        # Assignment index consistency
+        assert assign.item_index == i
 
-ensure_item_in_one_box(item_box_assignment)
+each_item_in_exactly_one_box(item_box_assignment, nr_used_boxes)"""
 
-assert nr_used_boxes == temp_objective"""
 translator = MiniZincTranslator(code)
 model = translator.unroll_translation()
 print("\n")
 print(model)
 print("\n")
+solver = MiniZincSolver()
+solver.solve_with_command_line_minizinc(model)
