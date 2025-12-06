@@ -1,7 +1,9 @@
 import subprocess
 import sys
 
-for i in range(20):  # run 5 times
+for i in range(20, 21):
     print(f"""----------------------------------------------------------------------------
     Starting run {i}: """)
-    subprocess.run([sys.executable, "tryout_pipeline.py"])
+    proc = subprocess.Popen([sys.executable, "tryout_pipeline.py"])
+    proc.wait()
+    proc.terminate()

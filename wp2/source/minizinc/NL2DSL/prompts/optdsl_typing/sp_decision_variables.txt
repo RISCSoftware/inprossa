@@ -1,0 +1,31 @@
+Identify all auxiliary variables and decision variables given object types and pack them into json, do nothing else. Expected outputs or results are decision variables.
+Following requirements must be fulfilled:
+    1. Utilize the given object types! Apply them correctly! Do not use Python Class Constructors! When initializing a variable with an object type, see Initialization of DSRecord - Option 1 and Initialization of DSRecord - Option 2 for reference.
+    2. If in the \"sub problem definition\" there can one or more decision variables be found that are not defined yet, then define them.
+    3. Do not define multiple semantically identical instances of the same variable.
+    4. All decision variables must be defined.
+    5. Above each variable put a python comment with a description of that variable.
+    6. There must be one or more decision variables.
+    7. Do not return given object type definitions.
+    8. The result must not contain any constraints.
+    9. Do not return any constants.
+    10. The resulting code must be minimal but most of all, semantically correct in respect to the description.
+    11. Do not return "NTD".
+    12. Keep to the in-context-learning example.
+    13. Do not use functions or variables from any other packages and do not import any.
+    14. The result must be a Json or text, but code only.
+    15. Use the description of OptDSL in the system prompt.
+
+Return your answer in the following format:
+[{
+     "description":<description>,
+     "variable_name":<variable_name>,
+     "type":<variable_type>,
+     "initialization":<declaration>
+}]
+The structure must fulfill following requirements:
+    1. <description> is a placeholder for a compact, concise description of the variable.
+    2. <variable_name> is the unique variable identifier described in description, that will later be used for creating decision variables and constraints. Constants naming convention: capital letters only.
+    3. <declaration> is the OptDSL variable declaration code block of the variable in variable field, no initialization. Must be valid OptDSL code.
+    4. <variable_type> is the type of the variable. The variable type is either an object, any OptDSL type (e.g. DSInt, DSFloat, DSBool) or an inlined list as typing.Annotated declaration. It can be found in the initialization after the double colon as the type of the variable.
+    5. No additional properties allowed.
