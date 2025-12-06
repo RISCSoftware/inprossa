@@ -3,16 +3,18 @@ from structures_utils import *
 
 
 LOOP_OF_DOOM_MAX_IT = 4
+LOOP_OF_DOOM_UNSAT_MAX_IT = 2
 MAX_NR_RESETS = 3
 N_FAILED_GENERATIONS = 0
 FAILED_GENERATIONS = [] # problem desc. indices of failed generation steps
 def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_description: str = None):
     for _ in range(MAX_NR_RESETS):
+        nr_unsat_error = 0
         for i in range(LOOP_OF_DOOM_MAX_IT):
             # Incorrect return format for USE_ALL_AT_ONCE_AND_EXTRACT (# Objects # Constants ...)
             if raw_definitions is None:
                 if constants.DEBUG_MODE_ON: print("Incorrect return format for USE_ALL_AT_ONCE_AND_EXTRACT")
-                raw_definitions = remove_programming_environment(llm.send_prompt(
+                raw_definitions = initial_clean_up(llm.send_prompt(
                     system_prompt=f"{get_system_prompt("format_sp")}\n{get_icl()}",
                     prompt="""Incorrect result format, it must be:
 ´´´python
@@ -44,7 +46,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                            # Sub problem description
                            d2_bin_packing_formalized_problem_description[5],
                     max_tokens=(800 if node.level == 4 else 500)
-                ), node=node)
+                ))
             # Extract correct partition of full formulation
             elif constants.USE_ALL_AT_ONCE_AND_EXTRACT:
                 match node.level:
@@ -65,7 +67,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                 continue
                             if USE_OPTDSL and "DSList" in raw_definitions["constraints"]:
                                 if constants.DEBUG_MODE_ON: print(f"Function parameters must not have type DSList. But must be of a declared type.")
-                                raw_definitions = remove_programming_environment(llm.send_prompt(
+                                raw_definitions = initial_clean_up(llm.send_prompt(
                                     system_prompt=get_system_prompt("format_all_sp") + "\n" + get_icl(),
                                     prompt=f"""´´´python 
                                                 {node.get_partial_formulation_up_until_now()}
@@ -76,7 +78,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                            f"Error: function parameters must not have type DSList. But must be of a previously declared type or have a direct type declaration with DSList(length=<length>,elem_type=<type>)." +
                                            "Return the full encoding with constants, decision variables, constraints, objective.",
                                     max_tokens=2000
-                                ), node=node)
+                                ))
                                 raw_definitions = decompose_full_definition(raw_definitions)
                                 continue
                             raw_definitions = raw_definitions["decision variables"]
@@ -92,7 +94,11 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                         raw_definitions = raw_definitions["constraints"]
                 raw_definitions = node.prepend_section_title(raw_definitions)
 
-            if "NTD" in raw_definitions or "Constraints FormatError" in raw_definitions or "Constraints/Objective FormatError" in raw_definitions:
+            # Send prompt anew, no feedback loop
+            if ("NTD" in raw_definitions or
+                    "Constraints FormatError" in raw_definitions or
+                    "Constraints/Objective FormatError" in raw_definitions or
+                    nr_unsat_error == LOOP_OF_DOOM_UNSAT_MAX_IT):
                 if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: {raw_definitions} encountered")
                 raw_definitions = create_and_send_prompt_for_strictly_iterative_approach(node, subproblem_description=subproblem_description)
                 continue
@@ -101,7 +107,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
             if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
                 if not is_valid_json(raw_definitions):
                     if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: Constants not valid json.")
-                    raw_definitions = remove_programming_environment(llm.send_prompt(
+                    raw_definitions = initial_clean_up(llm.send_prompt(
                         system_prompt=get_system_prompt("sp"),
                         prompt=raw_definitions + "\n\n" +
                             """The code above is either not json or incorrect json. Correct it to compilable json code.
@@ -123,7 +129,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     continue
                 # Check if there are any constants/decision variables, there must be at least 1 each
                 if len([item for item in json.loads(raw_definitions) if (item.get("variable_name", "").isupper() if len(node.variables_and_constants) == 0 else item.get("variable_name", "").islower())]) == 0:
-                    raw_definitions = remove_programming_environment(llm.send_prompt(
+                    raw_definitions = initial_clean_up(llm.send_prompt(
                         system_prompt=get_system_prompt("sp"),
                         prompt="""The code answer you gave, did not contain any variables of the required type {constants, decision variables}. Create them now.
                                Return you answer in the following format:
@@ -143,10 +149,13 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     ))
                     continue
 
+            # Clean up code (convertion typing - OptDSL)
+            raw_definitions = initial_clean_up(raw_definitions)
+
             # Extracted objective and constraints + auxiliary vars
             execution_error = None
             if node.level == 3 or node.level == 4:
-                decomposed_code = decompose_full_definition(remove_programming_environment(raw_definitions))
+                decomposed_code = decompose_full_definition(raw_definitions)
                 raw_definitions = ""
                 if decomposed_code is None:
                     execution_error = "Constraints/Objective FormatError"
@@ -155,10 +164,12 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                 if execution_error is None and node.name.lower() in decomposed_code:
                     raw_definitions += f"\n# --- {node.name.lower()} ---\n{decomposed_code[node.name.lower()]}"
                     raw_definitions = raw_definitions.replace(f"# --- Incorrect Code ---\n", "")
+                    # Generated code already in partial formulation (duplicate)
                     if decomposed_code[node.name.lower()] in node.get_partial_formulation_up_until_now():
                         execution_error = f"Semantic error - result does not represent the given subproblem."
                 elif execution_error is None and "incorrect code" in decomposed_code:
                     raw_definitions += f"\n# --- {node.name.lower()} ---\n{decomposed_code["incorrect code"]}"
+                    # Generated code already in partial formulation (duplicate)
                     if decomposed_code["incorrect code"] in node.get_partial_formulation_up_until_now():
                         execution_error = f"Semantic error - result does not represent the given subproblem."
                 else:
@@ -172,20 +183,19 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                 if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level} not executable: {execution_error}\n")
                 if ("NTD" in raw_definitions or
                         "Constraints FormatError" in raw_definitions or
-                        "Constraints/Objective FormatError" in raw_definitions or
-                        "Semantic error" in execution_error):
+                        "Constraints/Objective FormatError" in raw_definitions):
                     if constants.DEBUG_MODE_ON: print(
                         f"Checking node created for level {node.level}: {raw_definitions} encountered")
                     raw_definitions = create_and_send_prompt_for_strictly_iterative_approach(node,
                                                                                              subproblem_description=subproblem_description)
                     continue
-                elif "Syntaxerror" in execution_error:
-                    raw_definitions = remove_programming_environment(llm.send_prompt(
+                elif "Syntax Error" in execution_error:
+                    raw_definitions = initial_clean_up(llm.send_prompt(
                         system_prompt=(get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + "\n" + get_icl(),
                         prompt=f"´´´python\n" +
                                (f"from z3 import * \n" if not constants.USE_OPTDSL else "") +
                                f"\n# --- Incorrect Code --- \n{raw_definitions}´´´\n\n" +
-                               f"The section above contains an error: {execution_error}" +
+                               f"The section above contains a syntax error: {execution_error}" +
                                "Given this error message, improve the mentioned lines of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not return \nNTD\n."
                                """Return your answer in the format
                                ´´´python
@@ -194,37 +204,56 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
                                """,
                         max_tokens=(1000 if node.level == 4 else 800)
-                    ), node=node)
+                    ))
                     if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
                         raw_definitions = decompose_full_definition(raw_definitions)
-                elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
-                    raw_definitions = remove_programming_environment(llm.send_prompt(
-                        system_prompt=( get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")) + get_icl(),
-                        prompt=f"´´´\njson\n{raw_definitions}´´´\n\n" +
-                               f"The Json code above contains an error: {execution_error}" +
-                               "Given this error message, improve the mentioned lines of the \"initialization\" and/or the \"variable_type\" field according to the error message, nothing else."
-                               "Return the given json code with the corrections. Do not copy the in-context-training example. Do not return \"NTD\".",
-                        max_tokens=800
-                    ), node=node)
-                    if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
-                        raw_definitions)
-                else:
-                    raw_definitions = remove_programming_environment(llm.send_prompt(
-                        system_prompt=( get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + get_icl(),
+                elif "Semantic Error" in execution_error:
+                    raw_definitions = initial_clean_up(llm.send_prompt(
+                        system_prompt=(get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + "\n" + get_icl(),
                         prompt=f"´´´python\n" +
                                (f"from z3 import * \n" if not constants.USE_OPTDSL else "") +
-                               f"{node.get_partial_formulation_up_until_now()}\n"
                                f"\n# --- Incorrect Code --- \n{raw_definitions}´´´\n\n" +
-                               f"The section above contains an error: {execution_error}" +
-                               "Given this error message, improve the mentioned lines of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not return \nNTD\n."
+                               f"The section above contains a semantic error: {execution_error}" +
+                               "Given this error message, improve the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else." +
+                               f"The semantics of the section \"# --- Incorrect Code ---\" must be in line with the following description:\n{raw_definitions if subproblem_description is None else subproblem_description}" +
                                """Return your answer in the format
                                ´´´python
                                # --- Incorrect Code ---
                                <corrected code>
                                ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
                                """,
+                        max_tokens=(1000 if node.level == 4 else 800)
+                    ))
+                    if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
+                        raw_definitions = decompose_full_definition(raw_definitions)
+                    nr_unsat_error += 1
+                elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
+                    raw_definitions = initial_clean_up(llm.send_prompt(
+                        system_prompt=( get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")) + get_icl(),
+                        prompt=f"´´´\njson\n{raw_definitions}´´´\n\n" +
+                               f"The Json code above contains an error: {execution_error}" +
+                               "Given this error message, improve the mentioned lines of the \"initialization\" and/or the \"variable_type\" field according to the error message, nothing else."
+                               "Return the given json code with the corrections. Do not copy the in-context-training example. Do not return \"NTD\".",
+                        max_tokens=800
+                    ))
+                    if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
+                        raw_definitions)
+                else:
+                    raw_definitions = initial_clean_up(llm.send_prompt(
+                        system_prompt=( get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + get_icl(),
+                        prompt=f"´´´python\n" +
+                               (f"from z3 import * \n" if not constants.USE_OPTDSL else "") +
+                               f"{node.get_partial_formulation_up_until_now()}\n"
+                               f"\n# --- Incorrect Code --- \n{raw_definitions}´´´\n\n" +
+                               f"The section above contains an error: {execution_error}" +
+                               "Given this error message, improve the mentioned lines of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not return NTD."
+                               "Return your answer in the format\n" +
+                               "´´´python\n" +
+                               "# --- Incorrect Code ---\n" +
+                               "<corrected code>\n" +
+                               "´´´, where <corrected code> all lines underneath \"# --- Incorrect Code ---\" with the corrections.",
                         max_tokens=(1500 if node.level>=4 else 800)
-                    ), node=node)
+                    ))
                     if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                         raw_definitions)
             else:
@@ -246,7 +275,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                         ub = m.group('ub')
                         val = m.group('val')
                         if (lb is not None and val < lb) or (ub is not None and val > ub):
-                            raw_definitions = remove_programming_environment(llm.send_prompt(
+                            raw_definitions = initial_clean_up(llm.send_prompt(
                                 system_prompt=(
                                                   get_system_prompt(
                                                       "json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt(
@@ -256,7 +285,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                        f"\n# --- Incorrect Code --- \n{raw_definitions} ´´´\n\n" +
                                        f"In line {i} a decision variable DSInt is not initialized incorrectly. Correct the initialization to lb <= {var} <= ub, {line}\n"
                                 ,max_tokens=(800 if node.level == 4 else 500)
-                            ), node=node)
+                            ))
                             if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                                 raw_definitions)
                 # Safety check: Prevent false-positive exec-run-through by sneakily never calling function
@@ -264,7 +293,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     not_twice_appearing_func = check_functions_appear_twice(raw_definitions)
                     if len(not_twice_appearing_func) > 0:
                         if constants.DEBUG_MODE_ON: print(f"The following functions are defined but never called, {not_twice_appearing_func}")
-                        raw_definitions = remove_programming_environment(llm.send_prompt(
+                        raw_definitions = initial_clean_up(llm.send_prompt(
                             system_prompt=(
                                 get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")) + "\n" + get_icl(),
                             prompt=f"´´´ python\n" +
@@ -273,7 +302,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                    f"The following functions are defined but never called, {not_twice_appearing_func}" +
                                    "Add the call of the mentioned functions to the code with the respective parameters. Do not return exactly the given code snippet.",
                             max_tokens=(800 if node.level == 4 else 500)
-                        ), node=node)
+                        ))
                         if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                             raw_definitions)
                         continue
@@ -583,16 +612,29 @@ def create_and_send_prompt_for_all_at_once_and_extract_approach(node: TreeNode, 
     return decompose_full_definition(response)
 
 # Sends correct partial formulations generated by LLM, in the hopes the feedback creates a learning effect
-def send_feedback(node: TreeNode):
-    if DEBUG_MODE_ON: print("Sending feedback for a partial job well done.")
-    _ = llm.send_prompt(
-        prompt=
-        f"""The following is an example for a syntactically valid {"full" if node.level == 4 else "partial"} formulation of a optimization problem in OptDSL.
-Learn from it the syntax of OptDSL, not its semantics. Apply the syntax knowledge in the future.
-´´´ python
-{node.get_partial_formulation_up_until_now()}
-´´´""",
-        max_tokens=1)
+def send_feedback(node: TreeNode, syntax: bool = True):
+    if syntax:
+        if DEBUG_MODE_ON: print("Sending feedback for a partial job well done.")
+        _ = llm.send_prompt(
+            prompt=
+            f"""The following is an example for a syntactically valid {"full" if node.level == 4 else "partial"} formulation of a optimization problem in OptDSL.
+        Learn from it the syntax of OptDSL, not its semantics. Apply the syntax knowledge in the future.
+        ´´´ python
+        {node.get_partial_formulation_up_until_now()}
+        ´´´""",
+            max_tokens=1)
+    # semantics
+    else:
+        if DEBUG_MODE_ON: print("Sending feedback for a partial job well done.")
+        _ = llm.send_prompt(
+            prompt=
+            f"""The following is an example for a, maybe not optimal, but syntactically valid {"full" if node.level == 4 else "partial"} OptDSL formulation of the optimization problem:
+        {d2_bin_packing_formalized_problem_description}           
+        Learn from it its syntax and semantics of OptDSL. Apply the syntax knowledge in the future. Provide diverse encodings in the future.
+        ´´´ python
+        {node.get_partial_formulation_up_until_now()}
+        ´´´""",
+            max_tokens=1)
 
 def get_icl():
     if USE_OPTDSL:
@@ -728,7 +770,6 @@ You are an optimization problem formulation expert that encodes specific parts o
 d2_bin_packing_formalized_problem_description = [
     # Input
     """
-    Input
     ´´´ json
     {
         "BOX_HEIGHT": 6,
@@ -770,23 +811,25 @@ d2_bin_packing_formalized_problem_description = [
     """,
     # Output
     """
-    Output:
     ´´´json
     [
         {
             "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+            "is_objective": true,
             "mandatory_variable_name": "nr_used_boxes",
             "suggested_shape": "integer"
         },
         {
             "description": "Which item is assigned to which box.",
+            "is_objective": false,
             "mandatory_variable_name": "item_box_assignment",
-            "suggested_shape": "array of objects or multiple arrays"
+            "suggested_shape": "array"
         },
         {
             "description": "Position x and y of each item within box",
+            "is_objective": false,
             "mandatory_variable_name": "x_y_positions",
-            "suggested_shape": "array of objects or multiple arrays"
+            "suggested_shape": "array"
         }
     ]
     ´´´
@@ -797,8 +840,8 @@ d2_bin_packing_formalized_problem_description = [
     This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
-        - the assigment of each item into a box and 
-        - the position (x and y) of each item within its assigned box.
+        - the assigment of each item into a box 
+        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.
     """,
     # Subproblem description - part 1
     """Sub problem definition - items that go in the bin - part 1:
@@ -836,11 +879,11 @@ def build_up_formulation_iteratively(llm):
     root_node.set_content(response)
     '''
     # Query object types, data types
-    datatypes_node = ObjectsNode(root_node)
+    datatypes_node = ObjectsNode(parent=root_node)
     if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
         response = create_and_send_prompt_for_all_at_once_and_extract_approach(datatypes_node)
     else:
-        response = remove_programming_environment(create_and_send_prompt_for_strictly_iterative_approach(datatypes_node))
+        response = create_and_send_prompt_for_strictly_iterative_approach(datatypes_node)
     response = enter_variable_definitions_feedback_loop(datatypes_node, response)
     datatypes_node.set_content(response)
     #send_feedback(datatypes_node)
@@ -857,7 +900,7 @@ def build_up_formulation_iteratively(llm):
         if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             response = create_and_send_prompt_for_all_at_once_and_extract_approach(constants_variables_node)
         else:
-            response = remove_programming_environment(create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node))
+            response = create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node)
         response = enter_variable_definitions_feedback_loop(constants_variables_node, response)
         successfully_added = constants_variables_node.set_constants(response)
         i += 1
@@ -874,7 +917,7 @@ def build_up_formulation_iteratively(llm):
         if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             response = create_and_send_prompt_for_all_at_once_and_extract_approach(constants_variables_node)
         else:
-            response = remove_programming_environment(create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node))
+            response = create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node)
         response = enter_variable_definitions_feedback_loop(constants_variables_node, response)
         successfully_added = constants_variables_node.set_variables(response)
         i += 1
@@ -890,7 +933,7 @@ def build_up_formulation_iteratively(llm):
     if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
         response = create_and_send_prompt_for_all_at_once_and_extract_approach(obj_function_node)
     else:
-        response = remove_programming_environment(create_and_send_prompt_for_strictly_iterative_approach(obj_function_node))
+        response = create_and_send_prompt_for_strictly_iterative_approach(obj_function_node)
     response = enter_variable_definitions_feedback_loop(obj_function_node, response)
     obj_function_node.set_content(response)
     send_feedback(obj_function_node)
@@ -903,11 +946,11 @@ def build_up_formulation_iteratively(llm):
 
     # Query constraints
     constraints_node = ConstraintsNode(parent=obj_function_node) #if USE_OPTDSL else ConstraintsNode(parent=obj_function_node)
-    for i in range(3,6):
+    for i in range(3,len(d2_bin_packing_formalized_problem_description)):
         if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             response = create_and_send_prompt_for_all_at_once_and_extract_approach(constraints_node, subproblem_description=d2_bin_packing_formalized_problem_description[i])
         else:
-            response = remove_programming_environment(create_and_send_prompt_for_strictly_iterative_approach(constraints_node, subproblem_description=d2_bin_packing_formalized_problem_description[i]))
+            response = create_and_send_prompt_for_strictly_iterative_approach(constraints_node, subproblem_description=d2_bin_packing_formalized_problem_description[i])
         response = enter_variable_definitions_feedback_loop(constraints_node, response, subproblem_description=d2_bin_packing_formalized_problem_description[i])
         constraints_node.set_content(response)
         print(f"*** Constraints: {response}\n")
@@ -915,24 +958,18 @@ def build_up_formulation_iteratively(llm):
             N_FAILED_GENERATIONS += 1
             print("Creating constraints failed!")
         else:
-            send_feedback(constraints_node)
+            if len(d2_bin_packing_formalized_problem_description)-1 == i: send_feedback(constraints_node)
     if constants.DEBUG_MODE_ON: print(f"""Full formulation:
 {constraints_node.get_partial_formulation_up_until_now()}
 **************************
 Total failed steps: {N_FAILED_GENERATIONS}
+Objective value: {constraints_node.objective_val}
+Solve time (sec): {constraints_node.solve_time}
+Solution model: {constraints_node.solution_model}
 **************************
 ----------------------------------------------------------------------------""")
-    # Get solution from solver
-    minizinc_model = MiniZincTranslator(constraints_node.get_partial_formulation_up_until_now()).unroll_translation()
-    solution = MiniZincSolver().solve_with_command_line_minizinc(minizinc_model)
-    if solution is None:
-        print("Solver failed or UNSAT: Invalid encoding yielded invalid solution.")
-    else:
-        if "objective" in solution:
-            print(f"Solution for objective is: {solution.objective[len(solution.objective)-1]}")
-        else:
-            print("Solver succeeded, but no objective is available.")
-
+    if N_FAILED_GENERATIONS == 0 and constraints_node.objective_val is not None:
+        send_feedback(constraints_node, syntax=False)
 
 
 if __name__ == "__main__":

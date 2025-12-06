@@ -1,15 +1,15 @@
 OptDSL is a python-like (pythonic) high-level constraint modelling language for formulizing optimization problems diversely, efficient and optimally in a programmatical fashion. Eventually, OptDSL is translated into Minizinc. 10. If you encountered a similar problem before, provide a diverse formulation while being syntactically valid.
-1.	OptDSL is python where constants have python native primitive types int, float. For strings do not use str, but float. Decision variables must be of primitive type DSInt(), DSFloat() or DSBool(), or of complex type DSList(length=<length>, elem_type=<type>) or DSRecord.
-2.  For DSInt set sensible lower (lb) and upper bound (ub) for DSInt(lb=<>,ub=<>). If you initialize DSInt-variables, set them at least lower bound and at most with upper bound.
+1.	OptDSL is python where constants have python native primitive types int, float. For strings do not use str, but float. Decision variables must be of primitive type with typing.Annotated with pydantic.Field of type int, float, int or object type, or of complex type list as typing.Annotated or DSRecord.
+2.  Set sensible lower (ge) and upper bound (le) for the integer or float pydantic.Field within typing.Annotated. If you initialize typing.Annotated of type float and integer, set them at least lower bound and at most with upper bound.
 3.  Object type creation with DSRecord and initialization of a variable with an object type must be two separate steps. For object type creation and variable initialization, each attribute needs to be explicitly set manually with accessing each attribute or initializing it as dict or json.
 4.  Object fields may be accessed and used in asserts. Object fields can not be assigned a value.
-5.  All variables must define a type, <variable_name> : <type>. Possible types are e.g. int, float, list or object types.
-6.	Indices in a DSList start at 1, not 0. Consequently, when iterating with a variable through a list we need, LIST_LEN = <length of list> + 1 for i in range(1, LIST_LEN) for a DSList list.
-7.  DSList is a fixed-size list, that has two mandatory attributes: "length" and "elem_type". No list comprehension allowed. For the field elem_type do not inline DSRecords, but use defined object types. But do not inline other DS types (e.g. DSInt(), DSFloat(), DSBool()). DSList does not support functions append() and extend().
-8.  Do not use Python's len(), max() or min() functions. Do not use continue and break statements. Variables must not be of type "dict" or set. For loops with range() only use constants and integers.
+5.  All variables must define a correct type, <variable_name> : <type>. Possible types are int, float, object types or typing.Annotated with pydantic.Field.
+6.	Indices in a list start at 1, not 0. Consequently, when iterating with a variable through a list we need, LIST_LEN = <length of list> + 1 for i in range(1, LIST_LEN) for a list in typing.Annotated.
+7.  List as typing.Annotated is a fixed-size list, in the form of "list_x : Annotated[list[<element_type>], Len(<list_length>, <list_length>)]". No list comprehension allowed. For the field elem_type do not inline DSRecords, but use defined object types. But do not inline other DS types (e.g. Annotated[<type>, Field(<optional_properties>)]). List as typing.Annotated does not support functions append() and extend().
+8.  Do not use python's len(), max() or min() functions. Do not use continue and break statements. Variables must not be of type "dict" or set. For loops with range() only use constants and integers.
 9.	Constraints are defined within a python function. Define input parameter. There must at least be one input parameter. Define all decision variables and auxiliary variables, that are required for constraint formulation and are defined at root, as input parameters. Constants (variables in capital letters) can be accessed everywhere and do not have to be given as input parameter. Only returning names or tuple of names is supported.
 10.	After each function definition, immediately call that function with the correct input parameters.
-11.	Constraints are defined as asserts, like in a test. For constraint definition use equality, inequality and relation expressions. Make use of the python-built-in function any() and all() in combination with assert. Equality, inequality and relation expressions may only be used within assert, not outside.
+11.	Constraints are defined as asserts, like in a test. For constraint definition use equality, inequality and relation expressions. Make use of the python-built-in function any() and all() in combination with assert. Equality, inequality and relation expressions may only be used within assert. Equality, inequality and relation expressions can not be assigned to a temporary variable.
 12.	Allowed operators for assert-constraints: all, any, >=, <=, ==, !=, <, >, or, and, not. No other operators are allowed. Use brackets for nested operations.
 
 OptDSL adheres to following EBNF grammar (extended backus-naur form):
@@ -28,12 +28,13 @@ FunArgs(First :: Rest) := # [ID1, ID2, ID3, ...,  IDn] := ID1 :: [ID2, ID3, ...,
 NamedFunArgs(First :: Rest) :=
     First "=" Expr, NamedFunArgs(Rest) |
     NamedFunArgs(Rest)
-DSIntType := "DSInt" "(" FunArgs(["lb", "ub"]) ")"
-DSFloatType := "DSFloat" "(" FunArgs(["lb", "ub"]) ")"
-DSBoolType := "DSBool" "(" ")"
-DSListType := "DSList" "(" FunArgs(["length", "elem_type"]) ")"
+DSIntType := "Annotated" "["int, "Field" "(" "strict=True," "ge=" INT "," "le=" INT ")" "]"
+DSFloatType := "Annotated" "["float, "Field" "(" "strict=True," "ge=" INT "," "le=" INT ")" "]"
+DSBoolType := "Annotated[bool, Field()]"
+DSListType := "Annotated" "[" "list" "[" ListTypeRef "]," "Len" "(" INT "," INT ")" "]"
 DSRecordType := "DSRecord" "(" "{" RecordField ("," RecordField)* "}" ")"
 RecordField := STR ":" TypeRef
+ListTypeRef := "int" | "float" | "bool" | ID
 TypeRef := "int" | "float" | "bool" | ID | DSTypeExp
 
 # Constants
@@ -44,7 +45,7 @@ RecordLiteral := "{" RecordFieldLiteral ("," RecordFieldLiteral)* "}"
 RecordFieldLiteral := STR ":" ConstExpr
 
 # Variables and assignments
-VarDecl := ID ":" TypeRef ("=" Expr)?
+VarDecl := ID ":" (TypeRef | "Annotated" "[" ID "," "Field" "(" ")" "]") ("=" Expr)
 
 # Functions
 FunDef := "def" ID "(" ParamList? ")" ":" Block
@@ -83,7 +84,7 @@ Expr := ID
 | RecordLiteral
 | FunCall
 | "(" Expr ")" # to give priorities
-| Expr ArithmeticBinOp  Expr
+| Expr ArithmeticBinOp Expr
 | UnOp Expr
 | "objective" ArithmeticBinOp Expr
 ComparisionExpr := Expr RelationBinOp Expr
@@ -178,8 +179,8 @@ Expected result:
 ´´´ python
 # --- Objects ---
 Item = DSRecord({
-    "value": int,
-    "weight": DSInt()
+    "value": Annotated[int, Field(strict=True, ge=1,le=80)],
+    "weight": Annotated[int, Field(strict=True, ge=1,le=100)]
 })
 
 # --- Constants ---
@@ -197,17 +198,15 @@ ITEM5.weight = 12
 ITEM6 : Item
 ITEM6.value = 25
 ITEM6.weight = 5
-Items = DSList(length = 6, elem_type = Item)
-ITEMS : Items = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
+ITEMS : Annotated[list[Item], Len(6, 6)] = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
 N_ITEMS : int = 6
 MAX_WEIGHT : int = 110
 
 # --- Decision Variables ---
-ChosenItemsArray = DSList(6, DSBool())
-chosen_items : ChosenItemsArray
+chosen_items : Annotated[list[bool], Len(6, 6)]
 
 # --- Constraints ---
-def pack_item(items: Items, chosen_items: DSList(6, DSBool())):
+def pack_item(items: Items, chosen_items: Annotated[list[bool], Len(6, 6)]:
     accumulated_weight = 0
     objective: int = 0
     for i in range(1, N_ITEMS + 1):
