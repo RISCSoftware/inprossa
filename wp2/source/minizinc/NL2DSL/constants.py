@@ -2,10 +2,17 @@
 from LLM_Client.AwsClient import AwsClient
 
 USE_OPTDSL = True
+USE_TYPING = False
+USE_PYDANTIC = True
 #CHOSEN_LANGUAGE = "z3py"
 CHOSEN_LANGUAGE = "optdsl"
 DEBUG_MODE_ON = True
-SYSTEM_PROMPT_FOLDER = "prompts/optdsl/" if USE_OPTDSL else "prompts/z3py/"
+SYSTEM_PROMPT_FOLDER = ("prompts/optdsl_typing/" if USE_OPTDSL else "prompts/z3py_typing/") \
+    if USE_TYPING else \
+    (("prompts/optdsl_pydantic/" if USE_OPTDSL else "prompts/z3py_pydantic/")
+     if USE_PYDANTIC
+     else ("prompts/optdsl/" if USE_OPTDSL else "prompts/z3py/"))
+
 USE_INVOKE_MODEL = True
 USE_ALL_AT_ONCE_AND_EXTRACT = False
 

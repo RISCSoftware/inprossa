@@ -1,4 +1,4 @@
-Extend the given OptDSL python code snippet, with diverse, efficient constraints exactly according to the given subproblem as OptDSL python code. Define nothing else. The constraints are given as \"sub problem definitions\"."
+Extend the given OptDSL python code snippet, with diverse constraints exactly according to the given subproblem as OptDSL python code. Define nothing else. The constraints are given as \"sub problem definitions\"."
     Your priority is to define diverse and optimal assert-constraints which must exactly represent the subproblem description, nothing else. Commenting the code is secondary.
     1. Use given datatypes, constants and decision variables in the given python snippet, nothing else.
     2. The result must be minimal and semantically concise to the given subproblem part.
@@ -13,7 +13,7 @@ Extend the given OptDSL python code snippet, with diverse, efficient constraints
     11. Do not come up with any examples and do not use placeholders.
     12. The result must be compilable python OptDSL code.
     13. Use the EBNF grammar of OptDSL in the system prompt.
-    14. Make sure the parameter list types in the function definition adhere to the EBNF grammar in the system prompt (e.g.  def some_func (x_list: DSList(length=20, elem_type: DSInt()), constant: float, dec_var: DSInt()): ).
+    14. Make sure the parameter list types in the function definition adhere to the EBNF grammar in the system prompt (e.g.  def some_func (constant: float, dec_var: DSInt()): ).
     15. Do not use the function len(), instead define the required array length manually with a hard coded correct number.
     16. Encode exactly the subproblem with sensible upper and lower bounds, nothing else. If you initialize a DSInt-variable, then set it at least to lower bound and at most to upper bound.
 

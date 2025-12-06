@@ -46,123 +46,128 @@ class AwsClient:
         response = ""
 
         # Make the API call
-        if constants.USE_INVOKE_MODEL:
-            if "amazon" in self.model_id:
+        try:
+            if constants.USE_INVOKE_MODEL:
+                if "amazon" in self.model_id:
+                    if system_prompt is None:
+                        chunked_response = self.client.invoke_model(
+                            modelId=self.model_id,
+                            body=json.dumps({
+                                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                                "inferenceConfig": {
+                                    'maxTokens': max_tokens,
+                                    'temperature': self.temperature
+                                }
+                            })
+                        )
+                    else:
+                        chunked_response = self.client.invoke_model(
+                            modelId=self.model_id,
+                            body=json.dumps({
+                                "system" : [{"text": system_prompt}],
+                                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                                "inferenceConfig": {
+                                    'maxTokens': max_tokens,
+                                    'temperature': self.temperature}
+                            })
+                        )
+                elif "anthropic" in self.model_id:
+                    messages = []
+                    messages.append({"role": "user", "content": [{"type": "text", "text": prompt}]})
+                    if system_prompt is not None:
+                        chunked_response = self.client.invoke_model(
+                            modelId=self.model_id,
+                            accept="application/json",
+                            contentType="application/json",
+                            body=json.dumps({
+                                "anthropic_version": "bedrock-2023-05-31",
+                                "system": system_prompt,
+                                "messages": messages,
+                                "max_tokens": max_tokens,
+                                "temperature": self.temperature
+                            })
+                        )
+                    else:
+                        chunked_response = self.client.invoke_model(
+                            modelId=self.model_id,
+                            accept="application/json",
+                            contentType="application/json",
+                            body=json.dumps({
+                                "anthropic_version": "bedrock-2023-05-31",
+                                "messages": messages,
+                                "max_tokens": max_tokens,
+                                "temperature": self.temperature
+                            })
+                        )
+                elif "llama" in self.model_id:
+                    # Embed the prompt in Llama 3's instruction format.
+                    formatted_prompt = "<|begin_of_text|>"
+                    if system_prompt is not None:
+                        formatted_prompt = formatted_prompt + """
+                        <|start_header_id|>system<|end_header_id|>
+                        {system_prompt}
+                        <|eot_id|>"""
+                    formatted_prompt = formatted_prompt + f"""
+                    <|start_header_id|>user<|end_header_id|>
+                    {prompt}
+                    <|eot_id|>
+                    <|start_header_id|>assistant<|end_header_id|>
+                    """
+
+                    chunked_response = self.client.invoke_model(
+                        modelId=self.model_id,
+                        body=json.dumps({
+                            "prompt": formatted_prompt,
+                            "max_gen_len": 512,
+                            "temperature": 0.5,
+                        })
+                    )
+                else:
+                    # gpt-oss, mistral-pixtral, qwen-coder
+                    #if self.model_id == "eu.mistral.pixtral-large-2502-v1:0":
+                    #    self.tracker.record_attempt()
+                    messages = []
+                    if system_prompt is not None:
+                        messages.append({"role": "system", "content": system_prompt})
+                    messages.append({"role": "user", "content": prompt})
+                    chunked_response = self.client.invoke_model(
+                        modelId=self.model_id,
+                        body=json.dumps({
+                            "messages": messages,
+                            "max_tokens": max_tokens,
+                            "temperature": self.temperature
+                        })
+                    )
+
+                if chunked_response.get("body"):
+                    response = ""
+                    for event in chunked_response.get("body"):
+                        response += event.decode()
+                response = json.loads(response)
+            else:
                 if system_prompt is None:
-                    chunked_response = self.client.invoke_model(
+                    response = self.client.converse(
                         modelId=self.model_id,
-                        body=json.dumps({
-                            "messages": [{"role": "user", "content": [{"text": prompt}]}],
-                            "inferenceConfig": {
-                                'maxTokens': max_tokens,
-                                'temperature': self.temperature
-                            }
-                        })
+                        messages=[{"role": "user", "content": [{"text": prompt}]}],
+                        inferenceConfig={
+                            'maxTokens': max_tokens,
+                            'temperature': self.temperature
+                        }
                     )
                 else:
-                    chunked_response = self.client.invoke_model(
+                    response = self.client.converse(
                         modelId=self.model_id,
-                        body=json.dumps({
-                            "system" : [{"text": system_prompt}],
-                            "messages": [{"role": "user", "content": [{"text": prompt}]}],
-                            "inferenceConfig": {
-                                'maxTokens': max_tokens,
-                                'temperature': self.temperature}
-                        })
+                        messages=[{"role": "user", "content": [{"text": prompt}]}],
+                        system=[{"text": system_prompt}],
+                        inferenceConfig={
+                            'maxTokens': max_tokens,
+                            'temperature': self.temperature
+                        }
                     )
-            elif "anthropic" in self.model_id:
-                messages = []
-                messages.append({"role": "user", "content": [{"type": "text", "text": prompt}]})
-                if system_prompt is not None:
-                    chunked_response = self.client.invoke_model(
-                        modelId=self.model_id,
-                        accept="application/json",
-                        contentType="application/json",
-                        body=json.dumps({
-                            "anthropic_version": "bedrock-2023-05-31",
-                            "system": system_prompt,
-                            "messages": messages,
-                            "max_tokens": max_tokens,
-                            "temperature": self.temperature
-                        })
-                    )
-                else:
-                    chunked_response = self.client.invoke_model(
-                        modelId=self.model_id,
-                        accept="application/json",
-                        contentType="application/json",
-                        body=json.dumps({
-                            "anthropic_version": "bedrock-2023-05-31",
-                            "messages": messages,
-                            "max_tokens": max_tokens,
-                            "temperature": self.temperature
-                        })
-                    )
-            elif "llama" in self.model_id:
-                # Embed the prompt in Llama 3's instruction format.
-                formatted_prompt = "<|begin_of_text|>"
-                if system_prompt is not None:
-                    formatted_prompt = formatted_prompt + """
-                    <|start_header_id|>system<|end_header_id|>
-                    {system_prompt}
-                    <|eot_id|>"""
-                formatted_prompt = formatted_prompt + f"""
-                <|start_header_id|>user<|end_header_id|>
-                {prompt}
-                <|eot_id|>
-                <|start_header_id|>assistant<|end_header_id|>
-                """
+        except Exception as e:
+            print(e)
+            return ""
 
-                chunked_response = self.client.invoke_model(
-                    modelId=self.model_id,
-                    body=json.dumps({
-                        "prompt": formatted_prompt,
-                        "max_gen_len": 512,
-                        "temperature": 0.5,
-                    })
-                )
-            else:
-                # gpt-oss, mistral-pixtral, qwen-coder
-                #if self.model_id == "eu.mistral.pixtral-large-2502-v1:0":
-                #    self.tracker.record_attempt()
-                messages = []
-                if system_prompt is not None:
-                    messages.append({"role": "system", "content": system_prompt})
-                messages.append({"role": "user", "content": prompt})
-                chunked_response = self.client.invoke_model(
-                    modelId=self.model_id,
-                    body=json.dumps({
-                        "messages": messages,
-                        "max_tokens": max_tokens,
-                        "temperature": self.temperature
-                    })
-                )
-
-            if chunked_response.get("body"):
-                response = ""
-                for event in chunked_response.get("body"):
-                    response += event.decode()
-            response = json.loads(response)
-        else:
-            if system_prompt is None:
-                response = self.client.converse(
-                    modelId=self.model_id,
-                    messages=[{"role": "user", "content": [{"text": prompt}]}],
-                    inferenceConfig={
-                        'maxTokens': max_tokens,
-                        'temperature': self.temperature
-                    }
-                )
-            else:
-                response = self.client.converse(
-                    modelId=self.model_id,
-                    messages=[{"role": "user", "content": [{"text": prompt}]}],
-                    system=[{"text": system_prompt}],
-                    inferenceConfig={
-                        'maxTokens': max_tokens,
-                        'temperature': self.temperature
-                    }
-                )
 
         # Print the response
         if constants.DEBUG_MODE_ON:

@@ -120,7 +120,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
             execution_error = check_executability(node, raw_definitions)
             if execution_error is not None:
                 if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level} not executable: Error: {execution_error}\n")
-                if "Syntaxerror" in execution_error:
+                if "Syntax Error" in execution_error:
                     raw_definitions = remove_programming_environment(llm.send_prompt(
                         system_prompt=(get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + "\n" + get_icl(),
                         prompt=f"´´´from z3 import * \n{raw_definitions}´´´\n\n" +
@@ -464,7 +464,7 @@ def create_and_send_prompt_for_all_at_once_and_extract_approach(node: TreeNode, 
 
 def get_icl():
     if USE_OPTDSL:
-        return load_sp_file("ICL_example_3.txt")
+        return load_sp_file("ICL_example.txt")
     else:
         return load_sp_file("ICL_datatypes.txt")
 
