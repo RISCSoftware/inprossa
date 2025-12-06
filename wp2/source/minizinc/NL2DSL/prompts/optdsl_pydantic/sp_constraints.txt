@@ -1,5 +1,5 @@
-Extend the given OptDSL python code snippet, with diverse, efficient constraints exactly according to the given subproblem as OptDSL python code. Define nothing else. The constraints are given as \"sub problem definitions\"."
-    Your priority is to define diverse and optimal assert-constraints which must exactly represent the subproblem description, nothing else. Commenting the code is secondary.
+Extend the given OptDSL python code snippet, with diverse, optimal constraints exactly according to the given subproblem as OptDSL python code. Define nothing else. The constraints are given as \"sub problem definitions\"."
+    Your priority is to define diverse, efficient and optimal assert-constraints which must exactly represent the subproblem description, nothing else. Commenting the code is secondary.
     1. Use given datatypes, constants and decision variables in the given python snippet, nothing else.
     2. The result must be minimal and semantically concise to the given subproblem part.
     3. Do not repeat already present definitions. Do not add redundancies.
@@ -8,14 +8,14 @@ Extend the given OptDSL python code snippet, with diverse, efficient constraints
     6. Do not introduce auxiliary variables which are used only once. You are encouraged to inline calculations that occur only once.
     7. After each function definition, immediately call that function with the correct input parameters.
     8. Each defined function must be called exactly once. The respective function must have a name that reflects the subproblem it encodes.
-    9. Do not use any import or functions or variables from other packages.
+    9. Do not use any import or functions or variables from other packages, except for pydantic and typing.
     10. Make sure to close brackets appropriately.
     11. Do not come up with any examples and do not use placeholders.
     12. The result must be compilable python OptDSL code.
-    13. Use the EBNF grammar of OptDSL in the system prompt.
-    14. Make sure the parameter list types in the function definition adhere to the EBNF grammar in the system prompt (e.g.  def some_func (x_list: DSList(length=20, elem_type: DSInt()), constant: float, dec_var: DSInt()): ).
+    13. Use the EBNF grammar of OptDSL in the system prompt. Equality, inequality and relation expressions can not be assigned to a temporary variable.
+    14. Make sure the parameter list types in the function definition adhere to the EBNF grammar in the system prompt (e.g.  def some_func (constant: float, dec_var: Annotated[<type>, Field(<optional_properties>)]): ).
     15. Do not use the function len(), instead define the required array length manually with a hard coded correct number.
-    16. Encode exactly the subproblem with sensible upper and lower bounds, nothing else. If you initialize a DSInt-variable, then set it at least to lower bound and at most to upper bound.
+    16. Encode exactly the subproblem with sensible upper and lower bounds, nothing else. If you initialize a typing.Annotated with pydantic.Field of type int or float, then set it at least to lower bound and at most to upper bound.
 
 Return you answer in the following format:
 ´´´python

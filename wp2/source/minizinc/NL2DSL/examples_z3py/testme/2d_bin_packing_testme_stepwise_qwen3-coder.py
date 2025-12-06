@@ -255,18 +255,14 @@ _objective = 2;
 code = """# -- Objects --
 
 
+# --- Objects ---
 Item = DSRecord({
     "width": DSInt(lb=1, ub=10),
     "height": DSInt(lb=1, ub=6)
 })
 
-ItemBoxAssignment = DSRecord({
-    "item_index": DSInt(lb=1, ub=6),
-    "box_index": DSInt(lb=1, ub=6)
-})
-
-XYPosition = DSRecord({
-    "item_index": DSInt(lb=1, ub=6),
+BoxAssignment = DSRecord({
+    "box_id": DSInt(lb=1, ub=6),
     "x": DSInt(lb=0, ub=10),
     "y": DSInt(lb=0, ub=6)
 })
@@ -283,25 +279,26 @@ ITEM4 : Item = {"width": 2, "height": 4}
 ITEM5 : Item = {"width": 3, "height": 3}
 ITEM6 : Item = {"width": 5, "height": 2}
 ITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
-nr_used_boxes : DSInt(lb=1, ub=6)
-item_box_assignment : DSList(length=6, elem_type=ItemBoxAssignment)
-x_y_positions : DSList(length=6, elem_type=XYPosition)
 N_ITEMS : int = 6
-N_item_box_assignment : int = 6
-N_x_y_positions : int = 6
+nr_used_boxes : DSInt(lb=1, ub=6)
+item_box_assignment : DSList(length=6, elem_type=BoxAssignment)
+x_y_positions : DSList(length=6, elem_type=BoxAssignment)
+N_ITEMS : int = 6
+N_ITEM_BOX_ASSIGNMENT : int = 6
+N_X_Y_POSITIONS : int = 6
 
 
 # -- Objective --
 
 
 # --- objective ---
-def calculate_objective(assignment: DSList(length=6, elem_type=ItemBoxAssignment)) -> int:
-    max_box_index = 0
+def calculate_objective(assignments: DSList(length=6, elem_type=BoxAssignment)) -> int:
+    max_box_id = 0
     for i in range(1, N_ITEMS + 1):
-        box_idx : int = assignment[i].box_index
-        if box_idx > max_box_index:
-            max_box_index = box_idx
-    return max_box_index
+        box_id = assignments[i].box_id
+        if box_id > max_box_id:
+            max_box_id = box_id
+    return max_box_id
 
 calculated_objective_value = calculate_objective(item_box_assignment)
 objective = calculated_objective_value
@@ -312,72 +309,65 @@ objective = calculated_objective_value
 # --- Auxiliary Variables ---
 # Leave empty, if not required.
 # --- constraints ---
-def items_fit_exactly_in_boxes(
+def fit_items_in_box(
     items: DSList(length=6, elem_type=Item),
-    assignment: DSList(length=6, elem_type=ItemBoxAssignment),
-    positions: DSList(length=6, elem_type=XYPosition),
-    nr_boxes: DSInt(lb=1, ub=6)
+    assignments: DSList(length=6, elem_type=BoxAssignment),
+    box_width: int,
+    box_height: int
 ):
-    # Ensure items don't exceed box dimensions
     for i in range(1, N_ITEMS + 1):
-        item : Item = items[i]
-        pos : XYPosition = positions[i]
-        assign : ItemBoxAssignment = assignment[i]
-        
-        # Item must fit within box boundaries
-        assert pos.x + item.width <= BOX_WIDTH
-        assert pos.y + item.height <= BOX_HEIGHT
-        
-        # Assignment index consistency
-        assert assign.item_index == i
+        item: Item = items[i]
+        assignment: BoxAssignment = assignments[i]
+        assert assignment.x + item.width <= box_width
+        assert assignment.y + item.height <= box_height
 
-items_fit_exactly_in_boxes(ITEMS, item_box_assignment, x_y_positions, nr_used_boxes)
+fit_items_in_box(ITEMS, item_box_assignment, BOX_WIDTH, BOX_HEIGHT)
 
 # --- Auxiliary Variables ---
-# Leave empty, if not required.
+asdf : DSList(length=36, elem_type=DSBool())
 # --- constraints ---
 def no_overlap(
+    assignments: DSList(length=6, elem_type=BoxAssignment),
     items: DSList(length=6, elem_type=Item),
-    assignment: DSList(length=6, elem_type=ItemBoxAssignment),
-    positions: DSList(length=6, elem_type=XYPosition)
+    no_overlap_check: DSList(length=36, elem_type=DSBool())
 ):
+    index: int = 1
     for i in range(1, N_ITEMS + 1):
-        for j in range(i + 1, N_ITEMS + 1):
-            # Only check overlap if both items are in the same box
-            if assignment[i].box_index == assignment[j].box_index:
-                pos_i : XYPosition = positions[i]
-                pos_j : XYPosition = positions[j]
-                item_i : Item = items[i]
-                item_j : Item = items[j]
+        item_i: Item = items[i]
+        assign_i: BoxAssignment = assignments[i]
+        for j in range(1, N_ITEMS + 1):
+            item_j: Item = items[j]
+            assign_j: BoxAssignment = assignments[j]
 
-                # Check for non-overlapping conditions
-                # If any of these is true, there's no overlap
-                # We assert that at least one of these non-overlapping conditions holds
-                assert (
-                    pos_i.x + item_i.width <= pos_j.x or
-                    pos_j.x + item_j.width <= pos_i.x or
-                    pos_i.y + item_i.height <= pos_j.y or
-                    pos_j.y + item_j.height <= pos_i.y
-                )
+            # Skip if same item
+            if i == j:
+                no_overlap_check[index] = True
+            else:
+                # Check if in same box
+                if assign_i.box_id != assign_j.box_id:
+                    no_overlap_check[index] = True
+                else:
+                    # Check for non-overlapping intervals on x-axis
+                    x_overlap: bool = not (
+                        assign_i.x + item_i.width <= assign_j.x or
+                        assign_j.x + item_j.width <= assign_i.x
+                    )
 
-no_overlap(ITEMS, item_box_assignment, x_y_positions)
+                    # Check for non-overlapping intervals on y-axis
+                    y_overlap: bool = not (
+                        assign_i.y + item_i.height <= assign_j.y or
+                        assign_j.y + item_j.height <= assign_i.y
+                    )
 
-# --- Auxiliary Variables ---
-# Leave empty, if not required.
-# --- constraints ---
-def each_item_in_exactly_one_box(
-    assignment: DSList(length=6, elem_type=ItemBoxAssignment),
-    nr_boxes: DSInt(lb=1, ub=6)
-):
-    for i in range(1, N_ITEMS + 1):
-        assign : ItemBoxAssignment = assignment[i]
-        # Each item must be assigned to exactly one box
-        assert assign.box_index >= 1
-        assert assign.box_index <= nr_boxes
-        # Assignment index consistency
-        assert assign.item_index == i
+                    # Overlap occurs if both axes overlap
+                    overlap: bool = x_overlap and y_overlap
+                    no_overlap_check[index] = not overlap
+            index = index + 1
 
-each_item_in_exactly_one_box(item_box_assignment, nr_used_boxes)"""
+    assert all(no_overlap_check[i] for i in range(1, 36 + 1))
+
+no_overlap(item_box_assignment, ITEMS, asdf)
+"""
 
 translator = MiniZincTranslator(code)
 model = translator.unroll_translation()
