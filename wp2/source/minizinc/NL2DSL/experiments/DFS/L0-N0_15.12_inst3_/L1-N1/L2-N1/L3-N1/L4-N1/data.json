@@ -1,0 +1,994 @@
+{
+    "id": "L0-N0|L1-N1|L2-N1|L3-N1|L4-N1",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "# -- Objects --\n\n\n\n\n# --- Objects ---\nItem = DSRecord({\n    \"width\": DSInt(lb=1, ub=9),\n    \"height\": DSInt(lb=1, ub=5)\n})\n\nBoxAssignment = DSRecord({\n    \"box_id\": DSInt(lb=1, ub=9),\n    \"x\": DSInt(lb=0, ub=12),\n    \"y\": DSInt(lb=0, ub=5)\n})\n\n\n\n\n# --- Constants ---\nBOX_HEIGHT : int = 5\nBOX_WIDTH : int = 12\nITEM1 : Item = {\"width\": 4, \"height\": 3}\nITEM2 : Item = {\"width\": 1, \"height\": 2}\nITEM3 : Item = {\"width\": 5, \"height\": 3}\nITEM4 : Item = {\"width\": 4, \"height\": 2}\nITEM5 : Item = {\"width\": 1, \"height\": 3}\nITEM6 : Item = {\"width\": 5, \"height\": 2}\nITEM7 : Item = {\"width\": 9, \"height\": 5}\nITEM8 : Item = {\"width\": 3, \"height\": 5}\nITEM9 : Item = {\"width\": 5, \"height\": 1}\nITEMS : DSList(length=9, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6, ITEM7, ITEM8, ITEM9]\nN_ITEMS : int = 9\nnr_used_boxes : DSInt(lb=1, ub=9)\nitem_box_assignments : DSList(length=9, elem_type=BoxAssignment)\nx_y_positions : DSList(length=9, elem_type=BoxAssignment)\nN_ITEMS : int = 9\nN_ITEM_BOX_ASSIGNMENTS : int = 9\nN_X_Y_POSITIONS : int = 9\n\n\n# -- Objective --\n\n\n# --- objective ---\ndef calculate_objective(assignments: DSList(length=9, elem_type=BoxAssignment)) -> int:\n    max_box_id = 0\n    for i in range(1, N_ITEMS + 1):\n        box_id = assignments[i].box_id\n        if box_id > max_box_id:\n            max_box_id = box_id\n    return max_box_id\n\ncalculated_objective_value = calculate_objective(item_box_assignments)\nobjective = calculated_objective_value\n\n# -- Constraints --\n\n\n# --- constraints ---\ndef ensure_items_fit_in_boxes(\n    items: DSList(length=9, elem_type=Item),\n    assignments: DSList(length=9, elem_type=BoxAssignment),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        assignment : BoxAssignment = assignments[i]\n        assert assignment.x + item.width <= box_width\n        assert assignment.y + item.height <= box_height\n\nensure_items_fit_in_boxes(ITEMS, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\n# --- constraints ---\ndef prevent_item_overlap(\n    items: DSList(length=9, elem_type=Item),\n    assignments: DSList(length=9, elem_type=BoxAssignment)\n):\n    for i in range(1, N_ITEMS + 1):\n        item_i : Item = items[i]\n        pos_i : BoxAssignment = assignments[i]\n        for j in range(i + 1, N_ITEMS + 1):\n            item_j : Item = items[j]\n            pos_j : BoxAssignment = assignments[j]\n            # Check if items are in the same box\n            if pos_i.box_id == pos_j.box_id:\n                # Check for non-overlapping on x-axis\n                x_not_overlapping : bool = pos_i.x + item_i.width <= pos_j.x or pos_j.x + item_j.width <= pos_i.x\n                # Check for non-overlapping on y-axis\n                y_not_overlapping : bool = pos_i.y + item_i.height <= pos_j.y or pos_j.y + item_j.height <= pos_i.y\n                # Assert that at least one axis does not overlap\n                assert x_not_overlapping or y_not_overlapping\n\nprevent_item_overlap(ITEMS, item_box_assignments)\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef ensure_item_box_assignment_validity(\n    assignments: DSList(length=9, elem_type=BoxAssignment),\n    nr_used_boxes: DSInt(lb=1, ub=9)\n):\n    for i in range(1, N_ITEMS + 1):\n        assignment : BoxAssignment = assignments[i]\n        assert assignment.box_id >= 1\n        assert assignment.box_id <= nr_used_boxes\n\nensure_item_box_assignment_validity(item_box_assignments, nr_used_boxes)\n\nnr_used_boxes = objective",
+    "objective_val": 9,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            9,
+            9,
+            9,
+            9
+        ],
+        "nr_used_boxes": [
+            9
+        ],
+        "item_box_assignments": [
+            [
+                {
+                    "box_id": 9,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 8,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 7,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 6,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            9
+        ],
+        "assignments__calculate_objective__1": [
+            [
+                {
+                    "box_id": 9,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 8,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 7,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 6,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "box_id__calculate_objective__1": [
+            9,
+            8,
+            7,
+            6,
+            5,
+            4,
+            3,
+            2,
+            1
+        ],
+        "max_box_id__calculate_objective__1": [
+            0,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9,
+            9
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ],
+        "assignment__ensure_items_fit_in_boxes__1": [
+            {
+                "box_id": 9,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 8,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 7,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 6,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__ensure_items_fit_in_boxes__1": [
+            [
+                {
+                    "box_id": 9,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 8,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 7,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 6,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "box_height__ensure_items_fit_in_boxes__1": [
+            5
+        ],
+        "box_width__ensure_items_fit_in_boxes__1": [
+            12
+        ],
+        "item__ensure_items_fit_in_boxes__1": [
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 1
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 1
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 9
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            }
+        ],
+        "items__ensure_items_fit_in_boxes__1": [
+            [
+                {
+                    "height": 3,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 1
+                },
+                {
+                    "height": 3,
+                    "width": 5
+                },
+                {
+                    "height": 2,
+                    "width": 4
+                },
+                {
+                    "height": 3,
+                    "width": 1
+                },
+                {
+                    "height": 2,
+                    "width": 5
+                },
+                {
+                    "height": 5,
+                    "width": 9
+                },
+                {
+                    "height": 5,
+                    "width": 3
+                },
+                {
+                    "height": 1,
+                    "width": 5
+                }
+            ]
+        ],
+        "objective__ensure_items_fit_in_boxes__1": [
+            0
+        ],
+        "assignments__prevent_item_overlap__1": [
+            [
+                {
+                    "box_id": 9,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 8,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 7,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 6,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "item_i__prevent_item_overlap__1": [
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 1
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 1
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 9
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            }
+        ],
+        "item_j__prevent_item_overlap__1": [
+            {
+                "height": 2,
+                "width": 1
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 1
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 9
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 1
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 9
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 1
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 9
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            },
+            {
+                "height": 3,
+                "width": 1
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 9
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 9
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 9
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            },
+            {
+                "height": 5,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 5
+            },
+            {
+                "height": 1,
+                "width": 5
+            }
+        ],
+        "items__prevent_item_overlap__1": [
+            [
+                {
+                    "height": 3,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 1
+                },
+                {
+                    "height": 3,
+                    "width": 5
+                },
+                {
+                    "height": 2,
+                    "width": 4
+                },
+                {
+                    "height": 3,
+                    "width": 1
+                },
+                {
+                    "height": 2,
+                    "width": 5
+                },
+                {
+                    "height": 5,
+                    "width": 9
+                },
+                {
+                    "height": 5,
+                    "width": 3
+                },
+                {
+                    "height": 1,
+                    "width": 5
+                }
+            ]
+        ],
+        "objective__prevent_item_overlap__1": [
+            0
+        ],
+        "pos_i__prevent_item_overlap__1": [
+            {
+                "box_id": 9,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 8,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 7,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 6,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "pos_j__prevent_item_overlap__1": [
+            {
+                "box_id": 8,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 7,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 6,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 7,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 6,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 6,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "x_not_overlapping__prevent_item_overlap__1": [
+            false
+        ],
+        "y_not_overlapping__prevent_item_overlap__1": [
+            false
+        ],
+        "assignment__ensure_item_box_assignment_validity__1": [
+            {
+                "box_id": 9,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 8,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 7,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 6,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__ensure_item_box_assignment_validity__1": [
+            [
+                {
+                    "box_id": 9,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 8,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 7,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 6,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "nr_used_boxes__ensure_item_box_assignment_validity__1": [
+            9
+        ],
+        "objective__ensure_item_box_assignment_validity__1": [
+            0
+        ]
+    },
+    "solve_time": 59.8403,
+    "final_evaluation_result": "Successfully validated solution."
+}

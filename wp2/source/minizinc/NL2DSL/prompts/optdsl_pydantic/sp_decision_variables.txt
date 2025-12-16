@@ -27,5 +27,5 @@ The structure must fulfill following requirements:
     1. <description> is a placeholder for a compact, concise description of the variable.
     2. <variable_name> is the unique variable identifier described in description, that will later be used for creating decision variables and constraints. Constants naming convention: capital letters only.
     3. <declaration> is the OptDSL variable declaration code block of the variable in variable field, no initialization. Must be valid OptDSL code.
-    4. <variable_type> is the type of the variable. The variable type is either an object, any typing.Annotated with pydantic.Field of type int, float, list or object type, or an inlined list as typing.Annotated declaration. It can be found in the initialization after the double colon as the type of the variable.
+    4. <variable_type> is the type of the variable. The variable type is either an object, any typing.Annotated with pydantic.Field of type int, float, list of type typing.Annotated, nested typing.Annotated or object type, or an inlined list as typing.Annotated declaration. It can be found in the initialization after the double colon as the type of the variable.
     5. No additional properties allowed.

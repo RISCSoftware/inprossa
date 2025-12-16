@@ -1,0 +1,677 @@
+{
+    "id": "L0-N0|L1-N1|L2-N0|L3-N0|L4-N1",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "# -- Objects --\n\n\n\n\n# --- Objects ---\nItem = DSRecord({\n    \"width\": DSInt(lb=1, ub=10),\n    \"height\": DSInt(lb=1, ub=6)\n})\n\nPosition = DSRecord({\n    \"x\": DSInt(lb=0, ub=10),\n    \"y\": DSInt(lb=0, ub=6)\n})\n\n\n\n\n# --- Constants ---\nBOX_HEIGHT : int = 6\nBOX_WIDTH : int = 10\nITEM1 : Item = {\"width\": 4, \"height\": 3}\nITEM2 : Item = {\"width\": 3, \"height\": 2}\nITEM3 : Item = {\"width\": 5, \"height\": 3}\nITEM4 : Item = {\"width\": 2, \"height\": 4}\nITEM5 : Item = {\"width\": 3, \"height\": 3}\nITEM6 : Item = {\"width\": 5, \"height\": 2}\nITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]\nnr_used_boxes : DSInt(lb=0, ub=6)\nitem_box_assignments : DSList(length=6, elem_type=DSInt())\nx_y_positions : DSList(length=6, elem_type=Position)\n\n\n# -- Objective --\n\n\nobjective = nr_used_boxes\n\n# --- objective ---\ndef calculate_objective(item_box_assignments: DSList(length=6, elem_type=DSInt()), nr_used_boxes: int) -> int:\n    # Objective is to minimize the number of boxes used\n    # We already have nr_used_boxes which represents the count of boxes used\n    # So we just return that value\n    return nr_used_boxes\n\n# Calculate the objective value\ncalculated_objective_value = calculate_objective(item_box_assignments, nr_used_boxes)\n\n# Assign the calculated objective value to the objective variable\nobjective = calculated_objective_value\n\n# -- Constraints --\n\n\n# --- Auxiliary Variables ---\n# None needed\n# --- constraints ---\ndef pack_items_in_boxes(\n    items: DSList(length=6, elem_type=Item),\n    item_box_assignments: DSList(length=6, elem_type=DSInt()),\n    x_y_positions: DSList(length=6, elem_type=Position),\n    nr_used_boxes: int\n) -> None:\n    # Each item must be assigned to exactly one box\n    for i in range(1, 7):\n        assert 0 <= item_box_assignments[i] <= nr_used_boxes\n    \n    # Positions must be within box boundaries\n    for i in range(1, 7):\n        pos : Position = x_y_positions[i]\n        item : Item = items[i]\n        assert pos.x >= 0\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y >= 0\n        assert pos.y + item.height <= BOX_HEIGHT\n\npack_items_in_boxes(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)\n\n# --- constraints ---\ndef pack_items_in_boxes(\n    items: DSList(length=6, elem_type=Item),\n    item_box_assignments: DSList(length=6, elem_type=DSInt()),\n    x_y_positions: DSList(length=6, elem_type=Position),\n    nr_used_boxes: int\n) -> None:\n    # Each item must be assigned to exactly one box\n    for i in range(1, 7):\n        assert 1 <= item_box_assignments[i] <= nr_used_boxes\n    \n    # Positions must be within box boundaries\n    for i in range(1, 7):\n        pos : Position = x_y_positions[i]\n        item : Item = items[i]\n        assert pos.x >= 0\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y >= 0\n        assert pos.y + item.height <= BOX_HEIGHT\n\npack_items_in_boxes(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)\n\n# --- constraints ---\n# --- Incorrect Code --- \ndef pack_items_in_boxes(\n    items: DSList(length=6, elem_type=Item),\n    item_box_assignments: DSList(length=6, elem_type=DSInt()),\n    x_y_positions: DSList(length=6, elem_type=Position),\n    nr_used_boxes: DSInt(lb=0, ub=6)\n) -> None:\n    # Each item must be assigned to exactly one box\n    for i in range(1, 7):\n        assert 1 <= item_box_assignments[i] <= 6\n    \n    # Positions must be within box boundaries\n    for i in range(1, 7):\n        pos : Position = x_y_positions[i]\n        item : Item = items[i]\n        assert pos.x >= 0\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y >= 0\n        assert pos.y + item.height <= BOX_HEIGHT\n\n    # Box numbering should start from 1 and be contiguous\n    box_used : DSList(length=6, elem_type=DSBool()) = [False, False, False, False, False, False]\n    for i in range(1, 7):\n        box_index : int = item_box_assignments[i]\n        if box_index >= 1 and box_index <= 6:\n            box_used[box_index] = True\n    \n    actual_nr_used_boxes : int = 0\n    for b in range(1, 7):\n        if box_used[b]:\n            actual_nr_used_boxes += 1\n    \n    assert actual_nr_used_boxes == nr_used_boxes\n\npack_items_in_boxes(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)",
+    "objective_val": 0,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "nr_used_boxes": [
+            0
+        ],
+        "item_box_assignments": [
+            [
+                7,
+                7,
+                7,
+                7,
+                7,
+                7
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            0
+        ],
+        "item_box_assignments__calculate_objective__1": [
+            [
+                7,
+                7,
+                7,
+                7,
+                7,
+                7
+            ]
+        ],
+        "nr_used_boxes__calculate_objective__1": [
+            0
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ],
+        "actual_nr_used_boxes__pack_items_in_boxes__1": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "box_index__pack_items_in_boxes__1": [
+            7,
+            7,
+            7,
+            7,
+            7,
+            7
+        ],
+        "box_used__pack_items_in_boxes__1": [
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ]
+        ],
+        "item__pack_items_in_boxes__1": [
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 3,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 5
+            }
+        ],
+        "item_box_assignments__pack_items_in_boxes__1": [
+            [
+                7,
+                7,
+                7,
+                7,
+                7,
+                7
+            ]
+        ],
+        "items__pack_items_in_boxes__1": [
+            [
+                {
+                    "height": 3,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 3
+                },
+                {
+                    "height": 3,
+                    "width": 5
+                },
+                {
+                    "height": 4,
+                    "width": 2
+                },
+                {
+                    "height": 3,
+                    "width": 3
+                },
+                {
+                    "height": 2,
+                    "width": 5
+                }
+            ]
+        ],
+        "nr_used_boxes__pack_items_in_boxes__1": [
+            0
+        ],
+        "objective__pack_items_in_boxes__1": [
+            0
+        ],
+        "pos__pack_items_in_boxes__1": [
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "x_y_positions__pack_items_in_boxes__1": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "actual_nr_used_boxes__pack_items_in_boxes__2": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "box_index__pack_items_in_boxes__2": [
+            7,
+            7,
+            7,
+            7,
+            7,
+            7
+        ],
+        "box_used__pack_items_in_boxes__2": [
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ]
+        ],
+        "item__pack_items_in_boxes__2": [
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 3,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 5
+            }
+        ],
+        "item_box_assignments__pack_items_in_boxes__2": [
+            [
+                7,
+                7,
+                7,
+                7,
+                7,
+                7
+            ]
+        ],
+        "items__pack_items_in_boxes__2": [
+            [
+                {
+                    "height": 3,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 3
+                },
+                {
+                    "height": 3,
+                    "width": 5
+                },
+                {
+                    "height": 4,
+                    "width": 2
+                },
+                {
+                    "height": 3,
+                    "width": 3
+                },
+                {
+                    "height": 2,
+                    "width": 5
+                }
+            ]
+        ],
+        "nr_used_boxes__pack_items_in_boxes__2": [
+            0
+        ],
+        "objective__pack_items_in_boxes__2": [
+            0
+        ],
+        "pos__pack_items_in_boxes__2": [
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "x_y_positions__pack_items_in_boxes__2": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "actual_nr_used_boxes__pack_items_in_boxes__3": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ],
+        "box_index__pack_items_in_boxes__3": [
+            7,
+            7,
+            7,
+            7,
+            7,
+            7
+        ],
+        "box_used__pack_items_in_boxes__3": [
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ],
+            [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
+            ]
+        ],
+        "item__pack_items_in_boxes__3": [
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 3,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 5
+            }
+        ],
+        "item_box_assignments__pack_items_in_boxes__3": [
+            [
+                7,
+                7,
+                7,
+                7,
+                7,
+                7
+            ]
+        ],
+        "items__pack_items_in_boxes__3": [
+            [
+                {
+                    "height": 3,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 3
+                },
+                {
+                    "height": 3,
+                    "width": 5
+                },
+                {
+                    "height": 4,
+                    "width": 2
+                },
+                {
+                    "height": 3,
+                    "width": 3
+                },
+                {
+                    "height": 2,
+                    "width": 5
+                }
+            ]
+        ],
+        "nr_used_boxes__pack_items_in_boxes__3": [
+            0
+        ],
+        "objective__pack_items_in_boxes__3": [
+            0
+        ],
+        "pos__pack_items_in_boxes__3": [
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "x_y_positions__pack_items_in_boxes__3": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ]
+    },
+    "solve_time": 0.0035795,
+    "final_evaluation_result": "Failed to validate solution: Invalid value for objective: 0"
+}
