@@ -1,8 +1,8 @@
 import json
+import os
 import re
 import sys
 import traceback
-from collections import Counter
 from enum import Enum
 
 from sentence_transformers import util
@@ -22,20 +22,24 @@ USE_OPTDSL = constants.USE_OPTDSL
 CHOSEN_LANGUAGE = constants.CHOSEN_LANGUAGE
 
 class State(Enum):
-    UNINITIALIZED = 1
-    CORRECT = 2
-    FAILED  = 3
+    UNINITIALIZED = -1
+    CORRECT = 0
+    FAILED  = 1
 
 class TreeNode:
     MAX_LEVEL = 4
     MAX_CANDIDATES = 4
+    FILE_NAME = "data.json"
 
-    def __init__(self, name = "", parent = None, level: int = 0):
+    def __init__(self, name = "", parent = None, level: int = 0, save_nodes: bool = False):
         self.name = name
         self.content = f"# -- {self.name} --\n"
         self.parent = parent
-        self.id = f"{self.parent.id+"|" if self.parent is not None else ""}L{level}-N{len(self.parent.children) if self.parent is not None else "0"}"
+        node_id = f"L{level}-N{len(self.parent.children) if self.parent is not None else "0"}"
+        self.id = f"{self.parent.id+"|" if self.parent is not None else ""}{node_id}"
+        self.path = self.parent.path + f"/{node_id}" if self.parent is not None else node_id
         if self.parent is not None : self.parent.append_child(self)
+        self.save_nodes = (self.parent.save_nodes if self.parent is not None else save_nodes)
         self.children = []
         self.is_terminal = False
         self.level = level
@@ -45,7 +49,26 @@ class TreeNode:
         self.objective_val = None
         self.solve_time = None
         self.solution_model = None
+        self.n_failed_generations = parent.n_failed_generations if self.parent is not None else 0
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now if self.parent is not None else ""
+
+    def save_child_to_file(self, final_evaluation_result: str = None):
+        if not self.save_nodes or (self.level >= 4 and not final_evaluation_result): return
+        data = {
+            "id": self.id,
+            "state": self.state.value,
+            "n_failed_generations": self.n_failed_generations,
+            "partial_formulation_up_until_now": self.partial_formulation_up_until_now if not final_evaluation_result else initial_clean_up(self.get_partial_formulation_up_until_now()),
+            "objective_val": self.objective_val,
+            "solution_model": self.solution_model,
+            "solve_time": self.solve_time
+        }
+        if final_evaluation_result: data.update({"final_evaluation_result": final_evaluation_result})
+        file_path = f"{self.path}/{self.FILE_NAME}"
+        folder = os.path.dirname(file_path)
+        os.makedirs(folder, exist_ok=True) # create folder (+ parent folders) if not existent
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
 
     def append_child(self, child):
         self.children.append(child)
@@ -56,29 +79,35 @@ class TreeNode:
     def get_partial_formulation_up_until_now(self):
         return self.partial_formulation_up_until_now
 
-    def set_content(self, content):
+    def set_content(self, content, failed: bool = False):
         if constants.USE_ALL_AT_ONCE_AND_EXTRACT: content = remove_duplicate_lines(build_code(self), content)
-        if content.strip() == "":
-            self.state = State.FAILED
-        else:
-            self.state = State.CORRECT
         self.content += "\n\n" + content.strip()
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
+        if content.strip() == "":
+            self.state = State.FAILED
+            self.n_failed_generations += 1
+        else:
+            self.state = State.CORRECT
+        if self.save_nodes: self.save_child_to_file()
 
 
     def prepend_section_title(self, block):
         return f"# --- {self.name} ---\n" + block
 
 class RootNode(TreeNode):
-    def __init__(self, name = "", parent = None, ):
-        super().__init__(name, parent)
+    def __init__(self, name = "", parent = None, save_nodes: bool = False):
+        super().__init__(name, parent, save_nodes=save_nodes)
 
-    def set_content(self, content):
+    def set_content(self, content, failed: bool = False):
+        # Check if at least one section header is present
         if "--- Objects ---".lower() not in content.lower() or "--- Constants ---".lower() not in content.lower() or "--- Decision variables ---".lower() not in content.lower() or "--- Objective function ---".lower() not in content.lower() or "--- Constraints ---".lower() not in content.lower():
+            self.state = State.FAILED
+            self.n_failed_generations += 1
             return False
+
+        # Extract code according to section headers
         blocks = {}
         current_key = None
-
         for line in content.splitlines():
             # Detect a block header, e.g. "--- Datatypes ---"
             m = re.match(r'^---\s*(.+?)\s*---$', line)
@@ -112,7 +141,12 @@ class VariablesConstantsNode(TreeNode):
 
     def set_constants(self, incomming_constants):
         if not is_valid_json(incomming_constants):
+            self.state = State.FAILED
+            self.n_failed_generations += 1
             return False
+        if incomming_constants.strip() == "":
+            self.state = State.FAILED
+            self.n_failed_generations += 1
         if not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             # Filter constants
             filtered_constants_only = [item for item in json.loads(incomming_constants) if item.get("variable_name", "").isupper()]
@@ -121,19 +155,27 @@ class VariablesConstantsNode(TreeNode):
             if len(filtered_constants_only) == 0:
                 if constants.DEBUG_MODE_ON: print(f"Checking node created for level 2 (constants): No uppercase constants found.")
                 self.state = State.FAILED
+                self.n_failed_generations += 1
                 return False
-            self.variables_and_constants.extend(remove_duplicate_variables(filtered_constants_only))
+            self.variables_and_constants.extend(filtered_constants_only)
             self.content = self.get_as_codeblock()
         else:
             self.content += incomming_constants
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
         self.state = State.CORRECT
+        if self.save_nodes: self.save_child_to_file()
         return True
 
-    def set_variables(self, variables):
+    def set_variables(self, variables, expected_output_variables):
         if not is_valid_json(variables):
+            self.state = State.FAILED
+            self.n_failed_generations += 1
             return False
-        if not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
+
+        if variables.strip() == "":
+            self.state = State.FAILED
+            self.n_failed_generations += 1
+        elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             # Filter decision variables
             filtered_decision_variables_only = [item for item in json.loads(variables) if item.get("variable_name", "").islower()]
 
@@ -142,7 +184,17 @@ class VariablesConstantsNode(TreeNode):
                 if constants.DEBUG_MODE_ON: print(
                     f"Checking node created for level 3 (decision variables): No lower case variables found.")
                 self.state = State.FAILED
+                self.n_failed_generations += 1
                 return False
+
+            # Safety check: All expected output variable names must be defined
+            variable_names = [item["variable_name"] for item in filtered_decision_variables_only]
+            for expected_variable in (json.loads(remove_programming_environment(expected_output_variables))):
+                if expected_variable["mandatory_variable_name"] not in variable_names:
+                    if DEBUG_MODE_ON: print(f"Expected variable not defined: {expected_variable["mandatory_variable_name"]}")
+                    self.state = State.FAILED
+                    return False
+
             self.variables_and_constants.extend(remove_duplicate_variables(filtered_decision_variables_only))
             self.define_list_lengths()
             self.content = f"\n\n# --- {self.name} ---\n" + self.get_as_codeblock()
@@ -151,12 +203,14 @@ class VariablesConstantsNode(TreeNode):
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
         self.state = State.CORRECT
         self.all_variables_created = True
+        if self.save_nodes: self.save_child_to_file()
         return True
 
     def define_list_lengths(self):
         for constant in self.variables_and_constants:
-            if "type" in constant and "DSList" in constant["type"]:
-                match = re.search(r"length=(\d+)", constant["type"])
+            if "initialization" in constant and ("DSList" in constant["initialization"] or "list[" in constant["initialization"]):
+                match = re.search(r"length=(\d+)", constant["initialization"])
+                if not match: match = re.search(r"Len\s*\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*", constant["initialization"])
                 if match:
                     length_value = int(match.group(1))
                     self.variables_and_constants.append(
@@ -215,7 +269,6 @@ def check_executability(node: TreeNode, raw_code : str):
     else:
         variable_block = f"from z3 import * \n{node.get_partial_formulation_up_until_now()}\n"
 
-    num_lines_without_raw_code = len(variable_block.splitlines())
     # Prepare raw constants/variable definitions and add to partial formulation (up until now)
     if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
         raw_code = json.loads(raw_code)
@@ -237,7 +290,7 @@ The structure must fulfill following requirements:
 5. No additional properties allowed.
 """
         # Remove upper or lower case for constants and variables respectively
-        if len(node.variables_and_constants) == 0:
+        if isinstance(node, VariablesConstantsNode) and len(node.variables_and_constants) == 0:
             raw_code = [item for item in raw_code if
                         item.get("variable_name", "").isupper()]
         else:
@@ -248,6 +301,8 @@ The structure must fulfill following requirements:
             # Safety check: check if right hand side is json code
             if "[{" in str(definition["initialization"]):
                 return f"Error: {definition["initialization"]}\ninitialization of equation is not valid {CHOSEN_LANGUAGE} code. Invalid type, must not be json or dict."
+            if "Annotated[list[" in definition["type"] and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', definition["type"]):
+                return f"Error: {definition["type"]}\n, this list must have a type of typing.Annotated with pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le)."
             variable_block += f"{definition["initialization"]}\n"
     elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
     # Prepare raw obj. function or constraints and add to partial formulation (up until now)
@@ -278,19 +333,25 @@ The structure must fulfill following requirements:
         # Result must not be empty
         if raw_code == "": return "Error - Invalid result: Result is empty."
 
+        # Safety check: check that there are no non-constants in range
+        m = re.search(r"range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\)", raw_code)
+        if m:
+            return f"Error - range() must contain constant variable or integer values only: {m.group(0)}"
+
         variable_block += raw_code
     else:
         variable_block += raw_code
 
     # Execute code block of partial/full formulation
+    variable_block = initial_clean_up(variable_block)
     try:
         if USE_OPTDSL:
             # Syntax CHECK
-            code_obj = compile(variable_block, "<string>", "exec")
+            compile(variable_block, "<string>", "exec")
             model = MiniZincTranslator(variable_block).unroll_translation()
             try:
                 # Semantic CHECK
-                return check_solver_executability(model, node)
+                if node.level >= 3: return check_solver_executability(model, node)
             except Exception as e:
                 return str(e)
         else:
@@ -313,7 +374,7 @@ The structure must fulfill following requirements:
             line_with_error = lines[line_no-1]
             return f"{error_message} in line {line_no}: {line_with_error}\n"
         # Filter error from optdsl-translator
-        m = re.search(r"(?m)^(?P<type>[\w\.]+(?:Error|Exception)):\s*(?P<msg>.*)$", stack_trace_str)
+        m = re.search(r"(?m)^(?P<type>[\w.]+(?:Error|Exception)):\s*(?P<msg>.*)$", stack_trace_str)
         if m:
             exc_type = m.group("type")
             exc_msg = m.group("msg")
@@ -332,7 +393,15 @@ The structure must fulfill following requirements:
             elif "attr='append', ctx=Load())," in exc_msg:
                 return f"Error - Do not use function calls append() and extend() for DSList."
             elif "Only returning names or tuple of names is supported." in exc_msg:
-                return f"Error - Functions may only return names or tuple of names is supported. Returning None is not supported."
+                return f"Error - Functions support returning names or tuple of names only. Either do not call return or only return names or tuple of names, no integer values or dummies. Also is the number of output parameters correct?"
+            elif "tuple[" in exc_msg:
+                return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or object type, or complex type list as typing.Annotated of typing.Annotated with pydantic.Field of type int, float, int or object type, or DSRecord"
+            elif "incompatible types" in exc_msg:
+                return f"For assert expressions, do not extract calculations or single object-fields. Inline them!"
+            elif "\\/" in exc_msg:
+                return "Incorrect types used in one of the or-expressions in the code beneath \"# --- Incorrect code ---\". Check and correct the or-expressions, only boolean can be used with and-/or-expressions."
+            elif "/\\" in exc_msg:
+                return "Incorrect types used in one of the and-expressions in the code beneath \"# --- Incorrect code ---\". Check and correct the and-expressions, only boolean can be used with and-/or-expressions."
             elif "ValueError: Variable" in exc_msg and "has incompatible types in if-else branches:" in exc_msg:
                 return "Do not extract assert-expression into temporary variables, but inline the expression within assert directly."
             return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
@@ -343,21 +412,28 @@ The structure must fulfill following requirements:
 def check_solver_executability(model: str, node: TreeNode):
     # Safety check: replace python True/False with lower case equivalent for OptDSL
     model = model.replace("True", "true").replace("False", "false")
-    solution, solve_time = MiniZincSolver().solve_with_python_minizinc(model)
-    if solution is None:
+    solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model)
+    if "Error" in solution:
+        return solution
+    elif "type error" in solution:
+        return "Minizinc Solver Error"
+    elif solution is None:
         print("Solver failed: Invalid encoding yielded invalid solution.")
-        return f"Semantic Error, correct semantics."
-    elif "unknown" in str(solution).lower() or "unsatisfiable" in str(solution).lower():
+        return f"Semantic Error, correct the semantics."
+    elif "unknown" in str(solution).lower():
+        return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all."
+    elif "unsatisfiable" in str(solution).lower():
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable."
     else:
-        if "_objective" in solution:
-            node.objective_val = solution["_objective"]
+        if "objective" in solution:
+            node.objective_val = solution["objective"][len(solution["objective"])-1]
             node.solve_time = solve_time
             node.solution_model = solution
-            print(f"Solution for objective is: {solution["_objective"]}")
+            print(f"Solution for objective is: {solution["objective"]}")
         else:
             print("Solver succeeded, but no _objective is available.")
+        return None
 
 # ----------- HELPERS -----------
 
@@ -371,71 +447,91 @@ def initial_clean_up(raw_response: str) -> str:
     return raw_response
 
 def remove_programming_environment(raw_response: str, node = None) -> str:
+    cleaned = raw_response
+
     # Remove any line that starts with "from z3" (even with leading spaces)
-    cleaned = re.sub(r'^\s*from z3.*$', '', raw_response, flags=re.MULTILINE)
+    if "from z3" in cleaned: cleaned = re.sub(r'^\s*from z3.*$', '', raw_response, flags=re.MULTILINE)
 
-    cleaned = cleaned.replace("OptDSL", "")
-    cleaned = cleaned.replace("json", "")
-    cleaned = cleaned.replace("´´´python", "")
+    if "OptDSL" in cleaned: cleaned = cleaned.replace("OptDSL", "")
+    if "json" in cleaned: cleaned = cleaned.replace("json", "")
+    if "python" in cleaned: cleaned = cleaned.replace("python", "")
     cleaned = cleaned.replace("´´´", "")
-    cleaned = cleaned.replace("```python", "")
     cleaned = cleaned.replace("```", "")
-    cleaned = re.sub(r"<reasoning>.*?</reasoning>", "", cleaned, flags=re.DOTALL)
-    cleaned = "\n".join(line for line in cleaned.splitlines() if "import" not in line)
-    cleaned = "\n".join(line for line in cleaned.splitlines() if "return None" not in line and "return" != line)
+    if "<reasoning>" in cleaned: cleaned = re.sub(r"<reasoning>.*?</reasoning>", "", cleaned, flags=re.DOTALL)
+    if "import" in cleaned: cleaned = "\n".join(line for line in cleaned.splitlines() if "import" not in line)
+    if "return\n" in cleaned or "return None" in cleaned: cleaned = "\n".join(line for line in cleaned.splitlines() if "return None" not in line and "return" != line)
 
-    # Remove already existing code
-    #if node is not None: cleaned = remove_duplicate_lines(build_code(node), cleaned)
-    return cleaned
+    return cleaned.strip()
 
 def convert_to_DSList(match: re.Match) -> str:
-    elem_type = match.group("elem_type")
-    match elem_type:
-        case "int":
-            elem_type = "DSInt()"
-        case "float":
-            elem_type = "DSFloat()"
-        case "bool":
-            elem_type = "DSBool()"
-    mx = match.group("max")
-    return f"DSList(length={mx}, elem_type={elem_type})"
-def convert_typing_to_OptDSL(code: str) -> str:
+    if match:
+        elem_type = match.group("elem_type")
+        match elem_type:
+            case "int":
+                elem_type = "DSInt()"
+            case "float":
+                elem_type = "DSFloat()"
+            case "bool":
+                elem_type = "DSBool()"
+            case _:
+                if "Annotated" in elem_type and "list" in elem_type:
+                    elem_type = convert_typing_to_OptDSL(elem_type)
+                if "Annotated" in elem_type:
+                    elem_type = convert_pydantic_to_OptDSL(elem_type)
+
+        mx = match.group("max")
+        return f"DSList(length={mx}, elem_type={elem_type})"
+    return ""
+def convert_typing_to_OptDSL(code: str, nested: bool = False) -> str:
+    if nested:
+        regex = r"Annotated\[list\[(?P<elem_type>[^\]]+\],\s*Len\(\d+,\s*\d+\)])],\s*Len\(\d+,\s*(?P<max>\d+)\)"
+    else:
+        regex = r"Annotated\[list\[(?P<elem_type>[^\]]+?)\],\s*Len\(\d+,\s*(?P<max>\d+)\)\]"
     pattern = re.compile(
-        r"""Annotated\s*\[\s*
-           list\s*\[\s*(?P<elem_type>[^\]\[]+)\s*\]\s*,\s*
-           Len\s*\(\s*(?P<min>\d+)\s*,\s*(?P<max>\d+)\s*\)\s*
-           \]""",
+        regex,
         re.VERBOSE
     )
     return re.sub(pattern, convert_to_DSList, code)
 
-
-def convert_to_DSInt_DSFloat(m: re.Match) -> str:
-    elem_type = m.group("type")
-    match elem_type:
-        case "int":
-            elem_type = "DSInt"
-        case "float":
-            elem_type = "DSFloat"
-    ge = m.group("ge")
-    le = m.group("le")
-    return f"{elem_type} (lb={ge}, ub={le})"
-def convert_object_type_ref_to_DS(m: re.Match) -> str:
-    elem_type = m.group("type")
-    return elem_type
+def convert_to_DSInt_DSFloat(match: re.Match) -> str:
+    if match:
+        elem_type = match.group("type")
+        match elem_type:
+            case "int":
+                elem_type = "DSInt"
+            case "float":
+                elem_type = "DSFloat"
+        gd = match.groupdict()
+        if gd.get('ge') is not None and gd.get('le') is not None:
+            return f"{elem_type}(lb={gd['ge']}, ub={gd['le']})"
+        elif gd.get('ge') is not None:
+            return f"{elem_type}(lb={gd['ge']})"
+        elif gd.get('le') is not None:
+            return f"{elem_type}(ub={gd['le']})"
+        else:
+            return f"{elem_type}()"
+    return ""
+def convert_object_type_ref_to_DS(match: re.Match) -> str:
+    if match:
+        elem_type = match.group("type")
+        return elem_type
+    return ""
 def convert_pydantic_to_OptDSL(code: str) -> str:
     # Convert to DSBool()
     code = code.replace("Annotated[bool, Field()]", "DSBool()")
 
     # Convert to DSInt() and DSFloat()
-    pattern = re.compile(r"Annotated\[\s*(?P<type>\w+)\s*,\s*Field\s*\([^)]*?ge\s*=\s*(?P<ge>\d+)\s*,\s*le\s*=\s*(?P<le>\d+)[^)]*\)\s*\]", re.VERBOSE)
+    pattern = re.compile(r"Annotated\[\s*(?P<type>int|float)\s*,\s*Field\(\s*(?:strict\s*=\s*True\s*,\s*)?(?:ge\s*=(?P<ge>-?\d+(?:\.\d+)?)(?:\s*,\s*)?)?(?:le\s*=(?P<le>-?\d+(?:\.\d+)?)(?:\s*,\s*)?)?\s*\)\s*]", re.VERBOSE)
     code = re.sub(pattern, convert_to_DSInt_DSFloat, code)
 
-    # Convert to DSList()
+    # Convert nested Annotated Lists to DSList()
+    code = convert_typing_to_OptDSL(code, nested=True)
+
+    # Convert non-nested Annotated to DSList()
     code = convert_typing_to_OptDSL(code)
 
     # Convert annotated object type ref to OptDS
-    pattern = re.compile(r"Annotated\[\s*(?P<type>\w+)\s*,\s*Field\s*\(\)\s*\]", re.VERBOSE)
+    pattern = re.compile(r"Annotated\[\s*(?P<type>\w+)\s*,\s*Field\s*\(\)\s*]", re.VERBOSE)
     code = re.sub(pattern, convert_object_type_ref_to_DS, code)
     return code
 
@@ -504,7 +600,7 @@ def remove_duplicate_variables(variable_definitions):
             filtered_out_duplicates.append(variable_definitions[i])
         else:
             if constants.DEBUG_MODE_ON:
-                print(f"Duplicate variables detected: {variable_definitions[i]} - {variable_definitions[j]}")
+                print(f"Duplicate variables detected: {variable_definitions[i]}")
     return filtered_out_duplicates
 
 def remove_duplicate_lines(variable_block: str, raw_code: str):

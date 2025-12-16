@@ -1,15 +1,24 @@
 Extend the given OptDSL python code snippet, with diverse, optimal constraints exactly according to the given subproblem as OptDSL python code. Define nothing else. The constraints are given as \"sub problem definitions\"."
     Your priority is to define diverse, efficient and optimal assert-constraints which must exactly represent the subproblem description, nothing else. Commenting the code is secondary.
+    The resulting encoding must produce an optimal objective value when given to a solver.
     1. Use given datatypes, constants and decision variables in the given python snippet, nothing else.
     2. The result must be minimal and semantically concise to the given subproblem part.
     3. Do not repeat already present definitions. Do not add redundancies.
-    4. Add required auxiliary variables, that are not defined yet.
-    5. Auxiliary variables at root and within functions, must define a type with double colon e.g. int, float, list, object type. Auxiliary variables at root must be defined as input parameter, if used within a function. Auxiliary variables and temporary variables of an object type must be declared with that object type, also within functions.
-    6. Do not introduce auxiliary variables which are used only once. You are encouraged to inline calculations that occur only once.
+    4. Add minimal necessary auxiliary variables, that are not defined yet.
+    5. Auxiliary variables at root and within functions, must define a type: int, float, object type defined with double colon. Auxiliary variables at root must be defined as input parameter, if used within a function. Temporary variables and temporary variables of an object type must be declared with that object type, also within functions.
+    6. Do not assign and-, or- and comparison-expressions to a temporary variable, but combine them into an assert-expression. If calculations are required within the assert-expression, do not extract them into temporary variables. It is forbidden to extract single object fields into a temporary variable.
+    ´´´
+    # Example for random car object, learn from it
+    total_tires: int = car.standard_tires + car.extra_tires
+    c : int = car.tire_capacity
+    assert total_tires > c # invalid
+    assert car.standard_tires + car.extra_tires > car.tire_capacity # valid
+    assert car.standard_tires + car.extra_tires < 20 # valid
+    ´´´
     7. After each function definition, immediately call that function with the correct input parameters.
     8. Each defined function must be called exactly once. The respective function must have a name that reflects the subproblem it encodes.
     9. Do not use any import or functions or variables from other packages, except for pydantic and typing.
-    10. Make sure to close brackets appropriately.
+    10. Make sure to open and close brackets correctly.
     11. Do not come up with any examples and do not use placeholders.
     12. The result must be compilable python OptDSL code.
     13. Use the EBNF grammar of OptDSL in the system prompt. Equality, inequality and relation expressions can not be assigned to a temporary variable.
