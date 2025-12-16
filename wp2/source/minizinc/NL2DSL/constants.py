@@ -37,7 +37,7 @@ LLM = LocalLlamaClient(
 # LLM = AwsClient(model_id="eu.amazon.nova-pro-v1:0")                       # does well syntax-wise for all-at-once-approach only
 # LLM = AwsClient(model_id="openai.gpt-oss-20b-1:0")                        # does well syntax-wise for all-at-once-approach only (always ads reasoning)
 # LLM = AwsClient(model_id="openai.gpt-oss-120b-1:0")                       # does well syntax-wise for all-at-once-approach only (always ads reasoning)
-LLM = AwsClient(model_id="qwen.qwen3-coder-480b-a35b-v1:0")               # does well syntax-wise for iterative build-up and all-at-once, timeout
+LLM = AwsClient(model_id="qwen.qwen3-coder-480b-a35b-v1:0")                 # does well syntax-wise for iterative build-up and all-at-once, timeout
 # LLM = AwsClient(model_id="qwen.qwen3-coder-30b-a3b-v1:0")
 # LLM = AwsClient(model_id="deepseek.v3-v1:0")                              # does well syntax-wise for all-at-once-approach only
 # LLM = AwsClient(model_id="eu.anthropic.claude-3-5-sonnet-20240620-v1:0")  # Model use case details have not been submitted for this account.

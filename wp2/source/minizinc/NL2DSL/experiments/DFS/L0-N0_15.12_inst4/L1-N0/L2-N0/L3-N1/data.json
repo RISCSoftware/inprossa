@@ -1,0 +1,87 @@
+{
+    "id": "L0-N0|L1-N0|L2-N0|L3-N1",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "\n\n# -- Objects --\n\n\n```python\nfrom typing import Annotated\nfrom pydantic import Field\n\n# Define object types for items and positions\nItem = DSRecord({\n    \"width\": Annotated[int, Field(strict=True, ge=1, le=5)],\n    \"height\": Annotated[int, Field(strict=True, ge=1, le=9)]\n})\n\nPosition = DSRecord({\n    \"x\": Annotated[int, Field(strict=True, ge=0, le=1000)],\n    \"y\": Annotated[int, Field(strict=True, ge=0, le=1000)]\n})\n```\n\n\n\n# --- Constants ---\nBOX_HEIGHT : int = 12\nBOX_WIDTH : int = 5\nITEM1 : Item = {\"width\": 3, \"height\": 4}\nITEM2 : Item = {\"width\": 1, \"height\": 2}\nITEM3 : Item = {\"width\": 5, \"height\": 4}\nITEM4 : Item = {\"width\": 2, \"height\": 4}\nITEM5 : Item = {\"width\": 1, \"height\": 3}\nITEM6 : Item = {\"width\": 5, \"height\": 9}\nITEM7 : Item = {\"width\": 5, \"height\": 3}\nITEM8 : Item = {\"width\": 5, \"height\": 1}\nITEMS : Annotated[list[Item], Len(8, 8)] = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6, ITEM7, ITEM8]\nN_ITEMS : int = 8\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=8)] = 1\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=8)]], Len(8, 8)] = [1, 1, 1, 1, 1, 1, 1, 1]\nx_y_positions : Annotated[list[Position], Len(8, 8)] = [Position(0, 0), Position(0, 0), Position(0, 0), Position(0, 0), Position(0, 0), Position(0, 0), Position(0, 0), Position(0, 0)]\nN_ITEMS : int = 8\nN_ITEM_BOX_ASSIGNMENTS : int = 8\nN_X_Y_POSITIONS : int = 8\n\n\n# -- Objective --\n\n\n# --- objective ---\ndef calculate_objective(item_box_assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=8)]], Len(8, 8)], nr_used_boxes: Annotated[int, Field(strict=True, ge=1, le=8)]) -> int:\n    # Objective is to minimize the number of boxes used\n    return nr_used_boxes\n\n# Calculate the objective value\ncalculated_objective_value = calculate_objective(item_box_assignments, nr_used_boxes)\n\n# Assign the calculated objective value to the environment objective variable\nobjective = calculated_objective_value",
+    "objective_val": 1,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            1
+        ],
+        "nr_used_boxes": [
+            1
+        ],
+        "item_box_assignments": [
+            [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            1
+        ],
+        "item_box_assignments__calculate_objective__1": [
+            [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+            ]
+        ],
+        "nr_used_boxes__calculate_objective__1": [
+            1
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ]
+    },
+    "solve_time": 7.79e-05
+}

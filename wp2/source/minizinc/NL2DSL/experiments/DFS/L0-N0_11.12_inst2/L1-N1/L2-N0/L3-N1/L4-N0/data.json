@@ -1,0 +1,601 @@
+{
+    "id": "L0-N0|L1-N1|L2-N0|L3-N1|L4-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "# -- Objects --\n\n\n\n\n# --- Objects ---\nItem = DSRecord({\n    \"width\": DSInt(lb=1, ub=10),\n    \"height\": DSInt(lb=1, ub=6)\n})\n\nPosition = DSRecord({\n    \"x\": DSInt(lb=0, ub=10),\n    \"y\": DSInt(lb=0, ub=6)\n})\n\n\n\n\n# --- Constants ---\nBOX_HEIGHT : int = 6\nBOX_WIDTH : int = 10\nITEM1 : Item = {\"width\": 4, \"height\": 3}\nITEM2 : Item = {\"width\": 3, \"height\": 2}\nITEM3 : Item = {\"width\": 5, \"height\": 3}\nITEM4 : Item = {\"width\": 2, \"height\": 4}\nITEM5 : Item = {\"width\": 3, \"height\": 3}\nITEM6 : Item = {\"width\": 5, \"height\": 2}\nITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]\nnr_used_boxes : DSInt(lb=0, ub=6)\nitem_box_assignments : DSList(length=6, elem_type=DSInt())\nx_y_positions : DSList(length=6, elem_type=Position)\n\n\n# -- Objective --\n\n\nobjective = nr_used_boxes\n\n# --- objective ---\ndef calculate_objective(item_box_assignments: DSList(length=6, elem_type=DSInt()), nr_used_boxes: DSInt(lb=0, ub=6)) -> int:\n    # Objective is to minimize the number of boxes used\n    return nr_used_boxes\n\n# Calculate the objective value\ncalculated_objective_value = calculate_objective(item_box_assignments, nr_used_boxes)\n\n# Assign the calculated objective value to the objective variable\nobjective = calculated_objective_value\n\n# -- Constraints --\n\n\n# --- constraints ---\ndef place_items_in_boxes(\n    items: DSList(length=6, elem_type=Item),\n    item_box_assignments: DSList(length=6, elem_type=DSInt()),\n    x_y_positions: DSList(length=6, elem_type=Position),\n    nr_used_boxes: DSInt(lb=0, ub=6)\n) -> None:\n    # Each item must be assigned to exactly one box\n    for i in range(1, 7):\n        assert sum(1 for j in range(1, 7) if item_box_assignments[j] == i) >= 1\n        \n    # Each item's position must be within the box dimensions\n    for i in range(1, 7):\n        item : Item = items[i]\n        pos : Position = x_y_positions[i]\n        assert pos.x >= 0\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y >= 0\n        assert pos.y + item.height <= BOX_HEIGHT\n        \n    # Boxes are numbered consecutively starting from 1\n    assert nr_used_boxes >= 0\n    assert nr_used_boxes <= 6\n    \n    # Each box can only hold items that fit inside it\n    for box_id in range(1, 7):\n        # Only check boxes that are actually used\n        if box_id <= nr_used_boxes:\n            for i in range(1, 7):\n                if item_box_assignments[i] == box_id:\n                    item : Item = items[i]\n                    pos : Position = x_y_positions[i]\n                    assert pos.x + item.width <= BOX_WIDTH\n                    assert pos.y + item.height <= BOX_HEIGHT\n\nplace_items_in_boxes(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)\n\n# --- constraints ---\ndef prevent_item_overlap(\n    items: DSList(length=6, elem_type=Item),\n    item_box_assignments: DSList(length=6, elem_type=DSInt()),\n    x_y_positions: DSList(length=6, elem_type=Position)\n) -> None:\n    for i in range(1, 7):\n        for j in range(1, 7):\n            # Only check items in the same box and avoid checking the same pair twice\n            if i < j and item_box_assignments[i] == item_box_assignments[j]:\n                item_i : Item = items[i]\n                item_j : Item = items[j]\n                pos_i : Position = x_y_positions[i]\n                pos_j : Position = x_y_positions[j]\n                \n                # Check for non-overlapping rectangles\n                assert pos_i.x >= pos_j.x + item_j.width or \\\n                       pos_j.x >= pos_i.x + item_i.width or \\\n                       pos_i.y >= pos_j.y + item_j.height or \\\n                       pos_j.y >= pos_i.y + item_i.height\n\nprevent_item_overlap(ITEMS, item_box_assignments, x_y_positions)\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef ensure_item_box_assignment_validity(\n    item_box_assignments: DSList(length=6, elem_type=DSInt()),\n    nr_used_boxes: DSInt(lb=0, ub=6)\n) -> None:\n    # Each item must be assigned to a box number between 1 and nr_used_boxes\n    for i in range(1, 7):\n        assert item_box_assignments[i] >= 1\n        assert item_box_assignments[i] <= nr_used_boxes\n\nensure_item_box_assignment_validity(item_box_assignments, nr_used_boxes)",
+    "objective_val": 5,
+    "solution_model": {
+        "objective": [
+            0,
+            5,
+            5,
+            5,
+            5,
+            5,
+            5
+        ],
+        "nr_used_boxes": [
+            5
+        ],
+        "item_box_assignments": [
+            [
+                5,
+                4,
+                3,
+                2,
+                1,
+                1
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 5,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            5
+        ],
+        "item_box_assignments__calculate_objective__1": [
+            [
+                5,
+                4,
+                3,
+                2,
+                1,
+                1
+            ]
+        ],
+        "nr_used_boxes__calculate_objective__1": [
+            5
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ],
+        "item__place_items_in_boxes__1": [
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 3,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 3,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 5
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 1,
+                "width": 1
+            },
+            {
+                "height": 1,
+                "width": 1
+            },
+            {
+                "height": 1,
+                "width": 1
+            },
+            {
+                "height": 1,
+                "width": 1
+            },
+            {
+                "height": 1,
+                "width": 1
+            },
+            {
+                "height": 3,
+                "width": 4
+            }
+        ],
+        "item_box_assignments__place_items_in_boxes__1": [
+            [
+                5,
+                4,
+                3,
+                2,
+                1,
+                1
+            ]
+        ],
+        "items__place_items_in_boxes__1": [
+            [
+                {
+                    "height": 3,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 3
+                },
+                {
+                    "height": 3,
+                    "width": 5
+                },
+                {
+                    "height": 4,
+                    "width": 2
+                },
+                {
+                    "height": 3,
+                    "width": 3
+                },
+                {
+                    "height": 2,
+                    "width": 5
+                }
+            ]
+        ],
+        "nr_used_boxes__place_items_in_boxes__1": [
+            5
+        ],
+        "objective__place_items_in_boxes__1": [
+            0
+        ],
+        "pos__place_items_in_boxes__1": [
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 5,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 5,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "x_y_positions__place_items_in_boxes__1": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 5,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "item_box_assignments__prevent_item_overlap__1": [
+            [
+                5,
+                4,
+                3,
+                2,
+                1,
+                1
+            ]
+        ],
+        "item_i__prevent_item_overlap__1": [
+            {
+                "height": 3,
+                "width": 3
+            }
+        ],
+        "item_j__prevent_item_overlap__1": [
+            {
+                "height": 2,
+                "width": 5
+            }
+        ],
+        "items__prevent_item_overlap__1": [
+            [
+                {
+                    "height": 3,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 3
+                },
+                {
+                    "height": 3,
+                    "width": 5
+                },
+                {
+                    "height": 4,
+                    "width": 2
+                },
+                {
+                    "height": 3,
+                    "width": 3
+                },
+                {
+                    "height": 2,
+                    "width": 5
+                }
+            ]
+        ],
+        "objective__prevent_item_overlap__1": [
+            0
+        ],
+        "pos_i__prevent_item_overlap__1": [
+            {
+                "x": 5,
+                "y": 0
+            }
+        ],
+        "pos_j__prevent_item_overlap__1": [
+            {
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "x_y_positions__prevent_item_overlap__1": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 5,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "item_box_assignments__ensure_item_box_assignment_validity__1": [
+            [
+                5,
+                4,
+                3,
+                2,
+                1,
+                1
+            ]
+        ],
+        "nr_used_boxes__ensure_item_box_assignment_validity__1": [
+            5
+        ],
+        "objective__ensure_item_box_assignment_validity__1": [
+            0
+        ]
+    },
+    "solve_time": 0.0318144,
+    "final_evaluation_result": "Successfully validated solution."
+}

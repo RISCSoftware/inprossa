@@ -1,0 +1,9 @@
+{
+    "id": "L0-N0|L1-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "\n\n# -- Objects --\n\n\n```python\n# --- Objects ---\nItem = DSRecord({\n    \"width\": Annotated[int, Field(strict=True, ge=1, le=10)],\n    \"height\": Annotated[int, Field(strict=True, ge=1, le=6)]\n})\n\nPosition = DSRecord({\n    \"x\": Annotated[int, Field(strict=True, ge=0, le=1000)],\n    \"y\": Annotated[int, Field(strict=True, ge=0, le=1000)]\n})\n```",
+    "objective_val": null,
+    "solution_model": null,
+    "solve_time": null
+}

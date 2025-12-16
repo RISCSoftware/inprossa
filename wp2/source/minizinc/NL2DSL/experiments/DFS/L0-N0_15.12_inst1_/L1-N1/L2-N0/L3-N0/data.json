@@ -1,0 +1,75 @@
+{
+    "id": "L0-N0|L1-N1|L2-N0|L3-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "\n\n# -- Objects --\n\n\n```python\nfrom typing import Annotated\nfrom pydantic import Field\n\n# --- Objects ---\nItem = DSRecord({\n    \"width\": Annotated[int, Field(strict=True, ge=1, le=10)],\n    \"height\": Annotated[int, Field(strict=True, ge=1, le=5)]\n})\n\nBoxAssignment = DSRecord({\n    \"box_id\": Annotated[int, Field(strict=True, ge=1, le=100)],\n    \"x\": Annotated[int, Field(strict=True, ge=0, le=1000)],\n    \"y\": Annotated[int, Field(strict=True, ge=0, le=1000)]\n})\n```\n\n\n\n# --- Constants ---\nBOX_HEIGHT : int = 5\nBOX_WIDTH : int = 10\nITEM1 : Item = {\"width\": 10, \"height\": 5}\nITEM2 : Item = {\"width\": 2, \"height\": 2}\nITEMS : Annotated[list[Item], Len(2, 2)] = [ITEM1, ITEM2]\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=100)]\nitem_box_assignments : Annotated[list[BoxAssignment], Len(2, 2)]\nx_y_positions : Annotated[list[BoxAssignment], Len(2, 2)]\nN_ITEMS : int = 2\nN_ITEM_BOX_ASSIGNMENTS : int = 2\nN_X_Y_POSITIONS : int = 2\n\n\n# -- Objective --\n\n\n# --- objective ---\ndef calculate_objective(assignments: Annotated[list[BoxAssignment], Len(2, 2)]) -> int:\n    max_box_id = 0\n    for i in range(1, N_ITEMS + 1):\n        box_id = assignments[i].box_id\n        if box_id > max_box_id:\n            max_box_id = box_id\n    return max_box_id\n\ncalculated_objective_value = calculate_objective(item_box_assignments)\nobjective = calculated_objective_value",
+    "objective_val": 1,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            1
+        ],
+        "nr_used_boxes": [
+            1
+        ],
+        "item_box_assignments": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            1
+        ],
+        "assignments__calculate_objective__1": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "box_id__calculate_objective__1": [
+            1,
+            1
+        ],
+        "max_box_id__calculate_objective__1": [
+            0,
+            1,
+            1
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ]
+    },
+    "solve_time": 0.0007132
+}

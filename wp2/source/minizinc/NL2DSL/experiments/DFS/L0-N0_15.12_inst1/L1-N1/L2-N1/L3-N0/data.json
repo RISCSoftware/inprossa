@@ -1,0 +1,134 @@
+{
+    "id": "L0-N0|L1-N1|L2-N1|L3-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "\n\n# -- Objects --\n\n\n```python\nfrom typing import Annotated\nfrom pydantic import Field\n\n# --- Objects ---\nItem = DSRecord({\n    \"width\": Annotated[int, Field(strict=True, ge=1, le=10)],\n    \"height\": Annotated[int, Field(strict=True, ge=1, le=5)]\n})\n\nBoxAssignment = DSRecord({\n    \"box_id\": Annotated[int, Field(strict=True, ge=1, le=100)],\n    \"x\": Annotated[int, Field(strict=True, ge=0, le=1000)],\n    \"y\": Annotated[int, Field(strict=True, ge=0, le=1000)]\n})\n```\n\n\n\n# --- Constants ---\nBOX_WIDTH : Annotated[int, Field(strict=True, ge=1, le=10)] = 10\nBOX_HEIGHT : Annotated[int, Field(strict=True, ge=1, le=5)] = 5\nITEM1 : Item = {\"width\": 10, \"height\": 5}\nITEM2 : Item = {\"width\": 2, \"height\": 2}\nITEMS : Annotated[list[Item], Len(2, 2)] = [ITEM1, ITEM2]\nnr_used_boxes : Annotated[int, Field(strict=True, ge=0, le=100)]\nitem_box_assignments : Annotated[list[BoxAssignment], Len(2, 2)]\nx_y_positions : Annotated[list[BoxAssignment], Len(2, 2)]\nN_ITEMS : int = 2\nN_ITEM_BOX_ASSIGNMENTS : int = 2\nN_X_Y_POSITIONS : int = 2\n\n\n# -- Objective --\n\n\n# --- objective ---\ndef pack_items(item_box_assignments: Annotated[list[BoxAssignment], Len(2, 2)], x_y_positions: Annotated[list[BoxAssignment], Len(2, 2)], nr_used_boxes: Annotated[int, Field(strict=True, ge=0, le=100)]) -> int:\n    # Calculate total area occupied by boxes\n    total_area = 0\n    for i in range(1, N_ITEM_BOX_ASSIGNMENTS + 1):\n        box_assignment : BoxAssignment = item_box_assignments[i]\n        total_area = total_area + BOX_WIDTH * BOX_HEIGHT\n    \n    # Ensure no overlapping of boxes\n    for i in range(1, N_ITEM_BOX_ASSIGNMENTS + 1):\n        for j in range(i + 1, N_ITEM_BOX_ASSIGNMENTS + 1):\n            box_i : BoxAssignment = item_box_assignments[i]\n            box_j : BoxAssignment = item_box_assignments[j]\n            assert (box_i.x + BOX_WIDTH <= box_j.x) or (box_j.x + BOX_WIDTH <= box_i.x) or (box_i.y + BOX_HEIGHT <= box_j.y) or (box_j.y + BOX_HEIGHT <= box_i.y)\n    \n    # Ensure items fit in their assigned boxes\n    for i in range(1, N_ITEMS + 1):\n        item : Item = ITEMS[i]\n        assignment : BoxAssignment = item_box_assignments[i]\n        assert assignment.x + item.width <= assignment.x + BOX_WIDTH\n        assert assignment.y + item.height <= assignment.y + BOX_HEIGHT\n        \n    # Objective: minimize number of boxes used\n    objective: int = nr_used_boxes\n    return objective\n\nobjective = pack_items(item_box_assignments, x_y_positions, nr_used_boxes)\nassert objective >= 0\nassert objective <= 100",
+    "objective_val": 0,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            0
+        ],
+        "nr_used_boxes": [
+            0
+        ],
+        "item_box_assignments": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 10,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "assignment__pack_items__1": [
+            {
+                "box_id": 1,
+                "x": 10,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "box_assignment__pack_items__1": [
+            {
+                "box_id": 1,
+                "x": 10,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "box_i__pack_items__1": [
+            {
+                "box_id": 1,
+                "x": 10,
+                "y": 0
+            }
+        ],
+        "box_j__pack_items__1": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "item__pack_items__1": [
+            {
+                "height": 5,
+                "width": 10
+            },
+            {
+                "height": 2,
+                "width": 2
+            }
+        ],
+        "item_box_assignments__pack_items__1": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 10,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "nr_used_boxes__pack_items__1": [
+            0
+        ],
+        "objective__pack_items__1": [
+            0,
+            0
+        ],
+        "total_area__pack_items__1": [
+            0,
+            50,
+            100
+        ],
+        "x_y_positions__pack_items__1": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ]
+    },
+    "solve_time": 0.0001701
+}

@@ -1,4 +1,4 @@
-from minizinc_solver import MiniZincSolver
+from BinPackingValidator import validate_solution
 from structures_utils import *
 
 
@@ -14,7 +14,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
             # Incorrect return format for USE_ALL_AT_ONCE_AND_EXTRACT (# Objects # Constants ...)
             if raw_definitions is None:
                 if constants.DEBUG_MODE_ON: print("Incorrect return format for USE_ALL_AT_ONCE_AND_EXTRACT")
-                raw_definitions = initial_clean_up(llm.send_prompt(
+                raw_definitions = (llm.send_prompt(
                     system_prompt=f"{get_system_prompt("format_sp")}\n{get_icl()}",
                     prompt="""Incorrect result format, it must be:
 ´´´python
@@ -34,17 +34,17 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                             ´´´python\n{node.get_partial_formulation_up_until_now()}´´´\n""" +
                            load_sp_file("sp_all_at_once_shorter.txt") +
                            # Input variables (constants) problem description
-                           d2_bin_packing_formalized_problem_description[0] + "\n" +
+                           d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
                            # Output variables (decision variables) - problem description
-                           d2_bin_packing_formalized_problem_description[1] + "\n" +
+                           d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
                            # Global problem description
-                           d2_bin_packing_formalized_problem_description[2] + "\n" +
+                           d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
                            # Sub problem description
-                           d2_bin_packing_formalized_problem_description[3] + "\n" +
+                           d2_bin_packing_formalized_problem_description_inst2[3] + "\n" +
                            # Sub problem description
-                           d2_bin_packing_formalized_problem_description[4] + "\n" +
+                           d2_bin_packing_formalized_problem_description_inst2[4] + "\n" +
                            # Sub problem description
-                           d2_bin_packing_formalized_problem_description[5],
+                           d2_bin_packing_formalized_problem_description_inst2[5],
                     max_tokens=(800 if node.level == 4 else 500)
                 ))
             # Extract correct partition of full formulation
@@ -52,7 +52,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                 match node.level:
                     case 1:
                         if "objects" not in raw_definitions:
-                            raw_definitions = create_and_send_prompt_for_all_at_once_and_extract_approach(node)
+                            raw_definitions : dict = create_and_send_prompt_for_all_at_once_and_extract_approach(node)
                             continue
                         raw_definitions = raw_definitions["objects"]
                     case 2:
@@ -67,7 +67,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                 continue
                             if USE_OPTDSL and "DSList" in raw_definitions["constraints"]:
                                 if constants.DEBUG_MODE_ON: print(f"Function parameters must not have type DSList. But must be of a declared type.")
-                                raw_definitions = initial_clean_up(llm.send_prompt(
+                                raw_definitions = (llm.send_prompt(
                                     system_prompt=get_system_prompt("format_all_sp") + "\n" + get_icl(),
                                     prompt=f"""´´´python 
                                                 {node.get_partial_formulation_up_until_now()}
@@ -96,18 +96,20 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
 
             # Send prompt anew, no feedback loop
             if ("NTD" in raw_definitions or
+                    "Minizinc Solver Error" in raw_definitions or
                     "Constraints FormatError" in raw_definitions or
                     "Constraints/Objective FormatError" in raw_definitions or
                     nr_unsat_error == LOOP_OF_DOOM_UNSAT_MAX_IT):
                 if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: {raw_definitions} encountered")
                 raw_definitions = create_and_send_prompt_for_strictly_iterative_approach(node, subproblem_description=subproblem_description)
+                nr_unsat_error = 0
                 continue
 
             # Constants and dec. variables - responses need to be json
             if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
                 if not is_valid_json(raw_definitions):
                     if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: Constants not valid json.")
-                    raw_definitions = initial_clean_up(llm.send_prompt(
+                    raw_definitions = (llm.send_prompt(
                         system_prompt=get_system_prompt("sp"),
                         prompt=raw_definitions + "\n\n" +
                             """The code above is either not json or incorrect json. Correct it to compilable json code.
@@ -129,7 +131,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     continue
                 # Check if there are any constants/decision variables, there must be at least 1 each
                 if len([item for item in json.loads(raw_definitions) if (item.get("variable_name", "").isupper() if len(node.variables_and_constants) == 0 else item.get("variable_name", "").islower())]) == 0:
-                    raw_definitions = initial_clean_up(llm.send_prompt(
+                    raw_definitions = (llm.send_prompt(
                         system_prompt=get_system_prompt("sp"),
                         prompt="""The code answer you gave, did not contain any variables of the required type {constants, decision variables}. Create them now.
                                Return you answer in the following format:
@@ -149,31 +151,51 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     ))
                     continue
 
-            # Clean up code (convertion typing - OptDSL)
-            raw_definitions = initial_clean_up(raw_definitions)
-
             # Extracted objective and constraints + auxiliary vars
             execution_error = None
             if node.level == 3 or node.level == 4:
                 decomposed_code = decompose_full_definition(raw_definitions)
-                raw_definitions = ""
+                raw_definitions : str = ""
                 if decomposed_code is None:
                     execution_error = "Constraints/Objective FormatError"
-                if decomposed_code is not None and "auxiliary variables" in decomposed_code:
+                if execution_error is None and decomposed_code is not None and "auxiliary variables" in decomposed_code:
                     raw_definitions += f"\n# --- Auxiliary Variables ---\n{decomposed_code["auxiliary variables"]}"
                 if execution_error is None and node.name.lower() in decomposed_code:
-                    raw_definitions += f"\n# --- {node.name.lower()} ---\n{decomposed_code[node.name.lower()]}"
-                    raw_definitions = raw_definitions.replace(f"# --- Incorrect Code ---\n", "")
                     # Generated code already in partial formulation (duplicate)
                     if decomposed_code[node.name.lower()] in node.get_partial_formulation_up_until_now():
-                        execution_error = f"Semantic error - result does not represent the given subproblem."
+                        execution_error = f"Returned result code is already in given code (redundancy)! Encode exactly the subproblem and do not return code that is already given."
+                    raw_definitions += f"\n# --- {node.name.lower()} ---\n{decomposed_code[node.name.lower()]}"
+                    raw_definitions = raw_definitions.replace(f"# --- Incorrect Code ---\n", "")
                 elif execution_error is None and "incorrect code" in decomposed_code:
-                    raw_definitions += f"\n# --- {node.name.lower()} ---\n{decomposed_code["incorrect code"]}"
                     # Generated code already in partial formulation (duplicate)
                     if decomposed_code["incorrect code"] in node.get_partial_formulation_up_until_now():
-                        execution_error = f"Semantic error - result does not represent the given subproblem."
+                        execution_error = f"Returned result code is already in given code (redundancy)! Encode exactly the subproblem and do not return code that is already given."
+                    raw_definitions += f"\n# --- {node.name.lower()} ---\n{decomposed_code["incorrect code"]}"
                 else:
                     execution_error = "Constraints/Objective FormatError"
+                if node.level == 3:
+                    if len(raw_definitions.splitlines()) <= 6:
+                        raw_definitions = (llm.send_prompt(
+                            system_prompt=(get_system_prompt(
+                                "json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (
+                                get_system_prompt(
+                                    "format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt(
+                                    "format_sp"))) + "\n" + get_icl(),
+                            prompt=f"´´´python\n" +
+                                   (f"from z3 import * \n" if not constants.USE_OPTDSL else "") +
+                                   f"\n# --- Incorrect Code --- \n{raw_definitions}´´´\n\n" +
+                                   f"The section above contains a function \"calculate_objective\" with an invalid objective value calculation, replace it with a valid calculation according to the description." +
+                                   f"Description: {subproblem_description}"
+                                   """Return your answer in the format
+                                   ´´´python
+                                   # --- Incorrect Code ---
+                                   <corrected code>
+                                   ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
+                                   """,
+                            max_tokens=(1000 if node.level == 4 else 800)
+                        ))
+                        if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
+                            raw_definitions = decompose_full_definition(raw_definitions)
 
             # Check for syntactical correctness and handle execution error, if no "Constraints/Objective FormatError" has occurred yet
             if execution_error is None:
@@ -190,7 +212,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                                                                              subproblem_description=subproblem_description)
                     continue
                 elif "Syntax Error" in execution_error:
-                    raw_definitions = initial_clean_up(llm.send_prompt(
+                    raw_definitions = (llm.send_prompt(
                         system_prompt=(get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + "\n" + get_icl(),
                         prompt=f"´´´python\n" +
                                (f"from z3 import * \n" if not constants.USE_OPTDSL else "") +
@@ -208,7 +230,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
                         raw_definitions = decompose_full_definition(raw_definitions)
                 elif "Semantic Error" in execution_error:
-                    raw_definitions = initial_clean_up(llm.send_prompt(
+                    raw_definitions = (llm.send_prompt(
                         system_prompt=(get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + "\n" + get_icl(),
                         prompt=f"´´´python\n" +
                                (f"from z3 import * \n" if not constants.USE_OPTDSL else "") +
@@ -228,7 +250,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                         raw_definitions = decompose_full_definition(raw_definitions)
                     nr_unsat_error += 1
                 elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
-                    raw_definitions = initial_clean_up(llm.send_prompt(
+                    raw_definitions = (llm.send_prompt(
                         system_prompt=( get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")) + get_icl(),
                         prompt=f"´´´\njson\n{raw_definitions}´´´\n\n" +
                                f"The Json code above contains an error: {execution_error}" +
@@ -239,7 +261,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                         raw_definitions)
                 else:
-                    raw_definitions = initial_clean_up(llm.send_prompt(
+                    raw_definitions = (llm.send_prompt(
                         system_prompt=( get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + get_icl(),
                         prompt=f"´´´python\n" +
                                (f"from z3 import * \n" if not constants.USE_OPTDSL else "") +
@@ -251,7 +273,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                "´´´python\n" +
                                "# --- Incorrect Code ---\n" +
                                "<corrected code>\n" +
-                               "´´´, where <corrected code> all lines underneath \"# --- Incorrect Code ---\" with the corrections.",
+                               "\n´´´, where <corrected code> all lines underneath \"# --- Incorrect Code ---\" with the corrections.",
                         max_tokens=(1500 if node.level>=4 else 800)
                     ))
                     if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
@@ -275,7 +297,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                         ub = m.group('ub')
                         val = m.group('val')
                         if (lb is not None and val < lb) or (ub is not None and val > ub):
-                            raw_definitions = initial_clean_up(llm.send_prompt(
+                            raw_definitions = (llm.send_prompt(
                                 system_prompt=(
                                                   get_system_prompt(
                                                       "json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt(
@@ -293,7 +315,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     not_twice_appearing_func = check_functions_appear_twice(raw_definitions)
                     if len(not_twice_appearing_func) > 0:
                         if constants.DEBUG_MODE_ON: print(f"The following functions are defined but never called, {not_twice_appearing_func}")
-                        raw_definitions = initial_clean_up(llm.send_prompt(
+                        raw_definitions = (llm.send_prompt(
                             system_prompt=(
                                 get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")) + "\n" + get_icl(),
                             prompt=f"´´´ python\n" +
@@ -307,8 +329,6 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                             raw_definitions)
                         continue
                 return raw_definitions
-
-            #
 
         # Attempt reset
         llm.send_prompt_with_model_id(
@@ -330,17 +350,17 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode, execu
         system_prompt=f"{get_system_prompt("format_sp")}\n{get_icl()}",
         prompt=load_sp_file("sp_all_at_once_shorter.txt") +
                # Input variables (constants) problem description
-               d2_bin_packing_formalized_problem_description[0] + "\n" +
+               d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
                # Output variables (decision variables) - problem description
-               d2_bin_packing_formalized_problem_description[1] + "\n" +
+               d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
                # Global problem description
-               d2_bin_packing_formalized_problem_description[2] + "\n" +
+               d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
                # Sub problem description
-               d2_bin_packing_formalized_problem_description[3] + "\n" +
+               d2_bin_packing_formalized_problem_description_inst2[3] + "\n" +
                # Sub problem description
-               d2_bin_packing_formalized_problem_description[4] + "\n" +
+               d2_bin_packing_formalized_problem_description_inst2[4] + "\n" +
                # Sub problem description
-               d2_bin_packing_formalized_problem_description[5],
+               d2_bin_packing_formalized_problem_description_inst2[5],
         max_tokens=2500
     )
     '''
@@ -354,13 +374,13 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode, execu
             system_prompt=f"{get_system_prompt("text_sp")}",
             prompt= load_sp_file("sp_text_repr.txt") +
             # Input variables (constants) problem description
-            d2_bin_packing_formalized_problem_description[0] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
             # Output variables (decision variables) - problem description
-            d2_bin_packing_formalized_problem_description[1] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
             # Global problem description
-            d2_bin_packing_formalized_problem_description[2] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
             # Sub problem description
-            d2_bin_packing_formalized_problem_description[3],
+            d2_bin_packing_formalized_problem_description_inst2[3],
             max_tokens=800
         )
     # OBJECTS (datatypes)
@@ -379,13 +399,13 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode, execu
                         "Given the problem below:\n" +
                         "------------\n" +
                         # Input variables (constants) problem description
-                        d2_bin_packing_formalized_problem_description[0]  + "\n" +
+                        d2_bin_packing_formalized_problem_description_inst2[0]  + "\n" +
                         # Output variables (decision variables) - problem description
-                        d2_bin_packing_formalized_problem_description[1]  + "\n" +
+                        d2_bin_packing_formalized_problem_description_inst2[1]  + "\n" +
                         # Global problem description
-                        d2_bin_packing_formalized_problem_description[2] + "\n" +
+                        d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
                         # Sub problem description
-                        d2_bin_packing_formalized_problem_description[3] +
+                        d2_bin_packing_formalized_problem_description_inst2[3] +
                         "------------\n" +
                         # Component specific instr.: object types, data types
                         f"Task: {load_sp_file("sp_objects.txt")}"
@@ -401,7 +421,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode, execu
                 "Given the problem:\n" +
                 "------------\n" +
                 # Input variables (constants) problem description
-                d2_bin_packing_formalized_problem_description[0] + "\n" +
+                d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
                 "------------\n" +
                 # Given object types
                 f"""Given the following python code snippet containing object types:
@@ -419,7 +439,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode, execu
             "Given the problem:\n" +
             "------------\n" +
             # Output variables (decision variables) - problem description
-            d2_bin_packing_formalized_problem_description[1] +
+            d2_bin_packing_formalized_problem_description_inst2[1] +
             "------------\n" +
             # Given object types, constants:
             f"""Given the following python code snippet containing datatypes, constants:
@@ -437,15 +457,15 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode, execu
             "Given the problem:\n" +
             "------------\n" +
             # Global problem description
-            d2_bin_packing_formalized_problem_description[2] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
             "------------\n" +
             #"Given following constants and decision variables:\n" +
             f"""Given the following python code snippet containing datatypes, constants, decision variables and objective func.:
 ´´´python {"form z3 import *" if not USE_OPTDSL else ""}
 {node.get_partial_formulation_up_until_now()}´´´\n""" +
-            #json.dumps(constants_variables_node.get_as_codeblock()) + "\n" +
+#json.dumps(constants_variables_node.get_as_codeblock()) + "\n" +
             # Component specific instr.: obj. function
-                f"\nYour priority is to fulfill this task: :\n{load_sp_file("sp_obj_function.txt")}\n"
+f"\nYour priority is to fulfill this task: :\n{load_sp_file("sp_obj_function.txt")}\n"
         ,max_tokens=800
     )
     # CONSTRAINT
@@ -476,17 +496,17 @@ def create_and_send_prompt_for_all_at_once_and_extract_approach(node: TreeNode, 
             system_prompt=f"{get_system_prompt("text_sp")}",
             prompt= load_sp_file("sp_text_repr.txt") +
             # Input variables (constants) problem description
-            d2_bin_packing_formalized_problem_description[0] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
             # Output variables (decision variables) - problem description
-            d2_bin_packing_formalized_problem_description[1] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
             # Global problem description
-            d2_bin_packing_formalized_problem_description[2] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
             # Sub problem description
-            d2_bin_packing_formalized_problem_description[3] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[3] + "\n" +
             # Sub problem description
-            d2_bin_packing_formalized_problem_description[4] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[4] + "\n" +
             # Sub problem description
-            d2_bin_packing_formalized_problem_description[5],
+            d2_bin_packing_formalized_problem_description_inst2[5],
             max_tokens=800
         )
     # OBJECTS (datatypes)
@@ -496,17 +516,17 @@ def create_and_send_prompt_for_all_at_once_and_extract_approach(node: TreeNode, 
             prompt=f"{get_system_prompt("format_all_sp")}\n{get_icl()}" +
                    load_sp_file("sp_all_at_once_shorter.txt") +
                    # Input variables (constants) problem description
-                   d2_bin_packing_formalized_problem_description[0] + "\n" +
+                   d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
                    # Output variables (decision variables) - problem description
-                   d2_bin_packing_formalized_problem_description[1] + "\n" +
+                   d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
                    # Global problem description
-                   d2_bin_packing_formalized_problem_description[2] + "\n" +
+                   d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
                    # Sub problem description
-                   d2_bin_packing_formalized_problem_description[3] + "\n" +
+                   d2_bin_packing_formalized_problem_description_inst2[3] + "\n" +
                    # Sub problem description
-                   d2_bin_packing_formalized_problem_description[4] + "\n" +
+                   d2_bin_packing_formalized_problem_description_inst2[4] + "\n" +
                    # Sub problem description
-                   d2_bin_packing_formalized_problem_description[5],
+                   d2_bin_packing_formalized_problem_description_inst2[5],
             max_tokens=2500
         )
     # CONSTANTS and DECISION VARIABLES
@@ -523,17 +543,17 @@ def create_and_send_prompt_for_all_at_once_and_extract_approach(node: TreeNode, 
                 # All-at-once instruction
                 load_sp_file("sp_all_at_once_shorter.txt") +
                 # Input variables (constants) problem description
-                d2_bin_packing_formalized_problem_description[0] + "\n" +
+                d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
                 # Output variables (decision variables) - problem description
-                d2_bin_packing_formalized_problem_description[1] + "\n" +
+                d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
                 # Global problem description
-                d2_bin_packing_formalized_problem_description[2] + "\n" +
+                d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
                 # Sub problem description
-                d2_bin_packing_formalized_problem_description[3] + "\n" +
+                d2_bin_packing_formalized_problem_description_inst2[3] + "\n" +
                 # Sub problem description
-                d2_bin_packing_formalized_problem_description[4] + "\n" +
+                d2_bin_packing_formalized_problem_description_inst2[4] + "\n" +
                 # Sub problem description
-                d2_bin_packing_formalized_problem_description[5]
+                d2_bin_packing_formalized_problem_description_inst2[5]
                 ,max_tokens=2500
             )
         else:
@@ -547,17 +567,17 @@ def create_and_send_prompt_for_all_at_once_and_extract_approach(node: TreeNode, 
             # All-at-once instruction
             load_sp_file("sp_all_at_once_shorter.txt") +
             # Input variables (constants) problem description
-            d2_bin_packing_formalized_problem_description[0] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
             # Output variables (decision variables) - problem description
-            d2_bin_packing_formalized_problem_description[1] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
             # Global problem description
-            d2_bin_packing_formalized_problem_description[2] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
             # Sub problem description
-            d2_bin_packing_formalized_problem_description[3] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[3] + "\n" +
             # Sub problem description
-            d2_bin_packing_formalized_problem_description[4] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[4] + "\n" +
             # Sub problem description
-            d2_bin_packing_formalized_problem_description[5]
+            d2_bin_packing_formalized_problem_description_inst2[5]
             ,max_tokens=2500
         )
     # OBJ FUNCTION
@@ -573,17 +593,17 @@ def create_and_send_prompt_for_all_at_once_and_extract_approach(node: TreeNode, 
         # All-at-once instruction
         load_sp_file("sp_all_at_once_shorter.txt") +
         # Input variables (constants) problem description
-        d2_bin_packing_formalized_problem_description[0] + "\n" +
+        d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
         # Output variables (decision variables) - problem description
-        d2_bin_packing_formalized_problem_description[1] + "\n" +
+        d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
         # Global problem description
-        d2_bin_packing_formalized_problem_description[2] + "\n" +
+        d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
         # Sub problem description
-        d2_bin_packing_formalized_problem_description[3] + "\n" +
+        d2_bin_packing_formalized_problem_description_inst2[3] + "\n" +
         # Sub problem description
-        d2_bin_packing_formalized_problem_description[4] + "\n" +
+        d2_bin_packing_formalized_problem_description_inst2[4] + "\n" +
         # Sub problem description
-        d2_bin_packing_formalized_problem_description[5],
+        d2_bin_packing_formalized_problem_description_inst2[5],
         max_tokens=2500
     )
     # CONSTRAINT
@@ -600,11 +620,11 @@ def create_and_send_prompt_for_all_at_once_and_extract_approach(node: TreeNode, 
             # All-at-once instruction
             load_sp_file("sp_all_at_once_shorter.txt") +
             # Input variables (constants) problem description
-            d2_bin_packing_formalized_problem_description[0] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[0] + "\n" +
             # Output variables (decision variables) - problem description
-            d2_bin_packing_formalized_problem_description[1] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[1] + "\n" +
             # Global problem description
-            d2_bin_packing_formalized_problem_description[2] + "\n" +
+            d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
             # Sub problem description
             subproblem_description,
             max_tokens=2500
@@ -629,7 +649,7 @@ def send_feedback(node: TreeNode, syntax: bool = True):
         _ = llm.send_prompt(
             prompt=
             f"""The following is an example for a, maybe not optimal, but syntactically valid {"full" if node.level == 4 else "partial"} OptDSL formulation of the optimization problem:
-        {d2_bin_packing_formalized_problem_description}           
+        {d2_bin_packing_formalized_problem_description_inst2}           
         Learn from it its syntax and semantics of OptDSL. Apply the syntax knowledge in the future. Provide diverse encodings in the future.
         ´´´ python
         {node.get_partial_formulation_up_until_now()}
@@ -767,7 +787,79 @@ You are an optimization problem formulation expert that encodes specific parts o
         }
         return system_prompt.get(key)
 
-d2_bin_packing_formalized_problem_description = [
+d2_bin_packing_formalized_problem_description_inst1 = [
+    # Input
+    """
+    ´´´ json
+    {
+        "BOX_HEIGHT": 5,
+        "BOX_WIDTH": 10,
+        "ITEMS": [
+            {
+                "name": "item1",
+                "width": 10,
+                "height": 5
+            },
+            {
+                "name": "item2",
+                "width": 2,
+                "height": 2
+            }
+        ]
+    }
+    ´´´
+    """,
+    # Output
+    """
+    ´´´json
+    [
+        {
+            "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+            "is_objective": true,
+            "mandatory_variable_name": "nr_used_boxes",
+            "suggested_shape": "integer"
+        },
+        {
+            "description": "Which item is assigned to which box.",
+            "is_objective": false,
+            "mandatory_variable_name": "item_box_assignments",
+            "suggested_shape": "array"
+        },
+        {
+            "description": "Position x and y of each item within box",
+            "is_objective": false,
+            "mandatory_variable_name": "x_y_positions",
+            "suggested_shape": "array"
+        }
+    ]
+    ´´´
+    """,
+    # Global description
+    """
+    Global problem:
+    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
+    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
+    The result and expected output is:
+        - the assigment of each item into a box 
+        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.
+    """,
+    # Subproblem description - part 1
+    """Sub problem definition - items that go in the bin - part 1:
+    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """,
+    # Subproblem description - part 2
+    """Sub problem definition - items that go in the bin - part 2:
+    Taking the given items that are put into a box, they must not overlap.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """,
+    # Subproblem description - part 3
+    """Sub problem definition - items that go in the bin - part 3:
+    Taking the given items that are put into a box, one item can be exactly in one box.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """
+    ]
+d2_bin_packing_formalized_problem_description_inst2 = [
     # Input
     """
     ´´´ json
@@ -776,7 +868,7 @@ d2_bin_packing_formalized_problem_description = [
         "BOX_WIDTH": 10,
         "ITEMS": [
             {
-                "name": "item1"
+                "name": "item1",
                 "width": 4,
                 "height": 3
             },
@@ -822,7 +914,216 @@ d2_bin_packing_formalized_problem_description = [
         {
             "description": "Which item is assigned to which box.",
             "is_objective": false,
-            "mandatory_variable_name": "item_box_assignment",
+            "mandatory_variable_name": "item_box_assignments",
+            "suggested_shape": "array"
+        },
+        {
+            "description": "Position x and y of each item within box",
+            "is_objective": false,
+            "mandatory_variable_name": "x_y_positions",
+            "suggested_shape": "array"
+        }
+    ]
+    ´´´
+    """,
+    # Global description
+    """
+    Global problem:
+    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
+    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
+    The result and expected output is:
+        - the assigment of each item into a box 
+        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.
+    """,
+    # Subproblem description - part 1
+    """Sub problem definition - items that go in the bin - part 1:
+    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """,
+    # Subproblem description - part 2
+    """Sub problem definition - items that go in the bin - part 2:
+    Taking the given items that are put into a box, they must not overlap.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """,
+    # Subproblem description - part 3
+    """Sub problem definition - items that go in the bin - part 3:
+    Taking the given items that are put into a box, one item can be exactly in one box.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """
+    ]
+d2_bin_packing_formalized_problem_description_inst3 = [
+    # Input
+    """
+    ´´´ json
+    {
+        "BOX_HEIGHT": 5,
+        "BOX_WIDTH": 12,
+        "ITEMS": [
+            {
+                "name": "item1",
+                "width": 4,
+                "height": 3
+            },
+            {
+                "name": "item2",
+                "width": 1,
+                "height": 2
+            },
+            {
+                "name": "item3",
+                "width": 5,
+                "height": 3
+            },
+            {
+                "name": "item4",
+                "width": 4,
+                "height": 2
+            },
+            {
+                "name": "item5",
+                "width": 1,
+                "height": 3
+            },
+            {
+                "name": "item6",
+                "width": 5,
+                "height": 2
+            },
+            {
+                "name": "item7",
+                "width": 9,
+                "height": 5
+            },
+            {
+                "name": "item8",
+                "width": 3,
+                "height": 5
+            },
+            {
+                "name": "item9",
+                "width": 5,
+                "height": 1
+            }
+        ]
+    }
+    ´´´
+    """,
+    # Output
+    """
+    ´´´json
+    [
+        {
+            "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+            "is_objective": true,
+            "mandatory_variable_name": "nr_used_boxes",
+            "suggested_shape": "integer"
+        },
+        {
+            "description": "Which item is assigned to which box.",
+            "is_objective": false,
+            "mandatory_variable_name": "item_box_assignments",
+            "suggested_shape": "array"
+        },
+        {
+            "description": "Position x and y of each item within box",
+            "is_objective": false,
+            "mandatory_variable_name": "x_y_positions",
+            "suggested_shape": "array"
+        }
+    ]
+    ´´´
+    """,
+    # Global description
+    """
+    Global problem:
+    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
+    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
+    The result and expected output is:
+        - the assigment of each item into a box 
+        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.
+    """,
+    # Subproblem description - part 1
+    """Sub problem definition - items that go in the bin - part 1:
+    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """,
+    # Subproblem description - part 2
+    """Sub problem definition - items that go in the bin - part 2:
+    Taking the given items that are put into a box, they must not overlap.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """,
+    # Subproblem description - part 3
+    """Sub problem definition - items that go in the bin - part 3:
+    Taking the given items that are put into a box, one item can be exactly in one box.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
+    """
+    ]
+d2_bin_packing_formalized_problem_description_inst4 = [
+    # Input
+    """
+    ´´´ json
+    {
+        "BOX_HEIGHT": 12,
+        "BOX_WIDTH": 5,
+        "ITEMS": [
+            {
+                "name": "item1",
+                "width": 3,
+                "height": 4
+            },
+            {
+                "name": "item2",
+                "width": 1,
+                "height": 2
+            },
+            {
+                "name": "item3",
+                "width": 5,
+                "height": 4
+            },
+            {
+                "name": "item4",
+                "width": 2,
+                "height": 4
+            },
+            {
+                "name": "item5",
+                "width": 1,
+                "height": 3
+            },
+            {
+                "name": "item6",
+                "width": 5,
+                "height": 9
+            },
+            {
+                "name": "item7",
+                "width": 5,
+                "height": 3
+            },
+            {
+                "name": "item8",
+                "width": 5,
+                "height": 1
+            }
+        ]
+    }
+    ´´´
+    """,
+    # Output
+    """
+    ´´´json
+    [
+        {
+            "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+            "is_objective": true,
+            "mandatory_variable_name": "nr_used_boxes",
+            "suggested_shape": "integer"
+        },
+        {
+            "description": "Which item is assigned to which box.",
+            "is_objective": false,
+            "mandatory_variable_name": "item_box_assignments",
             "suggested_shape": "array"
         },
         {
@@ -874,7 +1175,7 @@ def build_up_formulation_iteratively(llm):
     N_FAILED_GENERATIONS = 0
 
     # Root node - get textual description
-    root_node = RootNode()
+    root_node = RootNode(save_nodes=False)
     '''response = create_and_send_prompt(root_node)
     root_node.set_content(response)
     '''
@@ -919,7 +1220,7 @@ def build_up_formulation_iteratively(llm):
         else:
             response = create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node)
         response = enter_variable_definitions_feedback_loop(constants_variables_node, response)
-        successfully_added = constants_variables_node.set_variables(response)
+        successfully_added = constants_variables_node.set_variables(response, d2_bin_packing_formalized_problem_description_inst2[1])
         i += 1
     #send_feedback(constants_variables_node)
     print(f"*** Response (decision) variables: {response}\n")
@@ -934,41 +1235,61 @@ def build_up_formulation_iteratively(llm):
         response = create_and_send_prompt_for_all_at_once_and_extract_approach(obj_function_node)
     else:
         response = create_and_send_prompt_for_strictly_iterative_approach(obj_function_node)
-    response = enter_variable_definitions_feedback_loop(obj_function_node, response)
-    obj_function_node.set_content(response)
-    send_feedback(obj_function_node)
+    response = enter_variable_definitions_feedback_loop(obj_function_node, response, d2_bin_packing_formalized_problem_description_inst2[2])
+
+    # Create connection between objective and given objective decision variable
+    objective_var_name = [variable["mandatory_variable_name"] for variable in json.loads(
+        remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[1])) if
+                          variable["is_objective"]][0]
+
+    obj_function_node.set_content(f"\nobjective = {objective_var_name}\n" + response)
     print(f"*** Obj. function: {response}\n")
     if response == "":
         N_FAILED_GENERATIONS += 1
         print("Creating objective function failed!")
-    else:
-        send_feedback(obj_function_node)
+    send_feedback(obj_function_node)
 
     # Query constraints
     constraints_node = ConstraintsNode(parent=obj_function_node) #if USE_OPTDSL else ConstraintsNode(parent=obj_function_node)
-    for i in range(3,len(d2_bin_packing_formalized_problem_description)):
+    for i in range(3,len(d2_bin_packing_formalized_problem_description_inst2)):
         if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
-            response = create_and_send_prompt_for_all_at_once_and_extract_approach(constraints_node, subproblem_description=d2_bin_packing_formalized_problem_description[i])
+            response = create_and_send_prompt_for_all_at_once_and_extract_approach(constraints_node, subproblem_description=d2_bin_packing_formalized_problem_description_inst2[i])
         else:
-            response = create_and_send_prompt_for_strictly_iterative_approach(constraints_node, subproblem_description=d2_bin_packing_formalized_problem_description[i])
-        response = enter_variable_definitions_feedback_loop(constraints_node, response, subproblem_description=d2_bin_packing_formalized_problem_description[i])
+            response = create_and_send_prompt_for_strictly_iterative_approach(constraints_node, subproblem_description=d2_bin_packing_formalized_problem_description_inst2[i])
+        response = enter_variable_definitions_feedback_loop(constraints_node, response, subproblem_description=d2_bin_packing_formalized_problem_description_inst2[i])
         constraints_node.set_content(response)
         print(f"*** Constraints: {response}\n")
         if response == "":
             N_FAILED_GENERATIONS += 1
             print("Creating constraints failed!")
-        else:
-            if len(d2_bin_packing_formalized_problem_description)-1 == i: send_feedback(constraints_node)
+        if i == len(d2_bin_packing_formalized_problem_description_inst2)-1: send_feedback(constraints_node)
+        
+    # Validate minizinc solution
+    task = {
+        "input": json.loads(remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[0])),
+        "output": json.loads(remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[1]))
+    }
+    try:
+        validate_solution(constraints_node.solution_model, task)
+    except AssertionError as e:
+        validation_res = f"Failed to validate solution: {e}"
+    except Exception:
+        validation_res = f"Evaluation failed."
+    else:
+        validation_res = f"Successfully validated solution."
+    constraints_node.save_child_to_file(validation_res)
+
     if constants.DEBUG_MODE_ON: print(f"""Full formulation:
 {constraints_node.get_partial_formulation_up_until_now()}
 **************************
-Total failed steps: {N_FAILED_GENERATIONS}
+Total failed steps: {N_FAILED_GENERATIONS}, {constraints_node.n_failed_generations}
 Objective value: {constraints_node.objective_val}
 Solve time (sec): {constraints_node.solve_time}
 Solution model: {constraints_node.solution_model}
+{validation_res}
 **************************
 ----------------------------------------------------------------------------""")
-    if N_FAILED_GENERATIONS == 0 and constraints_node.objective_val is not None:
+    if N_FAILED_GENERATIONS == 0 and "Successfully" in validation_res and constraints_node.objective_val is not None:
         send_feedback(constraints_node, syntax=False)
 
 
