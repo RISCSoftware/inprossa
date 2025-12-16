@@ -638,6 +638,39 @@ class CodeBlock:
             #     self.create_deep_equality_constraint(self.variable_table[var], [], value, stmt.value, loop_scope)
             #     # self.create_equality_constraint(self.variable_table[var].versioned_name(), value, stmt.value, loop_scope, fields=type_.initial_assigned_fields())
 
+    # --- HELPERS ---
+    def extract_generator_constraints(self, gen, loop_scope):
+        """
+        Evaluate a generator expression by executing it as a for-loop
+        and returning the resulting constraint expressions.
+        """
+
+        # Backup state
+        constraints_backup = self.constraints
+        var_backup = copy.deepcopy(self.variable_table)
+
+        self.constraints = []
+
+        # Build: for target in iter: assert(gen.elt)
+        fake_assert = ast.Assert(test=gen.elt, msg=None)
+        fake_for = ast.For(
+            target=gen.generators[0].target,
+            iter=gen.generators[0].iter,
+            body=[fake_assert],
+            orelse=[]
+        )
+
+        # Execute locally
+        self.execute_block([fake_for], loop_scope)
+
+        extracted = [c.expression for c in self.constraints]
+
+        # Restore state
+        self.constraints = constraints_backup
+        self.variable_table = var_backup
+
+        return extracted
+
 
 def all_indices(shape):
     """Yield 1-based index tuples for an n-D array of given sizes."""

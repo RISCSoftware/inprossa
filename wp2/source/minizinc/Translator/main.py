@@ -111,9 +111,10 @@ ml : int
 if ml < 5:
     my_var : DSList(length=2, elem_type=DSBool()) = 3
 """
-#     code = """
-# objective = 1
-# """
+    code = """
+a : DSList(3, int)
+assert all(x > 0 for x in a)
+"""
     # code = code_check_machine
     translator = MiniZincTranslator(code)
     model = translator.unroll_translation()

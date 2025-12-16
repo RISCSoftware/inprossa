@@ -14,10 +14,10 @@ full_code = (
     + code_objects
     + code_given_objects
     + code_pipeline
-    # + code_reordering_machine
+    + code_reordering_machine
     + code_cutting_machine
-    # + code_filtering_machine
-    # + code_check_machine
+    + code_filtering_machine
+    + code_check_machine
 )
 
 translator = MiniZincTranslator(full_code)

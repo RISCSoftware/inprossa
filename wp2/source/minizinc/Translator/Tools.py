@@ -21,6 +21,7 @@ class ExpressionRewriter:
             self.variable_table = variable_table
             self.constant_table = constant_table
             self.types = types
+        self.code_block = code_block
 
     def get_expr_value(self, expr):
         """
@@ -191,7 +192,6 @@ class ExpressionRewriter:
             if func_name.startswith("DS"):
                 raise ValueError(f"DS-type constructor should not appear in expressions: {expr}")
             
-            
 
             # --- Step 4: only process interesting functions ---
             if func_name not in (quantifiers | aggregators):
@@ -204,24 +204,24 @@ class ExpressionRewriter:
             # --- Step 6: generator version ---
             # For example, sum(x for x in A)
             if is_generator:
-                gen = arg
-                target = gen.generators[0].target.id
-                iter_ = self.rewrite_expr(gen.generators[0].iter)
-                
-                # Crear loop_scope temporal
-                new_scope = self.loop_scope.copy()
-                new_scope[target] = target
-                
-                elt_expr = ExpressionRewriter(
-                    loop_scope=new_scope,
-                    variable_table=self.variable_table,
-                    constant_table=self.constant_table,
-                    types=self.types,
-                ).rewrite_expr(gen.elt)
 
-                func_map = {"any": "exists", "all": "forall"}
-                mz_func = func_map.get(func_name, func_name)
-                return f"{mz_func}({target} in {iter_})({elt_expr})"
+                op_map = {
+                    "all": " /\\ ",
+                    "forall": " /\\ ",
+                    "any": " \\/ ",
+                    "exists": " \\/ ",
+                }
+                join_op = op_map[func_name]
+
+                exprs = self.code_block.extract_generator_constraints(
+                    gen=arg,
+                    loop_scope=self.loop_scope
+                )
+
+                if not exprs:
+                    return "true" if join_op.strip() == "/\\" else "false"
+
+                return "(" + join_op.join(exprs) + ")"
 
             # --- Step 7: explicit arguments version ---
             # For example, sum([a, b, c])
@@ -280,6 +280,24 @@ class ExpressionRewriter:
             # Fallback: use source-like syntax
             print("Fallback: use source-like syntax\n", expr, type(expr))
             return expr
+
+
+def enumerate_iterable(self, iter_node):
+    # range(n)
+    if isinstance(iter_node, ast.Call) and iter_node.func.id == "range":
+        n = self.eval_constant(iter_node.args[0])
+        return [str(i) for i in range(n)]
+
+    # constant array
+    if isinstance(iter_node, ast.Name):
+        name = iter_node.id
+        if name in self.constant_table:
+            size = self.constant_table[name]["size"]
+            return [f"{name}[{i}]" for i in range(1, size + 1)]
+
+    raise NotImplementedError(
+        f"Cannot unroll generator over {ast.dump(iter_node)}"
+    )
 
 
 def ast_to_evaluation_constants(node: ast.AST, constant_table: Optional[dict] = None) -> dict:
