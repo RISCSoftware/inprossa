@@ -280,7 +280,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                         raw_definitions)
             else:
                 # Safety check: check if DSInts are correctly initialized according to lb and ub
-                if node. level == 3 or node. level == 4 or node. level == 5:
+                if node. level == 3 or node. level == 4 or node.level == 5:
                     pattern = re.compile(
                         r"""^\s*(?P<var>[A-Za-z_]\w*)\s*:\s*[A-Za-z_]\w*\s*\(
                              (?:.*?(?:\blb\s*=\s*(?P<lb>-?\d+))?)?
@@ -310,6 +310,15 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                             ))
                             if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                                 raw_definitions)
+                # Safety check: check semantics by comparing textual repr.
+                '''
+                if node.level == 3:
+                    model = SentenceTransformer("all-MiniLM-L6-v2")
+                    emb1 = model.encode(raw_definitions, convert_to_tensor=True)
+                    emb2 = model.encode(node.get_textual_repr(), convert_to_tensor=True)
+                    if util.cos_sim(emb1, emb2) < 0.8:
+                        print(f"Objective function, does not represent requested purpose.")
+                '''
                 # Safety check: Prevent false-positive exec-run-through by sneakily never calling function
                 if node.level == 4:
                     not_twice_appearing_func = check_functions_appear_twice(raw_definitions)
@@ -380,7 +389,11 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode, execu
             # Global problem description
             d2_bin_packing_formalized_problem_description_inst2[2] + "\n" +
             # Sub problem description
-            d2_bin_packing_formalized_problem_description_inst2[3],
+            d2_bin_packing_formalized_problem_description_inst2[3] + "\n" +
+            # Sub problem description
+            d2_bin_packing_formalized_problem_description_inst2[4] + "\n" +
+            # Sub problem description
+            d2_bin_packing_formalized_problem_description_inst2[5],
             max_tokens=800
         )
     # OBJECTS (datatypes)
@@ -786,7 +799,7 @@ You are an optimization problem formulation expert that encodes specific parts o
             1. "<initialization_left> = <initialization_right>" must be valid python z3py code."""
         }
         return system_prompt.get(key)
-
+'''
 d2_bin_packing_formalized_problem_description_inst1 = [
     # Input
     """
@@ -1058,7 +1071,8 @@ d2_bin_packing_formalized_problem_description_inst3 = [
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
     """
     ]
-d2_bin_packing_formalized_problem_description_inst4 = [
+'''
+d2_bin_packing_formalized_problem_description_inst2 = [
     # Input
     """
     ´´´ json
@@ -1159,7 +1173,7 @@ d2_bin_packing_formalized_problem_description_inst4 = [
     Taking the given items that are put into a box, one item can be exactly in one box.
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
     """
-    ]
+    ] # 4
 '''
 knapsack = """This problem involves a collection of items, where each have a value and a weight. We have a scissor with value 15
 and weight 12, a book with value 50 and weight 70, a laptop with value 80 and weight 100, a phone with value 80
@@ -1176,9 +1190,8 @@ def build_up_formulation_iteratively(llm):
 
     # Root node - get textual description
     root_node = RootNode(save_nodes=False)
-    '''response = create_and_send_prompt(root_node)
-    root_node.set_content(response)
-    '''
+    #response = create_and_send_prompt_for_strictly_iterative_approach(root_node)
+
     # Query object types, data types
     datatypes_node = ObjectsNode(parent=root_node)
     if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
@@ -1273,8 +1286,8 @@ def build_up_formulation_iteratively(llm):
         validate_solution(constraints_node.solution_model, task)
     except AssertionError as e:
         validation_res = f"Failed to validate solution: {e}"
-    except Exception:
-        validation_res = f"Evaluation failed."
+    except Exception as e:
+        validation_res = f"Evaluation failed: " + e.message
     else:
         validation_res = f"Successfully validated solution."
     constraints_node.save_child_to_file(validation_res)

@@ -1,0 +1,10 @@
+Create a very short, concise textual description of:
+    1. an objective, that is calculated.
+    2. and constraints for the problem below.
+The result must not be code or json, just text or pseudo-code.
+The result must be detailed method descriptions such that a software engineer may create a program from it.
+Output the descriptions in the following format:
+--- Objective function ---
+<placeholder for obj. function for LLM>
+--- Constraints <number of subproblem> ---
+<placeholder for constraints for LLM>
