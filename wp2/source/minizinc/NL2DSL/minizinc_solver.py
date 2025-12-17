@@ -41,7 +41,7 @@ def minizinc_item_to_dict(s: str) -> Dict[str, Any]:
 
 
 class MiniZincSolver:
-    def solve_with_command_line_minizinc(self, minizinc_code: str):
+    def solve_with_command_line_minizinc(self, minizinc_code: str, is_terminal_node: bool = False):
         # write the MiniZinc model to temp.mzn
         with lock:
             with open("temp.mzn", "w", encoding="utf-8") as f:
@@ -49,21 +49,30 @@ class MiniZincSolver:
 
             # run minizinc on the file
             try:
-                result = subprocess.Popen(
-                    ["minizinc",
-                                "--solver", "gecode",
-                                 "--statistics",
-                                 "--output-mode", "item",
-                                 "--time-limit", "60000",
-                                 "temp.mzn"],
-                    #capture_output=True,
-                    #text=True,
-                    #timeout=70
-                    text=True,
-                    stdout = subprocess.PIPE, stderr = subprocess.PIPE
-                )
+                if is_terminal_node:
+                    result = subprocess.Popen(
+                        ["minizinc",
+                                    "--solver", "gecode",
+                                     "--statistics",
+                                     "--output-mode", "item",
+                                     "--time-limit", "300000",
+                                     "temp.mzn"],
+                        text=True,
+                        stdout = subprocess.PIPE, stderr = subprocess.PIPE
+                    )
+                else:
+                    result = subprocess.Popen(
+                        ["minizinc",
+                         "--solver", "gecode",
+                         "--statistics",
+                         "--output-mode", "item",
+                         "--time-limit", "60000",
+                         "temp.mzn"],
+                        text=True,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    )
                 try:
-                    solver_output, errs = result.communicate(timeout=100)  # or some reasonable timeout
+                    solver_output, errs = result.communicate(timeout=320)
                 except subprocess.TimeoutExpired:
                     if DEBUG_MODE_ON: print("Minizinc failed the first time - lets try that again")
                     result.kill()  # or proc.terminate()

@@ -55,8 +55,6 @@ def _extract_assignment_and_position(solver_solution: dict):
                             else:
                                 raise ValueError(
                                     "Unreadable format of x_y_positions[\"position\"], no x or y position found.")
-                    else:
-                        raise ValueError("Unreadable format of x_y_positions of x,y from solver solution for validation.")
             else:
                 raise ValueError("Unreadable format of x_y_positions of solver solution for validation.")
     return solution
@@ -115,86 +113,18 @@ def validate_solution(solver_solution : dict, task : dict):
                         assign_j["y"] + item_j["height"] <= assign_i["y"]), f"Items {i} and {j} overlap."
 
 
-d2_bin_packing_formalized_problem_description = [
-# Input
-"""
-´´´ json
-{
-    "BOX_HEIGHT": 6,
-    "BOX_WIDTH": 10,
-    "ITEMS": [
-        {
-            "name": "item1",
-            "width": 4,
-            "height": 3
-        },
-        {
-            "name": "item2",
-            "width": 3,
-            "height": 2
-        },
-        {
-            "name": "item3",
-            "width": 5,
-            "height": 3
-        },
-        {
-            "name": "item4",
-            "width": 2,
-            "height": 4
-        },
-        {
-            "name": "item5",
-            "width": 3,
-            "height": 3
-        },
-        {
-            "name": "item6",
-            "width": 5,
-            "height": 2
-        }
-    ]
-}
-´´´
-""",
-# Output
-"""
-´´´json
-[
-    {
-        "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
-        "is_objective": true,
-        "mandatory_variable_name": "nr_used_boxes",
-        "suggested_shape": "integer"
-    },
-    {
-        "description": "Which item is assigned to which box.",
-        "is_objective": false,
-        "mandatory_variable_name": "item_box_assignments",
-        "suggested_shape": "array"
-    },
-    {
-        "description": "Position x and y of each item within box",
-        "is_objective": false,
-        "mandatory_variable_name": "x_y_positions",
-        "suggested_shape": "array"
-    }
-]
-´´´
-"""
-]
 d2_bin_packing_formalized_problem_description_inst2 = [
     # Input
     """
     ´´´ json
     {
-        "BOX_HEIGHT": 5,
-        "BOX_WIDTH": 12,
+        "BOX_HEIGHT": 12,
+        "BOX_WIDTH": 5,
         "ITEMS": [
             {
                 "name": "item1",
-                "width": 4,
-                "height": 3
+                "width": 3,
+                "height": 4
             },
             {
                 "name": "item2",
@@ -204,12 +134,12 @@ d2_bin_packing_formalized_problem_description_inst2 = [
             {
                 "name": "item3",
                 "width": 5,
-                "height": 3
+                "height": 4
             },
             {
                 "name": "item4",
-                "width": 4,
-                "height": 2
+                "width": 2,
+                "height": 4
             },
             {
                 "name": "item5",
@@ -219,20 +149,15 @@ d2_bin_packing_formalized_problem_description_inst2 = [
             {
                 "name": "item6",
                 "width": 5,
-                "height": 2
+                "height": 9
             },
             {
                 "name": "item7",
-                "width": 9,
-                "height": 5
+                "width": 5,
+                "height": 3
             },
             {
                 "name": "item8",
-                "width": 3,
-                "height": 5
-            },
-            {
-                "name": "item9",
                 "width": 5,
                 "height": 1
             }
@@ -289,7 +214,7 @@ d2_bin_packing_formalized_problem_description_inst2 = [
     Taking the given items that are put into a box, one item can be exactly in one box.
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
     """
-    ]
+    ] # 4
 
 """
 # Example of calling from another function:
@@ -298,6 +223,11 @@ if __name__ == "__main__":
         "input": json.loads(remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[0])),
         "output": json.loads(remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[1]))
     }
+    # Validate solver solutions
+    validate_solution(json.loads(
+        "{\"objective\": [0, 1, 1, 8, 8, 8, 8, 8, 8], \"nr_used_boxes\": [1], \"item_box_assignments\": [[8, 7, 6, 5, 4, 3, 2, 1]], \"x_y_positions\": [[{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}]], \"calculated_objective_value\": [8], \"assignments__calculate_objective__1\": [[{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}]], \"box_id__calculate_objective__1\": [8, 7, 6, 5, 4, 3, 2, 1], \"max_box_id__calculate_objective__1\": [0, 8, 8, 8, 8, 8, 8, 8, 8], \"objective__calculate_objective__1\": [0], \"assignment__fits_in_box__1\": [{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}], \"assignments__fits_in_box__1\": [[{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}]], \"item__fits_in_box__1\": [{\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}], \"items__fits_in_box__1\": [[{\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}]], \"objective__fits_in_box__1\": [0], \"assignment_i__no_overlap__1\": [{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}], \"assignment_j__no_overlap__1\": [{\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}], \"assignments__no_overlap__1\": [[{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}]], \"item_i__no_overlap__1\": [{\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 4, \"width\": 2}, {\"height\": 4, \"width\": 2}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 3, \"width\": 1}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}], \"item_j__no_overlap__1\": [{\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 1, \"width\": 5}], \"items__no_overlap__1\": [[{\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}]], \"objective__no_overlap__1\": [0], \"assignment__ensure_item_assignment_correctness__1\": [{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}], \"assignments__ensure_item_assignment_correctness__1\": [[{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}]], \"item__ensure_item_assignment_correctness__1\": [{\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}], \"item_box_assignments__ensure_item_assignment_correctness__1\": [[8, 7, 6, 5, 4, 3, 2, 1]], \"items__ensure_item_assignment_correctness__1\": [[{\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}]], \"objective__ensure_item_assignment_correctness__1\": [0], \"assignment_i__prevent_item_overlap_in_same_box__1\": [{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}], \"assignment_j__prevent_item_overlap_in_same_box__1\": [{\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}], \"assignments__prevent_item_overlap_in_same_box__1\": [[{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}]], \"item_i__prevent_item_overlap_in_same_box__1\": [{\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 4, \"width\": 2}, {\"height\": 4, \"width\": 2}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 3, \"width\": 1}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}], \"item_j__prevent_item_overlap_in_same_box__1\": [{\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}, {\"height\": 1, \"width\": 5}], \"items__prevent_item_overlap_in_same_box__1\": [[{\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}]], \"objective__prevent_item_overlap_in_same_box__1\": [0], \"assignment__ensure_one_box_per_item__1\": [{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}], \"assignments__ensure_one_box_per_item__1\": [[{\"box_id\": 8, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"item_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"item_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"item_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"item_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"item_id\": 8, \"x\": 0, \"y\": 0}]], \"item_box_assignments__ensure_one_box_per_item__1\": [[8, 7, 6, 5, 4, 3, 2, 1]], \"items__ensure_one_box_per_item__1\": [[{\"height\": 4, \"width\": 3}, {\"height\": 2, \"width\": 1}, {\"height\": 4, \"width\": 5}, {\"height\": 4, \"width\": 2}, {\"height\": 3, \"width\": 1}, {\"height\": 9, \"width\": 5}, {\"height\": 3, \"width\": 5}, {\"height\": 1, \"width\": 5}]], \"objective__ensure_one_box_per_item__1\": [0]}"),
+                      task)
+
 
     # Extract minizinc solver solutions
 
@@ -316,9 +246,7 @@ if __name__ == "__main__":
             pass
 
 
-    # Validate solver solutions
-    validate_solution(json.loads("{\"objective\": [0, 0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], \"nr_used_boxes\": [8], \"item_box_assignments\": [[3, 1, 8, 5, 7, 2, 6, 1, 4]], \"x_y_positions\": [[{\"x\": 0, \"y\": 0}, {\"x\": 3, \"y\": 0}, {\"x\": 0, \"y\": 0}, {\"x\": 0, \"y\": 0}, {\"x\": 0, \"y\": 0}, {\"x\": 0, \"y\": 0}, {\"x\": 0, \"y\": 0}, {\"x\": 0, \"y\": 0}, {\"x\": 0, \"y\": 0}]]}"), task)
-
+    
     for i, (solver_solution, m) in enumerate(solver_solutions):
         try:
             validate_solution(solver_solution, task)

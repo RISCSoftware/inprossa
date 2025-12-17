@@ -1,0 +1,75 @@
+{
+    "id": "L0-N0|L1-N0|L2-N1|L3-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "\n\n# -- Objects --\n\n\n# --- Objects ---\nItem = DSRecord({\n    \"width\": Annotated[int, Field(strict=True, ge=1, le=10)],\n    \"height\": Annotated[int, Field(strict=True, ge=1, le=6)]\n})\n\nPosition = DSRecord({\n    \"x\": Annotated[int, Field(strict=True, ge=0, le=10)],\n    \"y\": Annotated[int, Field(strict=True, ge=0, le=6)]\n})\n\n\n\n# --- Constants ---\nITEM1 : Item = {\"width\": 4, \"height\": 3}\nITEM2 : Item = {\"width\": 3, \"height\": 2}\nITEM3 : Item = {\"width\": 5, \"height\": 3}\nITEM4 : Item = {\"width\": 2, \"height\": 4}\nITEM5 : Item = {\"width\": 3, \"height\": 3}\nITEM6 : Item = {\"width\": 5, \"height\": 2}\nITEMS : Annotated[list[Item], Len(6, 6)] = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]\nBOX_HEIGHT : Annotated[int, Field(strict=True, ge=1, le=6)] = 6\nBOX_WIDTH : Annotated[int, Field(strict=True, ge=1, le=10)] = 10\nN_ITEMS : int = 6\nnr_used_boxes : Annotated[int, Field(strict=True, ge=0, le=6)]\nitem_box_assignments : Annotated[list[int], Len(6, 6)]\nx_y_positions : Annotated[list[Position], Len(6, 6)]\nN_ITEMS : int = 6\nN_ITEM_BOX_ASSIGNMENTS : int = 6\nN_X_Y_POSITIONS : int = 6\n\n\n# -- Objective --\n\n\n# --- objective ---\ndef calculate_objective(item_box_assignments: Annotated[list[int], Len(6, 6)], nr_used_boxes: int) -> int:\n    # Objective is to minimize the number of boxes used\n    return nr_used_boxes\n\n# Calculate the objective value\ncalculated_objective_value = calculate_objective(item_box_assignments, nr_used_boxes)\n\n# Assign the calculated objective to the environment objective variable\nobjective = calculated_objective_value",
+    "objective_val": 0,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            0
+        ],
+        "nr_used_boxes": [
+            0
+        ],
+        "item_box_assignments": [
+            [
+                -2147483646,
+                -2147483646,
+                -2147483646,
+                -2147483646,
+                -2147483646,
+                -2147483646
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            0
+        ],
+        "item_box_assignments__calculate_objective__1": [
+            [
+                -2147483646,
+                -2147483646,
+                -2147483646,
+                -2147483646,
+                -2147483646,
+                -2147483646
+            ]
+        ],
+        "nr_used_boxes__calculate_objective__1": [
+            0
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ]
+    },
+    "solve_time": 0.0002447
+}
