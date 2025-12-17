@@ -1,8 +1,10 @@
 import json
+import math
 import os
 import re
 import sys
 import traceback
+from copy import deepcopy
 from enum import Enum
 
 from sentence_transformers import util
@@ -15,6 +17,7 @@ from constants import SYSTEM_PROMPT_FOLDER, DEBUG_MODE_ON, USE_TYPING, USE_PYDAN
 import logging
 
 from minizinc_solver import MiniZincSolver
+from node_creation_utils import NodeGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,7 @@ class State(Enum):
 
 class TreeNode:
     MAX_LEVEL = 4
-    MAX_CANDIDATES = 4
+    MAX_CANDIDATES = 2
     FILE_NAME = "data.json"
 
     def __init__(self, name = "", parent = None, level: int = 0, save_nodes: bool = False):
@@ -44,15 +47,19 @@ class TreeNode:
         self.is_terminal = False
         self.level = level
         self.state = State.UNINITIALIZED
-        self.visits = 0  # Visit count
-        self.wins = 0  # Win count
         self.objective_val = None
         self.solve_time = None
         self.solution_model = None
+        self.validated = False
         self.n_failed_generations = parent.n_failed_generations if self.parent is not None else 0
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now if self.parent is not None else ""
+        # MCTS specific
+        self.visits = 0
+        self.wins = 0.0
 
     def save_child_to_file(self, final_evaluation_result: str = None):
+        if "Successfully" in final_evaluation_result:
+            self.validated = True
         if not self.save_nodes or (self.level >= 4 and not final_evaluation_result): return
         data = {
             "id": self.id,
@@ -74,25 +81,97 @@ class TreeNode:
         self.children.append(child)
 
     def get_correct_children(self):
-        return [child for child in self.children if child.state == State.CORRECT]
+        return [child for child in self.children if (child.state == State.CORRECT and child.n_failed_generations == 0)]
 
     def get_partial_formulation_up_until_now(self):
         return self.partial_formulation_up_until_now
 
     def set_content(self, content, failed: bool = False):
         if constants.USE_ALL_AT_ONCE_AND_EXTRACT: content = remove_duplicate_lines(build_code(self), content)
-        self.content += "\n\n" + content.strip()
+        self.content += "\n\n" + remove_programming_environment(content.strip())
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
         if content.strip() == "":
             self.state = State.FAILED
             self.n_failed_generations += 1
         else:
-            self.state = State.CORRECT
+            if self.state == State.UNINITIALIZED: self.state = State.CORRECT
         if self.save_nodes: self.save_child_to_file()
-
 
     def prepend_section_title(self, block):
         return f"# --- {self.name} ---\n" + block
+
+    ################# MCST specific ####################
+    def is_fully_expanded(self):
+        return len(self.children) >= TreeNode.MAX_CANDIDATES
+
+    def best_child(self, c=1.4):
+        for child in self.children:
+            if child.visits == 0:
+                return child
+
+        def ucb(child):
+            exploit = child.wins / child.visits
+            explore = c * math.sqrt(math.log(self.visits) / child.visits)
+            return exploit + explore
+
+        return min(self.children, key=ucb)
+
+
+    def expand(self):
+        if DEBUG_MODE_ON: print(f"""
+        .....................................................
+        Given:
+        {self.get_partial_formulation_up_until_now()}
+        Create {len(self.get_correct_children())}. node at level {self.level + 1}
+        .....................................................
+        """)
+        new_child_node = None
+        match self.level:
+            case 0:
+                new_child_node = NodeGenerator.create_objects_node(self)
+            case 1:
+                new_child_node = NodeGenerator.create_constants_node(self)
+            case 2:
+                if (isinstance(self, VariablesConstantsNode) and
+                        not self.all_variables_created):
+                    new_child_node = NodeGenerator.create_decision_variables(self)
+                else:
+                    new_child_node = NodeGenerator.create_objective_node(self)
+            case 3:
+                new_child_node = NodeGenerator.create_constraints_node(self)
+        if DEBUG_MODE_ON: print(f"Successfully created node: {new_child_node.id}")
+        self.children.append(new_child_node)
+        return new_child_node
+
+    def rollout(self):
+        cur_node = deepcopy(self.state)
+
+        while True:
+            cur_node = cur_node.expand()
+
+            # Caclulate reward
+            if cur_node.is_terminal:
+                reward = 0
+                if cur_node.n_failed_generations == 0:
+                    reward += 1
+                    if cur_node.validated:
+                        reward += 1
+                        reward += cur_node.solve_time * 10
+                        reward += cur_node.objective_val
+                return reward
+            # check winner state, originally returned 1, 2 or None
+
+    def backpropagate(self, winner):
+        self.visits += 1
+
+        if winner is None:
+            self.wins += 0.5
+        else:
+            self.wins += winner
+
+        if self.parent:
+            self.parent.backpropagate(winner)
+
 
 class RootNode(TreeNode):
     def __init__(self, name = "", parent = None, save_nodes: bool = False):
@@ -100,7 +179,7 @@ class RootNode(TreeNode):
 
     def set_content(self, content, failed: bool = False):
         # Check if at least one section header is present
-        if "--- Objects ---".lower() not in content.lower() or "--- Constants ---".lower() not in content.lower() or "--- Decision variables ---".lower() not in content.lower() or "--- Objective function ---".lower() not in content.lower() or "--- Constraints ---".lower() not in content.lower():
+        if "--- Objects ---".lower() not in content.lower() or "--- Constants ---".lower() not in content.lower() or "--- Decision variables ---".lower() not in content.lower() or "--- Objective function ---".lower() not in content.lower() or "--- Constraints 1 ---".lower() not in content.lower():
             self.state = State.FAILED
             self.n_failed_generations += 1
             return False
@@ -201,7 +280,7 @@ class VariablesConstantsNode(TreeNode):
         else:
             self.content += "\n\n" + variables
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
-        self.state = State.CORRECT
+        if self.state == State.UNINITIALIZED: self.state = State.CORRECT
         self.all_variables_created = True
         if self.save_nodes: self.save_child_to_file()
         return True
@@ -240,14 +319,23 @@ class VariablesConstantsNode(TreeNode):
             variable_block += f"{definition["initialization"]}\n"
         return variable_block
 
+    def get_textual_repr(self):
+        return self.parent.parent.content()
+
 class ObjectiveNode(TreeNode):
     def __init__(self, name = "", parent = None):
         super().__init__("Objective", parent, level=3)
+
+    def get_textual_repr(self):
+        return self.parent.parent.parent.content()
 
 class ConstraintsNode(TreeNode):
     def __init__(self, name = "", parent = None):
         super().__init__("Constraints", parent, level=4)
         self.is_terminal = True
+
+    def get_textual_repr(self):
+        return self.parent.parent.parent.parent.content()
 
 def is_valid_json(s: str) -> bool:
     try:
@@ -302,7 +390,7 @@ The structure must fulfill following requirements:
             if "[{" in str(definition["initialization"]):
                 return f"Error: {definition["initialization"]}\ninitialization of equation is not valid {CHOSEN_LANGUAGE} code. Invalid type, must not be json or dict."
             if "Annotated[list[" in definition["type"] and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', definition["type"]):
-                return f"Error: {definition["type"]}\n, this list must have a type of typing.Annotated with pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le)."
+                return f"Error: {definition["type"]}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le)."
             variable_block += f"{definition["initialization"]}\n"
     elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
     # Prepare raw obj. function or constraints and add to partial formulation (up until now)
@@ -412,7 +500,7 @@ The structure must fulfill following requirements:
 def check_solver_executability(model: str, node: TreeNode):
     # Safety check: replace python True/False with lower case equivalent for OptDSL
     model = model.replace("True", "true").replace("False", "false")
-    solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model)
+    solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model, node.is_terminal)
     if "Error" in solution:
         return solution
     elif "type error" in solution:

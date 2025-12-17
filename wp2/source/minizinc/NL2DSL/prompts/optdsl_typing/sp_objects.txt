@@ -5,7 +5,7 @@ Following requirements must be fulfilled:
     2. If tuples will be required in the future, create object types instead.
     3. If a parameter has a complex object-like structure create a fitting object types for it.
     4. If a output or result has a complex object-like structure create a fitting object types for it.
-    5. The members of an object must be of a DS-type (e.g. DSInt(), DSFloat(), DSBool()). Set lower (lb) and upper bound (ub) for DSInt. See EBNF grammar of OptDSL in the system prompt.
+    5. The members of an object must be of a DS-type (e.g. DSInt(), DSFloat(), DSBool()). Set highest possible lower (lb) and lowest possible upper bound (ub) for DSInt. See EBNF grammar of OptDSL in the system prompt.
     6. Do not define constants.
     7. Do not define instances.
     8. Do not define any decision variables or variables.

@@ -16,7 +16,9 @@ class Tree:
         self.llm = llm
 
     def dfs(self, cur_node: TreeNode):
-        if cur_node.is_terminal:
+        if (cur_node.state == State.FAILED
+                or cur_node.n_failed_generations != 0
+                or cur_node.is_terminal):
             return
         while len(cur_node.get_correct_children()) < 2:
             if DEBUG_MODE_ON: print(f"""
@@ -46,7 +48,6 @@ Create {len(cur_node.get_correct_children())}. node at level {cur_node.level+1}
     def create_full_tree_with_dfs(self):
         self.dfs(self.root)
         return self.root
-
 
     def create_objects_node(self, parent: RootNode):
         # Query object types, data types
