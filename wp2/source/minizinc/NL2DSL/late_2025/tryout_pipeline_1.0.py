@@ -1,4 +1,4 @@
-import constants
+import CONSTANTS
 from structures_utils import *
 
 
@@ -10,7 +10,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
         for i in range(LOOP_OF_DOOM_MAX_IT):
             # Incorrect return format for USE_ALL_AT_ONCE_AND_EXTRACT (# Objects # Constants ...)
             if raw_definitions is None:
-                if constants.DEBUG_MODE_ON: print("Incorrect return format for USE_ALL_AT_ONCE_AND_EXTRACT")
+                if CONSTANTS.DEBUG_MODE_ON: print("Incorrect return format for USE_ALL_AT_ONCE_AND_EXTRACT")
                 raw_definitions = remove_programming_environment(llm.send_prompt(
                     system_prompt=f"{get_system_prompt("format_sp")}\n{get_icl()}",
                     prompt="""Incorrect result format, it must be:
@@ -45,7 +45,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     max_tokens=(800 if node.level == 4 else 500)
                 ), node=node)
             # Extract correct partition of full formulation
-            elif constants.USE_ALL_AT_ONCE_AND_EXTRACT:
+            elif CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT:
                 match node.level:
                     case 1:
                         if "objects" not in raw_definitions:
@@ -63,7 +63,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                 raw_definitions = create_and_send_prompt_for_all_at_once_and_extract_approach(node)
                                 continue
                             if USE_OPTDSL and "DSList" in raw_definitions["constraints"]:
-                                if constants.DEBUG_MODE_ON: print(f"Error: function parameters must not have type DSList. But must be of a declared type.")
+                                if CONSTANTS.DEBUG_MODE_ON: print(f"Error: function parameters must not have type DSList. But must be of a declared type.")
                                 raw_definitions = remove_programming_environment(llm.send_prompt(
                                     system_prompt=get_system_prompt("format_all_sp") + "\n" + get_icl(),
                                     prompt=f"""´´´from z3 import * 
@@ -92,13 +92,13 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                 raw_definitions = node.prepend_section_title(raw_definitions)
 
             if "NTD" in raw_definitions:
-                if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: NTD encountered")
+                if CONSTANTS.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: NTD encountered")
                 raw_definitions = create_and_send_prompt_for_strictly_iterative_approach(node)
                 continue
 
             # Constants and dec. variables - responses need to be json format for USE_ALL_AT_ONCE_AND_EXTRACT
-            if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 and not is_valid_json(raw_definitions):
-                if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: Constants not valid json.")
+            if not CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 and not is_valid_json(raw_definitions):
+                if CONSTANTS.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: Constants not valid json.")
                 raw_definitions = remove_programming_environment(llm.send_prompt(
                     system_prompt=get_system_prompt("sp"),
                     prompt=raw_definitions + "\n\n" +
@@ -119,51 +119,51 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                 continue
             execution_error = check_executability(node, raw_definitions)
             if execution_error is not None:
-                if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level} not executable: Error: {execution_error}\n")
+                if CONSTANTS.DEBUG_MODE_ON: print(f"Checking node created for level {node.level} not executable: Error: {execution_error}\n")
                 if "Syntax Error" in execution_error:
                     raw_definitions = remove_programming_environment(llm.send_prompt(
-                        system_prompt=(get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + "\n" + get_icl(),
+                        system_prompt=(get_system_prompt("json_sp") if not CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + "\n" + get_icl(),
                         prompt=f"´´´from z3 import * \n{raw_definitions}´´´\n\n" +
                                f"The section above contains an error: {execution_error}" +
                                "You must rewrite the problematic code. Do not return exactly the given code snippet.",
                         max_tokens=(800 if node.level == 4 else 500)
                     ), node=node)
-                    if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
+                    if CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                         raw_definitions)
-                elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
+                elif not CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
                     raw_definitions = remove_programming_environment(llm.send_prompt(
-                        system_prompt=( get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")),
+                        system_prompt=( get_system_prompt("json_sp") if not CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")),
                         prompt=f"{raw_definitions}\n\n" +
                                f"The section above contains an error: {execution_error}" +
                                "You must rewrite the problematic code. Do not return exactly the given code snippet.",
                         max_tokens=(800 if node.level>=4 else 500)
                     ), node=node)
-                    if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
+                    if CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                         raw_definitions)
                 else:
                     raw_definitions = remove_programming_environment(llm.send_prompt(
-                        system_prompt=( get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if constants.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + get_icl(),
+                        system_prompt=( get_system_prompt("json_sp") if not CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else (get_system_prompt("format_all_sp") if CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT else get_system_prompt("format_sp"))) + get_icl(),
                         prompt=f"´´´from z3 import * \n{node.get_partial_formulation_up_until_now()}\n{raw_definitions}´´´\n\n" +
                                f"The section above contains an error: {execution_error}" +
                                "You must rewrite the problematic code. Do not return exactly the given code snippet.",
                         max_tokens=(1500 if node.level>=4 else 500)
                     ), node=node)
-                    if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
+                    if CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                         raw_definitions)
             else:
                 # Safety check: Prevent false-positive exec-run-through by sneakily never calling function
                 not_twice_appearing_func = check_functions_appear_twice(raw_definitions)
                 if len(not_twice_appearing_func) > 0:
-                    if constants.DEBUG_MODE_ON: print(f"The following functions are defined but never called, {not_twice_appearing_func}")
+                    if CONSTANTS.DEBUG_MODE_ON: print(f"The following functions are defined but never called, {not_twice_appearing_func}")
                     raw_definitions = remove_programming_environment(llm.send_prompt(
                         system_prompt=(
-                            get_system_prompt("json_sp") if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")) + "\n" + get_icl(),
+                            get_system_prompt("json_sp") if not CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2 else get_system_prompt("format_sp")) + "\n" + get_icl(),
                         prompt=f"´´´from z3 import * \n{node.get_partial_formulation_up_until_now()}\n{raw_definitions} ´´´\n\n" +
                                f"The following functions are defined but never called, {not_twice_appearing_func}" +
                                "Add the call of the mentioned functions to the code with the respective parameters. Do not return exactly the given code snippet.",
                         max_tokens=(800 if node.level == 4 else 500)
                     ), node=node)
-                    if constants.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
+                    if CONSTANTS.USE_ALL_AT_ONCE_AND_EXTRACT: raw_definitions = decompose_full_definition(
                         raw_definitions)
                     continue
                 return raw_definitions

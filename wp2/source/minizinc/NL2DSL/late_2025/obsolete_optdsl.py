@@ -8,7 +8,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions: str):
         for _ in range(LOOP_OF_DOOM_MAX_IT):
             # NTD = Nothing To Do, is only allowed in object types node
             if "NTD" in raw_definitions:
-                if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: NTD encountered")
+                if CONSTANTS.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: NTD encountered")
                 raw_definitions = llm.send_prompt(
                     system_prompt=f"{system_prompt["optdsl_sp"]}\n{incontextlearning_examples["optdsl"]}",
                     prompt=
@@ -30,7 +30,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions: str):
 
             # Constant and Decision variable nodes need to be json format
             if node.level == 2 and not is_valid_json(raw_definitions):
-                if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: Constants not valid json.")
+                if CONSTANTS.DEBUG_MODE_ON: print(f"Checking node created for level {node.level}: Constants not valid json.")
                 raw_definitions = remove_programming_environment(llm.send_prompt(
                     system_prompt=f"{system_prompt["optdsl_sp"]}\n{incontextlearning_examples["optdsl"]}",
                     prompt=raw_definitions + "\n\n" +
@@ -52,7 +52,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions: str):
             # Check executability for partial formulation
             execution_error = check_executability(node, raw_definitions)
             if execution_error is not None:
-                if constants.DEBUG_MODE_ON: print(f"Checking node created for level {node.level} not executable: Error: {execution_error}\n")
+                if CONSTANTS.DEBUG_MODE_ON: print(f"Checking node created for level {node.level} not executable: Error: {execution_error}\n")
                 raw_definitions = remove_programming_environment(llm.send_prompt(
                     system_prompt=system_prompt["optdsl_json_sp"],
                     prompt="´´´" + raw_definitions + "´´´\n\n" +
@@ -393,7 +393,7 @@ global_problem_system_prompt = ["""
     2. If tuples will be required in the future, create object types instead.
     3. If a parameter has a complex object-like structure create a fitting object types for it.
     4. If a output or result has a complex object-like structure create a fitting object types for it.
-    5. Do not define constants.
+    5. Do not define CONSTANTS.
     6. Do not define instances.
     7. Do not define any decision variables or variables.
     8. Do not define constraints.
@@ -408,9 +408,9 @@ global_problem_system_prompt = ["""
     1. Names for constants are in capital letters only.
     2. Use the given object types! Apply them correctly. Do not use Python Class Constructors! When initializing a variable with an object type, see Initialization of DSRecord - Option 1 and Initialization of DSRecord - Option 2 for reference.
     3. If there are one or more constants in the \"sub problem definitions\" that are not defined yet, then define them. 
-    4. The collection of the resulting constants must be complete and represent all described constants.
+    4. The collection of the resulting constants must be complete and represent all described CONSTANTS.
     5. Above each constant put a python comment with a description of that constant.
-    6. There must be one or more constants.
+    6. There must be one or more CONSTANTS.
     7. Do not define any constraints.
     8. The result must be minimal but most of all, semantically correct in respect to the description.
     9. The result must not be "NTD".
@@ -441,7 +441,7 @@ global_problem_system_prompt = ["""
     6. There must be one or more decision variables.
     7. Do not return given object type definitions.
     8. The result must not contain any constraints.
-    9. Do not return any constants.
+    9. Do not return any CONSTANTS.
     10. The resulting code must be minimal but most of all, semantically correct in respect to the description.
     11. The result must not be "NTD".
     
@@ -634,7 +634,7 @@ d2_bin_packing_formalized_problem_description = [
 
 
 if __name__ == "__main__":
-    llm = constants.LLM
+    llm = CONSTANTS.LLM
 
     ### Query object types, data types ######################################################################
     execution_message = None
@@ -647,7 +647,7 @@ if __name__ == "__main__":
                 datatypes_node.set_content(response)
                 break
             else:
-                if constants.DEBUG_MODE_ON: print(f"Checking node created for level 1 (objects/datatypes): {execution_message}")
+                if CONSTANTS.DEBUG_MODE_ON: print(f"Checking node created for level 1 (objects/datatypes): {execution_message}")
         else:
             datatypes_node.set_content("")
             break
