@@ -41,7 +41,7 @@ def minizinc_item_to_dict(s: str) -> Dict[str, Any]:
 
 
 class MiniZincSolver:
-    def solve_with_command_line_minizinc(self, minizinc_code: str, is_terminal_node: bool = False):
+    def solve_with_command_line_minizinc(self, minizinc_code: str, last_in_progress: bool = False):
         # write the MiniZinc model to temp.mzn
         with lock:
             with open("temp.mzn", "w", encoding="utf-8") as f:
@@ -49,13 +49,13 @@ class MiniZincSolver:
 
             # run minizinc on the file
             try:
-                if is_terminal_node:
+                if not last_in_progress:
                     result = subprocess.Popen(
                         ["minizinc",
                                     "--solver", "gecode",
                                      "--statistics",
                                      "--output-mode", "item",
-                                     "--time-limit", "300000",
+                                     "--time-limit", "5000",
                                      "temp.mzn"],
                         text=True,
                         stdout = subprocess.PIPE, stderr = subprocess.PIPE
@@ -72,7 +72,7 @@ class MiniZincSolver:
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
                 try:
-                    solver_output, errs = result.communicate(timeout=320)
+                    solver_output, errs = result.communicate(timeout=90)
                 except subprocess.TimeoutExpired:
                     if DEBUG_MODE_ON: print("Minizinc failed the first time - lets try that again")
                     result.kill()  # or proc.terminate()
@@ -84,7 +84,7 @@ class MiniZincSolver:
                 print(minizinc_code)
                 return "Unknown", None
 
-        print("Return code:", result.returncode)
+        #print("Return code:", result.returncode)
         if solver_output:
             if "unknown" not in solver_output.lower() and "unsatisfiable" not in solver_output.lower():
                 solve_time = None

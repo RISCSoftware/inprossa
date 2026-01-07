@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import math
 import os
@@ -17,7 +18,6 @@ from constants import SYSTEM_PROMPT_FOLDER, DEBUG_MODE_ON, USE_TYPING, USE_PYDAN
 import logging
 
 from minizinc_solver import MiniZincSolver
-from node_creation_utils import NodeGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class TreeNode:
     MAX_CANDIDATES = 2
     FILE_NAME = "data.json"
 
-    def __init__(self, name = "", parent = None, level: int = 0, save_nodes: bool = False):
+    def __init__(self, name = "", parent = None, level: int = 0, save_nodes: bool = False, save_model:bool = False):
         self.name = name
         self.content = f"# -- {self.name} --\n"
         self.parent = parent
@@ -43,6 +43,7 @@ class TreeNode:
         self.path = self.parent.path + f"/{node_id}" if self.parent is not None else node_id
         if self.parent is not None : self.parent.append_child(self)
         self.save_nodes = (self.parent.save_nodes if self.parent is not None else save_nodes)
+        self.save_model = (self.parent.save_model if self.parent is not None else save_model)
         self.children = []
         self.is_terminal = False
         self.level = level
@@ -57,9 +58,11 @@ class TreeNode:
         self.visits = 0
         self.wins = 0.0
 
-    def save_child_to_file(self, final_evaluation_result: str = None):
-        if "Successfully" in final_evaluation_result:
+    def save_child_to_file(self, final_evaluation_result: str = None, problem_description: str = None):
+        if final_evaluation_result is not None and "Successfully" in final_evaluation_result:
             self.validated = True
+            if self.save_model and self.level >= 4 and problem_description is not None:
+                self.save_model_to_file(problem_description)
         if not self.save_nodes or (self.level >= 4 and not final_evaluation_result): return
         data = {
             "id": self.id,
@@ -75,6 +78,18 @@ class TreeNode:
         folder = os.path.dirname(file_path)
         os.makedirs(folder, exist_ok=True) # create folder (+ parent folders) if not existent
         with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+
+    def save_model_to_file(self, problem_description: str):
+        data = {
+            "problem_description": problem_description,
+            "objects": self.parent.parent.parent.content,
+            "constants": [constant for constant in self.parent.parent.variables_and_constants if constant["variable_name"].isupper()],
+            "decision_variables": [constant for constant in self.parent.parent.variables_and_constants if constant["variable_name"].islower()],
+            "objective": self.parent.content,
+            "constraints": self.content
+        }
+        with open(f'optDSL_model_{datetime.now().strftime("%Y-%m-%d_%H")}.json', "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
 
     def append_child(self, child):
@@ -117,65 +132,9 @@ class TreeNode:
         return min(self.children, key=ucb)
 
 
-    def expand(self):
-        if DEBUG_MODE_ON: print(f"""
-        .....................................................
-        Given:
-        {self.get_partial_formulation_up_until_now()}
-        Create {len(self.get_correct_children())}. node at level {self.level + 1}
-        .....................................................
-        """)
-        new_child_node = None
-        match self.level:
-            case 0:
-                new_child_node = NodeGenerator.create_objects_node(self)
-            case 1:
-                new_child_node = NodeGenerator.create_constants_node(self)
-            case 2:
-                if (isinstance(self, VariablesConstantsNode) and
-                        not self.all_variables_created):
-                    new_child_node = NodeGenerator.create_decision_variables(self)
-                else:
-                    new_child_node = NodeGenerator.create_objective_node(self)
-            case 3:
-                new_child_node = NodeGenerator.create_constraints_node(self)
-        if DEBUG_MODE_ON: print(f"Successfully created node: {new_child_node.id}")
-        self.children.append(new_child_node)
-        return new_child_node
-
-    def rollout(self):
-        cur_node = deepcopy(self.state)
-
-        while True:
-            cur_node = cur_node.expand()
-
-            # Caclulate reward
-            if cur_node.is_terminal:
-                reward = 0
-                if cur_node.n_failed_generations == 0:
-                    reward += 1
-                    if cur_node.validated:
-                        reward += 1
-                        reward += cur_node.solve_time * 10
-                        reward += cur_node.objective_val
-                return reward
-            # check winner state, originally returned 1, 2 or None
-
-    def backpropagate(self, winner):
-        self.visits += 1
-
-        if winner is None:
-            self.wins += 0.5
-        else:
-            self.wins += winner
-
-        if self.parent:
-            self.parent.backpropagate(winner)
-
-
 class RootNode(TreeNode):
-    def __init__(self, name = "", parent = None, save_nodes: bool = False):
-        super().__init__(name, parent, save_nodes=save_nodes)
+    def __init__(self, name = "", parent = None, save_nodes: bool = False, save_model:bool = False):
+        super().__init__(name, parent, save_nodes=save_nodes, save_model=save_model)
 
     def set_content(self, content, failed: bool = False):
         # Check if at least one section header is present
@@ -221,11 +180,9 @@ class VariablesConstantsNode(TreeNode):
     def set_constants(self, incomming_constants):
         if not is_valid_json(incomming_constants):
             self.state = State.FAILED
-            self.n_failed_generations += 1
             return False
         if incomming_constants.strip() == "":
             self.state = State.FAILED
-            self.n_failed_generations += 1
         if not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             # Filter constants
             filtered_constants_only = [item for item in json.loads(incomming_constants) if item.get("variable_name", "").isupper()]
@@ -234,7 +191,6 @@ class VariablesConstantsNode(TreeNode):
             if len(filtered_constants_only) == 0:
                 if constants.DEBUG_MODE_ON: print(f"Checking node created for level 2 (constants): No uppercase constants found.")
                 self.state = State.FAILED
-                self.n_failed_generations += 1
                 return False
             self.variables_and_constants.extend(filtered_constants_only)
             self.content = self.get_as_codeblock()
@@ -247,13 +203,10 @@ class VariablesConstantsNode(TreeNode):
 
     def set_variables(self, variables, expected_output_variables):
         if not is_valid_json(variables):
-            self.state = State.FAILED
-            self.n_failed_generations += 1
             return False
 
         if variables.strip() == "":
             self.state = State.FAILED
-            self.n_failed_generations += 1
         elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             # Filter decision variables
             filtered_decision_variables_only = [item for item in json.loads(variables) if item.get("variable_name", "").islower()]
@@ -262,8 +215,6 @@ class VariablesConstantsNode(TreeNode):
             if len(filtered_decision_variables_only) == 0:
                 if constants.DEBUG_MODE_ON: print(
                     f"Checking node created for level 3 (decision variables): No lower case variables found.")
-                self.state = State.FAILED
-                self.n_failed_generations += 1
                 return False
 
             # Safety check: All expected output variable names must be defined
@@ -271,7 +222,6 @@ class VariablesConstantsNode(TreeNode):
             for expected_variable in (json.loads(remove_programming_environment(expected_output_variables))):
                 if expected_variable["mandatory_variable_name"] not in variable_names:
                     if DEBUG_MODE_ON: print(f"Expected variable not defined: {expected_variable["mandatory_variable_name"]}")
-                    self.state = State.FAILED
                     return False
 
             self.variables_and_constants.extend(remove_duplicate_variables(filtered_decision_variables_only))
@@ -333,6 +283,7 @@ class ConstraintsNode(TreeNode):
     def __init__(self, name = "", parent = None):
         super().__init__("Constraints", parent, level=4)
         self.is_terminal = True
+        self.last_in_progress = False
 
     def get_textual_repr(self):
         return self.parent.parent.parent.parent.content()
@@ -390,7 +341,7 @@ The structure must fulfill following requirements:
             if "[{" in str(definition["initialization"]):
                 return f"Error: {definition["initialization"]}\ninitialization of equation is not valid {CHOSEN_LANGUAGE} code. Invalid type, must not be json or dict."
             if "Annotated[list[" in definition["type"] and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', definition["type"]):
-                return f"Error: {definition["type"]}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le)."
+                return f"Error: {definition["type"]}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le). Demonstration example for a list of integers: Annotated[list[Annotated[int, Field(lb=-10,ub=10)]], Len(2,2)]"
             variable_block += f"{definition["initialization"]}\n"
     elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
     # Prepare raw obj. function or constraints and add to partial formulation (up until now)
@@ -500,7 +451,7 @@ The structure must fulfill following requirements:
 def check_solver_executability(model: str, node: TreeNode):
     # Safety check: replace python True/False with lower case equivalent for OptDSL
     model = model.replace("True", "true").replace("False", "false")
-    solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model, node.is_terminal)
+    solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model, node.last_in_progress if node.is_terminal else False)
     if "Error" in solution:
         return solution
     elif "type error" in solution:

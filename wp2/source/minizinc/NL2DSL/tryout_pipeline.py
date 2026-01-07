@@ -373,10 +373,6 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode, execu
         max_tokens=2500
     )
     '''
-    #if llm.model_id == "qwen.qwen3-coder-480b-a35b-v1:0":
-    #    llm.model_id = "qwen.qwen3-coder-30b-a3b-v1:0"
-    #else:
-    #    llm.model_id = "qwen.qwen3-coder-480b-a35b-v1:0"
     # TEXTUAL DESCRIPTION
     if node.level == 0:
         response = llm.send_prompt(
@@ -800,7 +796,7 @@ You are an optimization problem formulation expert that encodes specific parts o
         }
         return system_prompt.get(key)
 '''
-d2_bin_packing_formalized_problem_description_inst1 = [
+d2_bin_packing_formalized_problem_description_inst2 = [
     # Input
     """
     ´´´ json
@@ -871,7 +867,8 @@ d2_bin_packing_formalized_problem_description_inst1 = [
     Taking the given items that are put into a box, one item can be exactly in one box.
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
     """
-    ]
+    ] # 1
+
 d2_bin_packing_formalized_problem_description_inst2 = [
     # Input
     """
@@ -963,8 +960,9 @@ d2_bin_packing_formalized_problem_description_inst2 = [
     Taking the given items that are put into a box, one item can be exactly in one box.
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
     """
-    ]
-d2_bin_packing_formalized_problem_description_inst3 = [
+    ] # 2
+'''
+d2_bin_packing_formalized_problem_description_inst2 = [
     # Input
     """
     ´´´ json
@@ -1070,7 +1068,7 @@ d2_bin_packing_formalized_problem_description_inst3 = [
     Taking the given items that are put into a box, one item can be exactly in one box.
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
     """
-    ]
+    ] # 3
 '''
 d2_bin_packing_formalized_problem_description_inst2 = [
     # Input
@@ -1174,7 +1172,7 @@ d2_bin_packing_formalized_problem_description_inst2 = [
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
     """
     ] # 4
-'''
+
 knapsack = """This problem involves a collection of items, where each have a value and a weight. We have a scissor with value 15
 and weight 12, a book with value 50 and weight 70, a laptop with value 80 and weight 100, a phone with value 80
 and weight 20, a ruler with value 20 and weight 12, a pen with value 25 and weight 5. One or more items are chosen
@@ -1183,7 +1181,6 @@ Sub problem definition - items that go in the bag:
 In the bag only go items from the given collection, such that the cumulative weight of all chosen items must never exceed the maximum allowed weight of 110.
 At the same time, we want to achieve a maximum of accumulated item value. The result are the chosen items."""
 '''
-
 
 def build_up_formulation_iteratively(llm):
     N_FAILED_GENERATIONS = 0
@@ -1222,6 +1219,7 @@ def build_up_formulation_iteratively(llm):
     print(f"*** Response, constants: {response}\n")
     if response == "" or i == LOOP_OF_DOOM_MAX_IT:
         N_FAILED_GENERATIONS += 1
+        constants_variables_node.n_failed_generations += 1
         print("Creating constants failed!")
 
     ### Query decision variables ######################################################################################
@@ -1239,6 +1237,7 @@ def build_up_formulation_iteratively(llm):
     print(f"*** Response (decision) variables: {response}\n")
     if response == "" or i == LOOP_OF_DOOM_MAX_IT:
         N_FAILED_GENERATIONS += 1
+        constants_variables_node.n_failed_generations += 1
         print("Creating decision variables failed!")
 
     # Wiser to use for z3 only
@@ -1259,12 +1258,15 @@ def build_up_formulation_iteratively(llm):
     print(f"*** Obj. function: {response}\n")
     if response == "":
         N_FAILED_GENERATIONS += 1
+        obj_function_node.state = State.FAILED
         print("Creating objective function failed!")
+    # Syntactic feedback to LLM
     send_feedback(obj_function_node)
 
     # Query constraints
     constraints_node = ConstraintsNode(parent=obj_function_node) #if USE_OPTDSL else ConstraintsNode(parent=obj_function_node)
     for i in range(3,len(d2_bin_packing_formalized_problem_description_inst2)):
+        if i == len(d2_bin_packing_formalized_problem_description_inst2): constraints_node.lastInProgress = True
         if constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             response = create_and_send_prompt_for_all_at_once_and_extract_approach(constraints_node, subproblem_description=d2_bin_packing_formalized_problem_description_inst2[i])
         else:
@@ -1274,7 +1276,9 @@ def build_up_formulation_iteratively(llm):
         print(f"*** Constraints: {response}\n")
         if response == "":
             N_FAILED_GENERATIONS += 1
+            constraints_node.state = State.FAILED
             print("Creating constraints failed!")
+        # Syntactic feedback to LLM
         if i == len(d2_bin_packing_formalized_problem_description_inst2)-1: send_feedback(constraints_node)
         
     # Validate minizinc solution
@@ -1302,8 +1306,9 @@ Solution model: {constraints_node.solution_model}
 {validation_res}
 **************************
 ----------------------------------------------------------------------------""")
-    if N_FAILED_GENERATIONS == 0 and "Successfully" in validation_res and constraints_node.objective_val is not None:
-        send_feedback(constraints_node, syntax=False)
+    # Semantic feedback to LLM
+    #if N_FAILED_GENERATIONS == 0 and "Successfully" in validation_res and constraints_node.objective_val is not None:
+    #    send_feedback(constraints_node, syntax=False)
 
 
 if __name__ == "__main__":
