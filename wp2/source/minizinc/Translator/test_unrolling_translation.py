@@ -758,7 +758,7 @@ constraint objective[1] = 0;
 solve minimize objective[1];"""
     },
     {
-        "name": "test_assign_list",
+        "name": "test_assert_any",
         "code": """
 x : DSList(5, int)
 assert any(x[cut] > 0 for cut in range(1, 6))
@@ -766,7 +766,7 @@ assert any(x[cut] > 0 for cut in range(1, 6))
         "expected_translation": """array[1..1] of var int: objective;
 array[1..1] of array[1..5] of var int: x;
 constraint objective[1] = 0;
-constraint exists(cut in 1..5)((x[1][cut] > 0));
+constraint ((x[1][1] > 0) \/ (x[1][2] > 0) \/ (x[1][3] > 0) \/ (x[1][4] > 0) \/ (x[1][5] > 0));
 solve minimize objective[1];"""
     },
 ]

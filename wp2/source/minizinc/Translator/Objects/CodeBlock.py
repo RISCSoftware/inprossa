@@ -523,8 +523,10 @@ class CodeBlock:
             # Variable not seen before, create it with appropriate type
             # if one branch did not assign it, use the type from the other branch
             if var_type_if != var_type_else:
-                if isinstance(var_type_if, DSInt):
-                    if isinstance(var_type_else, DSInt):
+                # if var_type_if[:36] == "<Translator.Objects.DSTypes.DSRecord":
+                #     if var_type_else[:36] == "<Translator.Objects.DSTypes.DSRecord":
+                if not isinstance(var_type_if, DSInt):
+                    if not isinstance(var_type_else, DSInt):
                         # if both branches assigned it with different not default types, raise error
                         raise ValueError(f"Variable '{var}' has incompatible types in if-else branches: {var_type_if} vs {var_type_else}")
                     else:
@@ -581,8 +583,6 @@ class CodeBlock:
         branch_if_constraints, index_after_if = self.execute_branch(stmt.body, loop_scope, pre_branch_index)
         branch_else_constraints, index_after_else = self.execute_branch(stmt.orelse or [], loop_scope, pre_branch_index)
 
-        print(f"index after if: { {var: var_obj.type for var, var_obj in index_after_if.items()} }")
-        print(f"index after else: { {var: var_obj.type for var, var_obj in index_after_else.items()} }")
 
         # Merge variable dictionaries from both branches
         all_vars = set(index_after_if) | set(index_after_else)

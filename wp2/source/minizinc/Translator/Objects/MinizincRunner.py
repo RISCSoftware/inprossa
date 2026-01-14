@@ -1,9 +1,16 @@
 import tempfile
 import minizinc
 
+class Timeout:
+    def __init__(self, timelimit):
+        self.timelimit = timelimit
+    def total_seconds(self):
+        return self.timelimit
+
 class MiniZincRunner:
-    def __init__(self, solver_name="gecode"):
+    def __init__(self, solver_name="gecode", timelimit: int = 10):
         self.solver = minizinc.Solver.lookup(solver_name)
+        self.timelimit = timelimit
 
     def run(self, code_string: str, data: dict = None):
         """
@@ -26,7 +33,7 @@ class MiniZincRunner:
 
         # run
         instance = minizinc.Instance(self.solver, model)
-        result = instance.solve(fzn_filename="dump.fzn")
+        result = instance.solve(timeout=Timeout(self.timelimit))
 
 
         return result
