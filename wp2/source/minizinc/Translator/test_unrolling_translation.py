@@ -10,9 +10,7 @@ translation_tests = [
 MyInt = DSInt(3, 7)
 """,
         "expected_translation": """type MyInt = 3..7;
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dsint_keyword_names",
@@ -26,9 +24,7 @@ MyInt2 = DSInt(lb=LB, ub=UB)
 int: MAX_N = 10;
 int: LB = 0;
 int: UB = 10;
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dsfloat_unit_interval",
@@ -36,9 +32,7 @@ solve minimize objective[1];"""
 MyFloat = DSFloat(lb=0.0, ub=1.0)
 """,
         "expected_translation": """type MyFloat = 0.0..1.0;
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dsfloat_unit_interval",
@@ -46,9 +40,7 @@ solve minimize objective[1];"""
 MyFloatList = DSList(5, elem_type=DSFloat(lb=0.0, ub=1.0))
 """,
         "expected_translation": """type MyFloatList = array[1..5] of 0.0..1.0;
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dsbool_simple",
@@ -56,9 +48,7 @@ solve minimize objective[1];"""
 Flag = DSBool()
 """,
         "expected_translation": """type Flag = bool;
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dslist_constant",
@@ -66,9 +56,7 @@ solve minimize objective[1];"""
 VEC : DSList(5) = [1, 2, 3, 4, 5]
 """,
         "expected_translation": """array[1..5] of int: VEC = [1, 2, 3, 4, 5];
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dslist_default_elem_int",
@@ -76,9 +64,7 @@ solve minimize objective[1];"""
 Vec = DSList(5)
 """,
         "expected_translation": """type Vec = array[1..5] of int;
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dslist_keyword_elem_builtin",
@@ -86,9 +72,7 @@ solve minimize objective[1];"""
 Vec2 = DSList(length=4, elem_type=int)
 """,
         "expected_translation": """type Vec2 = array[1..4] of int;
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dslist_keyword_elem_custom",
@@ -98,9 +82,7 @@ Vec3 = DSList(length=10, elem_type=MyInt)
 """,
         "expected_translation": """type MyInt = 3..7;
 type Vec3 = array[1..10] of MyInt;
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "dsrecord_simple",
@@ -111,9 +93,7 @@ Person = DSRecord({"name": "float", "age": "int"})
     float: name,
     int: age
 );
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
 ]
 
@@ -132,9 +112,7 @@ type Person = record(
     VecMyInt5: scores,
     MyInt: grade
 );
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "record_with_float_and_list",
@@ -150,9 +128,7 @@ type Sample = record(
     Vec10: values,
     Prob: prob
 );
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "record_of_records_and_list",
@@ -170,9 +146,7 @@ type Polygon = record(
     float: name,
     Points: points
 );
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "nested_records_with_custom_zip_and_group",
@@ -196,20 +170,16 @@ type Group = array[1..2] of User;
 type Team = record(
     Group: members
 );
-array[1..1] of var int: objective;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_simple",
         "code": """
 x = 0
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..1] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..1] of var int: x;
 constraint x[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_simple_assert",
@@ -217,11 +187,9 @@ solve minimize objective[1];"""
 x : int
 assert x > 0
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..1] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..1] of var int: x;
 constraint (x[1] > 0);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_simple_if",
@@ -230,13 +198,11 @@ x = 0
 if x > 0:
     x = x + 1
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..2] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..2] of var int: x;
 constraint x[1] = 0;
 constraint (x[1] > 0) -> x[2] = (x[1] + 1);
 constraint (not (x[1] > 0)) -> x[2] = x[1];
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_if_else",
@@ -247,13 +213,11 @@ if x > 0:
 else:
     x = x - 1
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..2] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..2] of var int: x;
 constraint x[1] = 0;
 constraint (x[1] > 0) -> x[2] = (x[1] + 1);
 constraint (not (x[1] > 0)) -> x[2] = (x[1] - 1);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_nested_ifs",
@@ -264,16 +228,14 @@ if x > 0:
     if y < 5:
         y = y + 1
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..1] of var int: x;
+        "expected_translation": """array[1..1] of var int: x;
 array[1..2] of var int: y;
-constraint objective[1] = 0;
 constraint x[1] = 0;
 constraint y[1] = 0;
 constraint (y[1] < 5) /\\ (x[1] > 0) -> y[2] = (y[1] + 1);
 constraint (not (y[1] < 5)) /\\ (x[1] > 0) -> y[2] = y[1];
 constraint (not (x[1] > 0)) -> y[2] = y[1];
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_simple_for_range",
@@ -282,13 +244,11 @@ x = 0
 for i in range(1, 3):
     x = x + i
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..3] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..3] of var int: x;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + 1);
 constraint x[3] = (x[2] + 2);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
 ]
 
@@ -301,15 +261,13 @@ for i in range(1, 3):
     for j in range(1, 3):
         x = x + j
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..5] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..5] of var int: x;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + 1);
 constraint x[3] = (x[2] + 2);
 constraint x[4] = (x[3] + 1);
 constraint x[5] = (x[4] + 2);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_if_inside_for",
@@ -319,15 +277,13 @@ for i in range(1, 3):
     if i == 1:
         x = x + 1
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..3] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..3] of var int: x;
 constraint x[1] = 0;
 constraint (1 = 1) -> x[2] = (x[1] + 1);
 constraint (not (1 = 1)) -> x[2] = x[1];
 constraint (2 = 1) -> x[3] = (x[2] + 1);
 constraint (not (2 = 1)) -> x[3] = x[2];
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_for_inside_if",
@@ -337,14 +293,12 @@ if x == 0:
     for i in range(1, 3):
         x = x + i
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..3] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..3] of var int: x;
 constraint x[1] = 0;
 constraint (x[1] = 0) -> x[2] = (x[1] + 1);
 constraint (x[1] = 0) -> x[3] = (x[2] + 2);
 constraint (not (x[1] = 0)) -> x[3] = x[1];
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_for_with_range_constants",
@@ -353,14 +307,12 @@ x = 0
 for i in range(1, 4):
     x = x + i
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..4] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..4] of var int: x;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + 1);
 constraint x[3] = (x[2] + 2);
 constraint x[4] = (x[3] + 3);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_for_with_list_literal",
@@ -369,14 +321,12 @@ x = 0
 for t in [3, 1, 5]:
     x = x + t
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..4] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..4] of var int: x;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + 3);
 constraint x[3] = (x[2] + 1);
 constraint x[4] = (x[3] + 5);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_for_with_enumerate_list",
@@ -385,13 +335,11 @@ x = 0
 for i, t in enumerate([4, 2]):
     x = x + t + i
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..3] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..3] of var int: x;
 constraint x[1] = 0;
 constraint x[2] = ((x[1] + 4) + 1);
 constraint x[3] = ((x[2] + 2) + 2);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_for_with_constant_list",
@@ -404,13 +352,11 @@ for t in VALUES:
 """,
         "expected_translation": """type ValueType = array[1..2] of int;
 ValueType: VALUES = [1, 2];
-array[1..1] of var int: objective;
 array[1..3] of var int: x;
-constraint objective[1] = 0;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + VALUES[1]);
 constraint x[3] = (x[2] + VALUES[2]);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_for_as_index_of_list",
@@ -423,14 +369,12 @@ for i in range(1, 4):
 """,
         "expected_translation": """type ValueType = array[1..3] of int;
 ValueType: VALUES = [1, 2, 4];
-array[1..1] of var int: objective;
 array[1..4] of var int: x;
-constraint objective[1] = 0;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + VALUES[1]);
 constraint x[3] = (x[2] + VALUES[2]);
 constraint x[4] = (x[3] + VALUES[3]);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_constant_as_index_of_list",
@@ -444,12 +388,10 @@ x = x + VALUES[I]
         "expected_translation": """type MyList = array[1..3] of int;
 MyList: VALUES = [1, 2, 4];
 int: I = 3;
-array[1..1] of var int: objective;
 array[1..2] of var int: x;
-constraint objective[1] = 0;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + VALUES[I]);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_variable_created_in_if",
@@ -459,11 +401,9 @@ if I == 0:
     x = 1
 """,
         "expected_translation": """int: I = 0;
-array[1..1] of var int: objective;
 array[1..1] of var int: x;
-constraint objective[1] = 0;
 constraint (I = 0) -> x[1] = 1;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
 ]
 
@@ -476,11 +416,9 @@ x : int
 assert abs(x - I) == 1
 """,
         "expected_translation": """int: I = 0;
-array[1..1] of var int: objective;
 array[1..1] of var int: x;
-constraint objective[1] = 0;
 constraint (abs((x[1] - I)) = 1);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_not_declared_variable",
@@ -490,34 +428,26 @@ x : int
 assert x > I
 """,
         "expected_translation": """int: I = 0;
-array[1..1] of var int: objective;
 array[1..1] of var int: x;
-constraint objective[1] = 0;
 constraint (x[1] > I);
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_float_type",
-        "code": """
-a : float
+        "code": """a : float
 a = 0
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..1] of var float: a;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..1] of var float: a;
 constraint a[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_float_type2",
-        "code": """
-a : float = 0
+        "code": """a : float = 0
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..1] of var float: a;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..1] of var float: a;
 constraint a[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_simple_function",
@@ -527,24 +457,19 @@ def f(a, b):
     return c
 c = f(1, 2)
 """,
-        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c, array[1..1] of var int: objective) =
+        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c) =
     (
     a[1] = input_1 /\\
     b[1] = input_2 /\\
-    objective[1] = 0 /\\
     c[1] = (a[1] + b[1]) /\\
     output_1 = c[1]
     );
-array[1..2] of var int: objective;
 array[1..1] of var int: c;
 array[1..1] of var int: a__f__1;
 array[1..1] of var int: b__f__1;
 array[1..1] of var int: c__f__1;
-array[1..1] of var int: objective__f__1;
-constraint objective[1] = 0;
-constraint f(1, 2, c[1], a__f__1, b__f__1, c__f__1, objective__f__1);
-constraint objective[2] = (objective[1] + objective__f__1[1]);
-solve minimize objective[2];"""
+constraint f(1, 2, c[1], a__f__1, b__f__1, c__f__1);
+solve satisfy;"""
     },
     {
         "name": "test_two_output_function",
@@ -555,28 +480,23 @@ def f(a, b):
     return c, d
 c, d = f(1, 2)
 """,
-        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, var int: output_2, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c, array[1..1] of var int: d, array[1..1] of var int: objective) =
+        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, var int: output_2, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c, array[1..1] of var int: d) =
     (
     a[1] = input_1 /\\
     b[1] = input_2 /\\
-    objective[1] = 0 /\\
     c[1] = (a[1] + b[1]) /\\
     d[1] = (a[1] * b[1]) /\\
     output_1 = c[1] /\\
     output_2 = d[1]
     );
-array[1..2] of var int: objective;
 array[1..1] of var int: c;
 array[1..1] of var int: d;
 array[1..1] of var int: a__f__1;
 array[1..1] of var int: b__f__1;
 array[1..1] of var int: c__f__1;
 array[1..1] of var int: d__f__1;
-array[1..1] of var int: objective__f__1;
-constraint objective[1] = 0;
-constraint f(1, 2, c[1], d[1], a__f__1, b__f__1, c__f__1, d__f__1, objective__f__1);
-constraint objective[2] = (objective[1] + objective__f__1[1]);
-solve minimize objective[2];"""
+constraint f(1, 2, c[1], d[1], a__f__1, b__f__1, c__f__1, d__f__1);
+solve satisfy;"""
     },
     {
         "name": "test_simple_predicate",
@@ -586,24 +506,19 @@ def f(a, b):
     return c
 c = f(1, 2)
 """,
-        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c, array[1..1] of var int: objective) =
+        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..1] of var int: b, array[1..1] of var int: c) =
     (
     a[1] = input_1 /\\
     b[1] = input_2 /\\
-    objective[1] = 0 /\\
     c[1] = (a[1] + b[1]) /\\
     output_1 = c[1]
     );
-array[1..2] of var int: objective;
 array[1..1] of var int: c;
 array[1..1] of var int: a__f__1;
 array[1..1] of var int: b__f__1;
 array[1..1] of var int: c__f__1;
-array[1..1] of var int: objective__f__1;
-constraint objective[1] = 0;
-constraint f(1, 2, c[1], a__f__1, b__f__1, c__f__1, objective__f__1);
-constraint objective[2] = (objective[1] + objective__f__1[1]);
-solve minimize objective[2];"""
+constraint f(1, 2, c[1], a__f__1, b__f__1, c__f__1);
+solve satisfy;"""
     },
     {
         "name": "test_predicate",
@@ -622,18 +537,16 @@ c, d = f(x, 2)
 e, g = f(c, d)
 assert c > d
 """,
-        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, var int: output_2, array[1..1] of var int: a, array[1..1] of var int: b, array[1..2] of var int: c, array[1..1] of var int: d, array[1..1] of var int: objective) =
+        "expected_translation": """predicate f(var int: input_1, var int: input_2, var int: output_1, var int: output_2, array[1..1] of var int: a, array[1..1] of var int: b, array[1..2] of var int: c, array[1..1] of var int: d) =
     (
     a[1] = input_1 /\\
     b[1] = input_2 /\\
-    objective[1] = 0 /\\
     c[1] = (a[1] + b[1]) /\\
     d[1] = (a[1] * b[1]) /\\
     c[2] = (c[1] * d[1]) /\\
     output_1 = c[2] /\\
     output_2 = d[1]
     );
-array[1..3] of var int: objective;
 array[1..4] of var int: x;
 array[1..1] of var int: c;
 array[1..1] of var int: d;
@@ -641,25 +554,20 @@ array[1..1] of var int: a__f__1;
 array[1..1] of var int: b__f__1;
 array[1..2] of var int: c__f__1;
 array[1..1] of var int: d__f__1;
-array[1..1] of var int: objective__f__1;
 array[1..1] of var int: e;
 array[1..1] of var int: g;
 array[1..1] of var int: a__f__2;
 array[1..1] of var int: b__f__2;
 array[1..2] of var int: c__f__2;
 array[1..1] of var int: d__f__2;
-array[1..1] of var int: objective__f__2;
-constraint objective[1] = 0;
 constraint x[1] = 0;
 constraint x[2] = (x[1] + 3);
 constraint x[3] = (x[2] + 1);
 constraint x[4] = (x[3] + 5);
-constraint f(x[4], 2, c[1], d[1], a__f__1, b__f__1, c__f__1, d__f__1, objective__f__1);
-constraint objective[2] = (objective[1] + objective__f__1[1]);
-constraint f(c[1], d[1], e[1], g[1], a__f__2, b__f__2, c__f__2, d__f__2, objective__f__2);
-constraint objective[3] = (objective[2] + objective__f__2[1]);
+constraint f(x[4], 2, c[1], d[1], a__f__1, b__f__1, c__f__1, d__f__1);
+constraint f(c[1], d[1], e[1], g[1], a__f__2, b__f__2, c__f__2, d__f__2);
 constraint (c[1] > d[1]);
-solve minimize objective[3];"""
+solve satisfy;"""
     },
     {
         "name": "test_nested_function",
@@ -678,36 +586,28 @@ def g(a, b):
 
 c = g(2, 2)
 """,
-        "expected_translation": """predicate f(var int: input_1, var int: output_1, array[1..2] of var int: a, array[1..1] of var int: objective) =
+        "expected_translation": """predicate f(var int: input_1, var int: output_1, array[1..2] of var int: a) =
     (
     a[1] = input_1 /\\
-    objective[1] = 0 /\\
     ((a[1] > 0) -> a[2] = 1) /\\
     ((not (a[1] > 0)) -> a[2] = 0) /\\
     output_1 = a[2]
     );
-predicate g(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..2] of var int: a__f__1, array[1..1] of var int: b, array[1..2] of var int: c, array[1..2] of var int: objective, array[1..1] of var int: objective__f__1) =
+predicate g(var int: input_1, var int: input_2, var int: output_1, array[1..1] of var int: a, array[1..2] of var int: a__f__1, array[1..1] of var int: b, array[1..2] of var int: c) =
     (
     a[1] = input_1 /\\
     b[1] = input_2 /\\
-    objective[1] = 0 /\\
-    f(a[1], c[1], a__f__1, objective__f__1) /\\
-    objective[2] = (objective[1] + objective__f__1[1]) /\\
+    f(a[1], c[1], a__f__1) /\\
     c[2] = (c[1] + b[1]) /\\
     output_1 = c[2]
     );
-array[1..2] of var int: objective;
 array[1..1] of var int: c;
 array[1..1] of var int: a__g__1;
 array[1..2] of var int: a__f__1__g__1;
 array[1..1] of var int: b__g__1;
 array[1..2] of var int: c__g__1;
-array[1..2] of var int: objective__g__1;
-array[1..1] of var int: objective__f__1__g__1;
-constraint objective[1] = 0;
-constraint g(2, 2, c[1], a__g__1, a__f__1__g__1, b__g__1, c__g__1, objective__g__1, objective__f__1__g__1);
-constraint objective[2] = (objective[1] + objective__g__1[2]);
-solve minimize objective[2];"""
+constraint g(2, 2, c[1], a__g__1, a__f__1__g__1, b__g__1, c__g__1);
+solve satisfy;"""
     },
 ]
 
@@ -719,9 +619,7 @@ pieces : DSList(2, DSList(3, int))
 pieces = [[2,1,5],[2,12,53]]
 pieces[1] = pieces[2]
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..2] of array[1..2] of array[1..3] of var int: pieces;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..2] of array[1..2] of array[1..3] of var int: pieces;
 constraint pieces[1][1][1] = [[2, 1, 5], [2, 12, 53]][1][1];
 constraint pieces[1][1][2] = [[2, 1, 5], [2, 12, 53]][1][2];
 constraint pieces[1][1][3] = [[2, 1, 5], [2, 12, 53]][1][3];
@@ -734,7 +632,7 @@ constraint pieces[2][2][3] = pieces[1][2][3];
 constraint pieces[2][1][1] = pieces[1][2][1];
 constraint pieces[2][1][2] = pieces[1][2][2];
 constraint pieces[2][1][3] = pieces[1][2][3];
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_assign_record",
@@ -749,13 +647,11 @@ item : Item
     int: value,
     array[1..3] of int: weight
 );
-array[1..1] of var int: objective;
 array[1..1] of record(
     var int: value,
     array[1..3] of var int: weight
 ): item;
-constraint objective[1] = 0;
-solve minimize objective[1];"""
+solve satisfy;"""
     },
     {
         "name": "test_assert_any",
@@ -763,11 +659,18 @@ solve minimize objective[1];"""
 x : DSList(5, int)
 assert any(x[cut] > 0 for cut in range(1, 6))
 """,
-        "expected_translation": """array[1..1] of var int: objective;
-array[1..1] of array[1..5] of var int: x;
-constraint objective[1] = 0;
+        "expected_translation": """array[1..1] of array[1..5] of var int: x;
 constraint ((x[1][1] > 0) \/ (x[1][2] > 0) \/ (x[1][3] > 0) \/ (x[1][4] > 0) \/ (x[1][5] > 0));
-solve minimize objective[1];"""
+solve satisfy;"""
+    },
+    {
+        "name": "test_fun",
+        "code": """a = 4
+minimize(a)
+""",
+        "expected_translation": """array[1..1] of var int: a;
+constraint a[1] = 4;
+solve minimize a[1];"""
     },
 ]
 
@@ -780,11 +683,10 @@ solve minimize objective[1];"""
 # assert exists(a[i] > 10 for i in range(1, 7))
 # """,
 #         "expected_translation": """type a = array[1..6] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..6] of var int: a;
-# constraint objective[1] = 0;
 # constraint exists(i in 1..6)(a[i] > 10);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_explicit_exists_conditions",
@@ -793,11 +695,10 @@ solve minimize objective[1];"""
 # assert exists(a[2] > 10, a[4] > 20, a[6] < 5)
 # """,
 #         "expected_translation": """type a = array[1..6] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..6] of var int: a;
-# constraint objective[1] = 0;
 # constraint (a[2] > 10 \\/ a[4] > 20 \\/ a[6] < 5);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_forall_expression",
@@ -806,11 +707,10 @@ solve minimize objective[1];"""
 # assert forall(a[i] >= 0 for i in range(3))
 # """,
 #         "expected_translation": """type a = array[1..3] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..3] of var int: a;
-# constraint objective[1] = 0;
 # constraint forall(i in 1..3)(a[i] >= 0);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_any_and_all_mix",
@@ -820,12 +720,11 @@ solve minimize objective[1];"""
 # assert all(a[i] < 5 for i in range(3))
 # """,
 #         "expected_translation": """type a = array[1..3] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..3] of var int: a;
-# constraint objective[1] = 0;
 # constraint exists(i in 1..3)(a[i] > 0);
 # constraint forall(i in 1..3)(a[i] < 5);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_sum_generator",
@@ -834,12 +733,11 @@ solve minimize objective[1];"""
 # s = sum(a[i] for i in range(3))
 # """,
 #         "expected_translation": """type a = array[1..3] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..3] of var int: a;
 # array[1..1] of var int: s;
-# constraint objective[1] = 0;
 # constraint s[1] = sum(i in 1..3)(a[i]);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_min_max_generators",
@@ -849,14 +747,13 @@ solve minimize objective[1];"""
 # m2 = max(a[i] for i in range(3))
 # """,
 #         "expected_translation": """type a = array[1..3] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..3] of var int: a;
 # array[1..1] of var int: m1;
 # array[1..1] of var int: m2;
-# constraint objective[1] = 0;
 # constraint m1[1] = min(i in 1..3)(a[i]);
 # constraint m2[1] = max(i in 1..3)(a[i]);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_combined_quantifiers",
@@ -866,12 +763,11 @@ solve minimize objective[1];"""
 # assert forall(a[i] < 10 for i in range(4))
 # """,
 #         "expected_translation": """type a = array[1..4] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..4] of var int: a;
-# constraint objective[1] = 0;
 # constraint exists(i in 1..4)(a[i] > 1);
 # constraint forall(i in 1..4)(a[i] < 10);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_sum_and_exists_mix",
@@ -881,13 +777,12 @@ solve minimize objective[1];"""
 # assert exists(a[i] > s for i in range(5))
 # """,
 #         "expected_translation": """type a = array[1..5] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..5] of var int: a;
 # array[1..1] of var int: s;
-# constraint objective[1] = 0;
 # constraint s[1] = sum(i in 1..5)(a[i]);
 # constraint exists(i in 1..5)(a[i] > s[1]);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_nested_quantifiers",
@@ -898,12 +793,11 @@ solve minimize objective[1];"""
 # """,
 #         "expected_translation": """type a = array[1..2] of int;
 # type b = array[1..2] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..2] of var int: a;
 # array[1..2] of var int: b;
-# constraint objective[1] = 0;
 # constraint forall(i in 1..2)(exists(j in 1..2)(a[i] > b[j]));
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 #     {
 #         "name": "test_exists_sum_condition",
@@ -912,14 +806,14 @@ solve minimize objective[1];"""
 # assert exists(a[i] > 10 for i in range(1, 4))
 # """,
 #         "expected_translation": """type a = array[1..3] of int;
-# array[1..1] of var int: objective;
+# 
 # array[1..3] of var int: a;
-# constraint objective[1] = 0;
 # constraint (sum(i in 1..3)(a[i]) > 10);
-# solve minimize objective[1];"""
+# solve satisfy;"""
 #     },
 # ]
 
+from Translator.Objects.MinizincRunner import MiniZincRunner
 
 class TestMiniZincTranslation(unittest.TestCase):
 
@@ -928,6 +822,10 @@ class TestMiniZincTranslation(unittest.TestCase):
             with self.subTest(test["name"]):
                 translator = MiniZincTranslator(test["code"])
                 result = translator.unroll_translation().strip()
+                runner = MiniZincRunner(result)
+                run_result = runner.run()
+                print("MiniZinc run result:")
+                print(run_result)
                 expected = test["expected_translation"].strip()
                 self.assertEqual(result, expected)
                 if result != expected:
@@ -943,6 +841,11 @@ for test in translation_tests:
     print(f"Test {test['name']}")
     translator = MiniZincTranslator(test["code"])
     result = translator.unroll_translation()
+    runner = MiniZincRunner()
+    run_result = runner.run(result)
+    print("MiniZinc run result:")
+    print("  ", run_result)
+    print(f"  status={getattr(run_result, 'status', None)}")
     if result != test["expected_translation"]:
         failed += 1
         failed_tests.append(test["name"])

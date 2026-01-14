@@ -34,12 +34,6 @@ class CodeBlock:
     def run(self, block, loop_scope=None):
         """Execute an AST statement list (block)."""
         
-
-        # Define the objective function
-        self.new_evolving_variable("objective", DSInt())
-        # and initialize to 0
-        self.create_deep_equality_constraint(self.variable_table["objective"], [], "0")
-        
         self.execute_block(block, {} if loop_scope is None else loop_scope)
         # Add declarations of the evolving variables now that we know their length
         return self
@@ -317,14 +311,6 @@ class CodeBlock:
         # Emit the predicate call as a constraint
         call_line = pred.emit_call_line(in_exprs, out_exprs, array_arg_names)
         self.constraints.append(Constraint(call_line))
-        # Add the objective function constraint
-        obj_in_func_name = f"objective__{pred.name}__{call_idx}"
-        # Desired constraint in text
-        desired_constraint_text = f"objective = objective + {obj_in_func_name}"
-        # Turn it into ast
-        desired_constraint_ast = ast.parse(desired_constraint_text, mode='exec')
-        # Introduce desired constraint by executing block
-        self.execute_block(desired_constraint_ast.body, loop_scope={})
 
     # --- FOR LOOPS---
 

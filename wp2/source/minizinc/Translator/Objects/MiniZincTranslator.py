@@ -69,11 +69,16 @@ class MiniZincTranslator:
 
             # 3) function definitions -> Predicates
             elif isinstance(node, ast.FunctionDef):
+                # to ast visualisation
                 pred = Predicate(node,
                                  predicates=self.predicates,
                                  constant_table=self.constants,
                                  types=self.types)
                 self.predicates[pred.name] = pred
+            elif (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and
+                  (node.value.func.id == "minimize" or
+                   node.value.func.id == "maximize")):
+                self.objective = (node.value.func.id, ast.unparse(node.value.args[0]))
             else:
                 self.top_level_stmts.append(node)
         return self
@@ -127,7 +132,10 @@ class MiniZincTranslator:
     
     def get_objective(self, block):
         # Look for 'objective' variable in block
-        obj_var = block.variable_table["objective"]
-        obj_var_ver_name = obj_var.versioned_name()
-        return f"solve minimize {obj_var_ver_name};"
+        if self.objective is not None:
+            obj_type, obj_expr = self.objective
+            obj_var = block.variable_table[obj_expr]
+            obj_var_ver_name = obj_var.versioned_name()
+            return f"solve {obj_type} {obj_var_ver_name};"
+        return f"solve satisfy;"
 
