@@ -24,16 +24,15 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                     prompt="""Incorrect result format, it must be:
     ´´´python
     # --- Objects ---
-    <solution> 
+    <solution>
 
-    # --- Constants ---
-    <solution> 
+    # --- Constants and Decision Variables ---
+    <solution>
 
-    # --- Decision Variables ---
-    <solution> 
+    # --- Objective ---
 
     # --- Constraints ---
-    <solution> 
+    <solution>
     ´´´ where <solution> is a placeholder for the code. """ +
                            f"""Extend the following python code, include it, but you are strictly forbidden from modify it. Just add the missing sections:
                                 ´´´python\n{node.get_partial_formulation_up_until_now()}´´´\n""" +
@@ -58,9 +57,10 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                     "Minizinc Solver Error" in raw_definitions or
                     "Constraints FormatError" in raw_definitions or
                     "Constraints/Objective FormatError" in raw_definitions or
+                    raw_definitions.strip() == "" or
                     nr_unsat_error == LOOP_OF_DOOM_UNSAT_MAX_IT):
                 if DEBUG_MODE_ON: print(
-                    f"Checking node created for level {node.level}: {raw_definitions} encountered")
+                    f"Checking node created for level {node.level}: {raw_definitions} NTD, solver error, format error or end of loop of doom encountered")
                 raw_definitions = create_and_send_prompt_for_strictly_iterative_approach(node,
                                                                                          full_problem_description=full_problem_description,
                                                                                          subproblem_description=subproblem_description,
@@ -170,7 +170,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                         "Constraints FormatError" in raw_definitions or
                         "Constraints/Objective FormatError" in raw_definitions):
                     if DEBUG_MODE_ON: print(
-                        f"Checking node created for level {node.level}: {raw_definitions} encountered")
+                        f"Checking node created for level {node.level}: {raw_definitions} NTD, Constraints FormatError or Constraints/Objective ForamtErrorencountered")
                     raw_definitions = create_and_send_prompt_for_strictly_iterative_approach(node,
                                                                                              full_problem_description=full_problem_description,
                                                                                              subproblem_description=subproblem_description,
@@ -460,7 +460,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
             , max_tokens=800
         )
     # CONSTRAINT
-    elif node.level == 4:
+    elif node.level >= 4:
         if subproblem_description is None:
             raise ValueError("Subproblem description cannot be None")
 
@@ -474,7 +474,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
             "------------\n" +
             f"""Given the following python code snippet containing datatypes, constants, decision variables and objective func.:
                 ´´´python\n{node.get_partial_formulation_up_until_now()}´´´\n""" +
-            f"\nTask:\n{load_sp_file("sp_constraints.txt")}\n"
+            f"\nTask:\n{load_sp_file("sp_constraints.txt")}\nNever return an empty answer!"
             , max_tokens=1000
         )
     return response
@@ -498,7 +498,7 @@ def send_feedback(node: TreeNode, llm, full_problem_formulation: list[str] = Non
         _ = llm.send_prompt(
             prompt=
             f"""The following is an example for a, maybe not optimal, but syntactically valid {"full" if node.level == 4 else "partial"} OptDSL formulation of the optimization problem:
-        {full_problem_formulation}           
+        {full_problem_formulation}
         Learn from it its syntax and semantics of OptDSL. Apply the syntax knowledge in the future. Provide diverse encodings in the future.
         ´´´ python
         {node.get_partial_formulation_up_until_now()}
@@ -520,27 +520,27 @@ def _get_system_prompt(key: str):
             "optdsl_format_all_sp": """
 You are an optimization problem formulation expert that encodes specific parts of the problem from below into OptDSL.
 1.The result must be code only.
-2.No explanations. 
-3.Python comments are allowed. 
-4. Avoid lengthy comments, keep it short. 
-5.The result must contain correct definitions only. 
+2.No explanations.
+3.Python comments are allowed.
+4. Avoid lengthy comments, keep it short.
+5.The result must contain correct definitions only.
 6.Return you answer in the following format:
 ´´´python
 # --- Objects ---
-<solution> 
+<solution>
 
-# --- Constants ---
-<solution> 
+# --- Constants and Decision Variables ---
+<solution>
 
-# --- Decision Variables ---
-<solution> 
+# --- Objective ---
+<solution>
 
 # --- Constraints ---
-<solution> 
+<solution>
 ´´´ where <solution> is a placeholder for the code. Use in-context-learning examples, do not take its variables directly but learn.
 7.Return \"NTD\", if there is empty output.
 8. Do not hallucinate.
-9. Do not exceed the max_tokens. 
+9. Do not exceed the max_tokens.
 10. Never leave placeholder for the user to fill out, everything must be strictly defined by you.
             """,
             "optdsl_sp": "You are an optimization problem formulation expert that encodes specific parts of the problem into valid OptDSL. \n1.The result must be code only. \n2.No explanations. \n3.Python comments are allowed. \n4.Avoid lengthy comments, keep it short. \n5.The result must contain correct definitions only. Use in-context-learning examples, do not take its variables directly but learn. \n6.Return \"NTD\", if there is empty output. \n7. Do not hallucinate. \n8. Do not exceed the max_tokens. 9. Never leave placeholder for the user to fill out, everything must be strictly defined by you.",
@@ -580,30 +580,27 @@ You are an optimization problem formulation expert that encodes specific parts o
             "z3py_format_all_sp": """
         You are an optimization problem formulation expert that encodes specific parts of the problem from below into z3 python.
         1. The result must be code only.
-        2. No explanations. 
-        3. Python comments are allowed. 
-        4. Avoid lengthy comments, keep it short. 
-        5. The result must contain correct definitions only. 
+        2. No explanations.
+        3. Python comments are allowed.
+        4. Avoid lengthy comments, keep it short.
+        5. The result must contain correct definitions only.
         6. Return you answer in the following format:
         ´´´python
         # --- Objects ---
-        <solution> 
+        <solution>
 
-        # --- Constants ---
-        <solution> 
-
-        # --- Decision Variables ---
+        # --- Constants and Decision Variables ---
         <solution>
 
         # --- Objective ---
-        <solution> 
+        <solution>
 
         # --- Constraints ---
-        <solution> 
+        <solution>
         ´´´ where <solution> is a placeholder for the code.
         7. Return \"NTD\", if there is empty output.
         8. Do not hallucinate.
-        9. Do not exceed the max_tokens. 
+        9. Do not exceed the max_tokens.
         10. Never leave placeholder for the user to fill out, everything must be strictly defined by you.""",
             "z3py_sp": "You are an optimization problem formulation expert that encodes specific parts of the problem from below into z3 python. 1.The result must be python code only. \n2.No explanations. \n3.Python comments are allowed. \n4.Avoid lengthy comments, keep it short. \n5.The result must contain correct definitions only. \n6. Remember that constraint must be added to a s = Optimize(). Use given datatypes, IntVal, StringVal etc. \nUse IntVal, StringVal etc. Use in-context-learning examples, do not take its variables directly but learn. \n7.Return \"NTD\", if there is empty output. \n9. Do not hallucinate. \n10. Do not exceed the max_tokens. 11. Never leave placeholder for the user to fill out, everything must be strictly defined by you. Avoid redundancies.",
             "z3py_json_sp": "You are an optimization problem formulation expert that encodes specific parts of the problem from below into z3 python. 1.The result must be a json that partly contains code. \n2.No explanations. \n3.Avoid lengthy comments, keep it short. \n5.The result must contain correct definitions only. \n6. Remember that each constraint must be added to a s = Optimize().  Use given datatypes, IntVal, StringVal etc. Use in-context-learning examples. \n10. Do not exceed the max_tokens. 11. Never leave placeholder for the user to fill out, everything must be strictly defined by you. Avoid redundancies.",

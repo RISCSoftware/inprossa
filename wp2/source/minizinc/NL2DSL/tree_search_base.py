@@ -23,7 +23,8 @@ class TreeBase:
                  save_model=True,
                  input_variable_spec: list[dict] = None,
                  output_variable_spec: list[dict] = None,
-                 objects_spec: dict = None):
+                 objects_spec: dict = None,
+                 for_each_constraint_one_node: bool = False):
         self.root = RootNode(save_nodes=save_nodes, save_model=save_model)
         self.problem_description = problem_description
         self.llm = llm
@@ -31,6 +32,7 @@ class TreeBase:
         self.output_variable_spec = output_variable_spec
         self.objects_spec = objects_spec
         self.result_models_file = f'optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json'
+        self.for_each_constraint_one_node = for_each_constraint_one_node
 
     def create_objects_node(self, parent: RootNode):
         # Query object types, data types
@@ -154,28 +156,18 @@ class TreeBase:
         send_feedback(obj_function_node, llm=self.llm)
         return obj_function_node
 
-    def create_constraints_node(self, parent: ObjectiveNode):
+    def create_constraints_node(self, parent: ObjectiveNode, cur_subproblem_index: int = None):
         # Query constraints
-        constraints_node = ConstraintsNode(parent=parent)
-        for i in range(3, len(self.problem_description)):
-            if i == len(self.problem_description) - 1:
-                constraints_node.last_in_progress = True
-            response = create_and_send_prompt_for_strictly_iterative_approach(constraints_node,
-                                                                       llm=self.llm,
-                                                                       subproblem_description=self.problem_description[i])
-            response = enter_variable_definitions_feedback_loop(constraints_node,
-                                                                response,
-                                                                llm=self.llm,
-                                                                subproblem_description=self.problem_description[i])
-            constraints_node.set_content(response)
-            # print(f"*** Constraints: {response}\n")
-            if response == "":
-                print("Creating constraints failed!")
-            else:
-                print(f"Creating constraints succeeded: {response}")
+        constraints_node = ConstraintsNode(parent=parent, level=cur_subproblem_index)
 
-            # Syntactic feedback to LLM
-            if i == len(self.problem_description) - 1: send_feedback(constraints_node, llm=self.llm)
+        # For each constraint one node
+        if self.for_each_constraint_one_node and cur_subproblem_index is not None:
+            constraints_node = self._generate_constraint_code(constraints_node, cur_subproblem_index-1)
+            if cur_subproblem_index < len(self.problem_description): return constraints_node
+        else:
+            # All constraints are saved in one node
+            for i in range(3, len(self.problem_description)):
+                constraints_node = self._generate_constraint_code(constraints_node, i)
 
         # Create connection between objective and given objective decision variable
         objective_var_name = [variable["mandatory_variable_name"] for variable in json.loads(
@@ -227,6 +219,28 @@ Semantic validation: {validation_res}
                 constraints_node.objective_val is not None):
             send_feedback(constraints_node, self.llm, full_problem_formulation=self.problem_description, syntax=False)
 
+        return constraints_node
+
+    def _generate_constraint_code(self, constraints_node: ConstraintsNode, i: int):
+        if i == len(self.problem_description) - 1:
+            constraints_node.last_in_progress = True
+        response = create_and_send_prompt_for_strictly_iterative_approach(constraints_node,
+                                                                          llm=self.llm,
+                                                                          subproblem_description=
+                                                                          self.problem_description[i])
+        response = enter_variable_definitions_feedback_loop(constraints_node,
+                                                            response,
+                                                            llm=self.llm,
+                                                            subproblem_description=self.problem_description[i])
+        constraints_node.set_content(response)
+        # print(f"*** Constraints: {response}\n")
+        if response == "":
+            print("Creating constraints failed!")
+        else:
+            print(f"Creating constraints succeeded: {response}")
+
+        # Syntactic feedback to LLM
+        if i == len(self.problem_description) - 1: send_feedback(constraints_node, llm=self.llm)
         return constraints_node
 
     @staticmethod

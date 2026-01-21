@@ -83,5 +83,24 @@ __pycache__/
 # Pycharm
 .idea/
 
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+*-junit.xml
+liccheck_reporting.txt
+
+# credentials and similar
+.env-secrets
+
 # LLM API key
 *.api_key

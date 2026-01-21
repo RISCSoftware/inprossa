@@ -82,13 +82,16 @@ class TreeNode:
             json.dump(data, f, indent=4)
 
     def save_model_to_file(self, final_evaluation_result, problem_description: str, filename: str = f'optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H")}.json'):
+        curNode = self
+        while(curNode.parent.level != 3):
+            curNode = curNode.parent
         data = {
             "problem_description": problem_description,
-            "llm_generated_objects": initial_clean_up(self.parent.parent.parent.llm_generated_objects) if self.parent.parent.parent.llm_generated_objects is not None else "",
-            "script_generated_objects": self.parent.parent.parent.script_generated_objects,
-            "constants": [constant for constant in self.parent.parent.variables_and_constants if constant["variable_name"].isupper()],
-            "decision_variables": [constant for constant in self.parent.parent.variables_and_constants if constant["variable_name"].islower()],
-            "objective": initial_clean_up(self.parent.content),
+            "llm_generated_objects": initial_clean_up(curNode.parent.parent.parent.llm_generated_objects) if curNode.parent.parent.parent.llm_generated_objects is not None else "",
+            "script_generated_objects": curNode.parent.parent.parent.script_generated_objects if curNode.parent.parent.parent.script_generated_objects is None else "",
+            "constants": [constant for constant in curNode.parent.parent.variables_and_constants if constant["variable_name"].isupper()],
+            "decision_variables": [constant for constant in curNode.parent.parent.variables_and_constants if constant["variable_name"].islower()],
+            "objective": initial_clean_up(curNode.parent.content),
             "constraints": initial_clean_up(self.content),
             "full_formulation": initial_clean_up(self.get_partial_formulation_up_until_now()),
             "objective_val": self.objective_val,
@@ -117,9 +120,11 @@ class TreeNode:
 
     def set_content(self, content, failed: bool = False):
         if constants.USE_ALL_AT_ONCE_AND_EXTRACT: content = remove_duplicate_lines(build_code(self), content)
-        self.content += f"# --- {self.name} ---\n"
-        self.content += "\n\n" + remove_programming_environment(content.strip())
-        self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
+        self.content += "\n\n"
+        content = remove_programming_environment(content.strip())
+        self.content += content
+
+        self.partial_formulation_up_until_now += "\n\n" + content
         if content.strip() == "":
             self.state = State.FAILED
             self.n_failed_generations += 1
@@ -153,7 +158,7 @@ class RootNode(TreeNode):
 
     def set_content(self, content, failed: bool = False):
         # Check if at least one section header is present
-        if "--- Objects ---".lower() not in content.lower() or "--- Constants ---".lower() not in content.lower() or "--- Decision variables ---".lower() not in content.lower() or "--- Objective function ---".lower() not in content.lower() or "--- Constraints 1 ---".lower() not in content.lower():
+        if "--- Objects ---".lower() not in content.lower() or "--- Decision variables ---".lower() not in content.lower() or "--- Constants and Decision Variables ---".lower() not in content.lower() or "--- Objective function ---".lower() not in content.lower() or "--- Constraints 1 ---".lower() not in content.lower():
             self.state = State.FAILED
             self.n_failed_generations += 1
             return False
@@ -199,7 +204,7 @@ class VariablesConstantsNode(TreeNode):
     def __init__(self, name = "", parent = None):
         self.variables_and_constants = []
         self.all_variables_created = False
-        super().__init__("Constants", parent, level=2)
+        super().__init__("Constants and Decision Variables", parent, level=2)
 
     def set_constants(self, incomming_constants):
         self.content = "# --- Constants ---\n"
@@ -253,7 +258,7 @@ class VariablesConstantsNode(TreeNode):
             self.variables_and_constants.extend(remove_duplicate_variables(filtered_decision_variables_only,0.925))
             self.define_list_lengths()
             self.variables_and_constants = remove_duplicate_variables(self.variables_and_constants, 1)
-            self.content += f"\n\n# --- {self.name} and Decision Variables ---\n" + self.get_as_codeblock()
+            self.content = f"\n\n# --- {self.name} ---\n" + self.get_as_codeblock()
         else:
             self.content += "\n\n" + variables
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
@@ -307,11 +312,15 @@ class ObjectiveNode(TreeNode):
         return self.parent.parent.parent.content()
 
 class ConstraintsNode(TreeNode):
-    def __init__(self, name = "", parent = None):
-        super().__init__("Constraints", parent, level=4)
+    def __init__(self, name = "", parent = None, level: int = None):
+        if level is None: level = 4
+        super().__init__("Constraints", parent, level=level)
         self.is_terminal = True
         self.last_in_progress = False
-        self.content = f"# -- {self.name} --\n"
+        if self.parent.level > 3:
+            self.content += self.parent.content
+        self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now
+        self.content += f"# -- {self.name} --\n"
 
     def get_textual_repr(self):
         return self.parent.parent.parent.parent.content()
@@ -539,6 +548,7 @@ def remove_programming_environment(raw_response: str, node = None) -> str:
     # Remove any line that starts with "from z3" (even with leading spaces)
     if "from z3" in cleaned: cleaned = re.sub(r'^\s*from z3.*$', '', raw_response, flags=re.MULTILINE)
 
+    cleaned = cleaned.replace("# --- Incorrect Code ---", "")
     if "OptDSL" in cleaned: cleaned = cleaned.replace("OptDSL", "")
     if "json" in cleaned: cleaned = cleaned.replace("json", "")
     if "python" in cleaned: cleaned = cleaned.replace("python", "")
@@ -630,8 +640,9 @@ def load_sp_file(file_path):
 def decompose_full_definition (full_definition: str):
     if ("# --- Objects ---".lower() in full_definition.lower() or
            "# --- Constants ---".lower() in full_definition.lower() or
-           "# --- Objective ---".lower() in full_definition.lower() or
            "# --- Decision variables ---".lower() in full_definition.lower() or
+           "# --- Constants and Decision Variables ---".lower() in full_definition.lower() or
+           "# --- Objective ---".lower() in full_definition.lower() or
            "# --- Constraints ---".lower() in full_definition.lower() or
            "# --- Incorrect Code ---".lower() in full_definition.lower()):
         full_definition = remove_programming_environment(full_definition)
