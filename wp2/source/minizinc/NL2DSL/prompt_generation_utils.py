@@ -128,7 +128,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                     raw_definitions += f"\n# --- Auxiliary Variables ---\n{decomposed_code["auxiliary variables"]}"
                 if execution_error is None and node.name.lower() in decomposed_code:
                     # Generated code already in partial formulation (duplicate)
-                    if "incorrect code" in decomposed_code and decomposed_code["incorrect code"] in node.get_partial_formulation_up_until_now():
+                    if "incorrect code" in decomposed_code and len(decomposed_code["incorrect code"]) > 0 and decomposed_code["incorrect code"] in node.get_partial_formulation_up_until_now():
                         execution_error = f"Returned result code is already in given code (redundancy)! Encode exactly the subproblem and do not return code that is already given."
                     raw_definitions += f"\n# --- {node.name.lower()} ---\n{decomposed_code[node.name.lower()]}"
                     raw_definitions = raw_definitions.replace(f"# --- Incorrect Code ---\n", "")
@@ -384,6 +384,24 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                 f"Task: {load_sp_file("sp_objects.txt")}"
                 , max_tokens=1000
             )
+    # DECISION VARIABLES
+    elif node.parent.level == 2.5:
+        response = llm.send_prompt(
+            system_prompt=f"{_get_system_prompt("json_sp")}\n{_get_icl()}",
+            prompt=  # General instr.
+            "Given the problem:\n" +
+            "------------\n" +
+            # Output variables (decision variables) - problem description
+            full_problem_description[1] +
+            "------------\n" +
+            # Given object types, constants:
+            f"""Given the following python code snippet containing datatypes, constants:
+                        ´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}
+                        {node.get_partial_formulation_up_until_now()}´´´\n""" +
+            # Component specific instr.: decision variables
+            f"\nYour priority is to fulfill this task: {load_sp_file("sp_decision_variables.txt")}\n"
+            , max_tokens=1000
+        )
     # CONSTANTS and DECISION VARIABLES
     elif node.level == 2:
         # CONSTANTS

@@ -4,7 +4,6 @@ import boto3
 import os
 
 import constants
-from MinuteTracker import MinuteWindowTracker
 
 
 class AwsClient:
@@ -12,7 +11,6 @@ class AwsClient:
         self.model_id = model_id
         self.temperature = 0.7
         self.set_region_id()
-        self.tracker = MinuteWindowTracker(max_attempts=3)
 
         # Read API key from a local file
         with open(".api_key", "r") as f:
@@ -35,8 +33,7 @@ class AwsClient:
         if constants.DEBUG_MODE_ON: print(f"Swaping from {self.model_id} to {model_id}.")
         self.model_id = model_id
         self.set_region_id()
-        if max_tokens > 1:
-            return self.send_prompt(system_prompt=system_prompt, prompt=prompt, max_tokens=max_tokens)
+        return self.send_prompt(system_prompt=system_prompt, prompt=prompt, max_tokens=max_tokens)
 
     def send_prompt(self,
             system_prompt: str = None,

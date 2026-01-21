@@ -1,0 +1,35 @@
+{
+  "objects": {
+    "Item": [
+      {
+        "name": "width",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      {
+        "name": "height",
+        "type": "integer",
+        "maximum": 6
+      }
+    ]
+  },
+  "input_variables": {
+    "BOX_HEIGHT": {
+      "type": "integer",
+      "value": 6
+    },
+    "BOX_WIDTH": {
+      "type": "integer",
+      "value": "random",
+      "minimum": 6
+    },
+    "ITEMS": {
+      "type": {
+        "elem_type": "Item",
+        "length": 5
+      },
+      "value": "random"
+    }
+  }
+}
