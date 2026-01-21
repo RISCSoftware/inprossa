@@ -5,7 +5,7 @@ Extend the given OptDSL python code snippet, with diverse, optimal constraints e
     2. The result must be minimal and semantically concise to the given subproblem part.
     3. Do not repeat already present definitions. Do not add redundancies.
     4. Add minimal necessary auxiliary variables, that are not defined yet.
-    5. Auxiliary variables at root and within functions, must define a type: int, float, object type defined with double colon. Auxiliary variables at root must be defined as input parameter, if used within a function. Temporary variables and temporary variables of an object type must be declared with that object type, also within functions.
+    5. Auxiliary variables at root and within functions, must define a type: int, float, object type defined with double colon. Decision variables and auxiliary variables at root must be defined as input parameter, if used within a function. Temporary variables and temporary variables of an object type must be declared with that object type, also within functions.
     6. Do not assign and-, or- and comparison-expressions to a temporary variable, but combine them into an assert-expression. If calculations are required within the assert-expression, do not extract them into temporary variables. It is forbidden to extract single object fields into a temporary variable.
     ´´´
     # Example for random car object, learn from it

@@ -1,0 +1,212 @@
+# Natural Language 2 Pythonic DSL
+
+
+A tool, consisting of multiple scripts, to translate semi-natural language optimization problems to the pythonic Domain Specific Language (DSL) called **OptDSL** (developed in inprossa\wp2\source\minizinc\Translator).
+The translation is done automatically using the natural-language processing capabilities of an LLM. 
+We use an abstract structure called a tree of thoughts, to guide the LLM translation in multiple steps.
+
+### Prerequisites
+Either an Amazon AWS Bedrock LLM or a locally running Vllm is required (respective clients in `NL2DSL/LLM_Client`). Please choose a LLM_Client in `NL2DSL/constants.py` (or create one yourself). In the event of using AWS Bedrock LLM models, create a file `.api_key` with your LLM API key.
+
+A python environment in order to run the scripts.
+
+### Branch and Tree of Thoughts
+The problem of translating a semi-natural language optimization problem into multiple components:
+* Level 1: Objects (e.g. Person: Name, Age)
+* Level 2: Constants (input variables)
+* Level 3: Decision variables (output variables)
+* Level 4: Objective function (calculation of the objective value which will be minimized/maximized in the end)
+* Level 5: Constraints
+
+Each component is sequentially queried to a LLM in a build-up fashion and depends on the previous components so far. This pipeline reaching from Objects to Constraints is called a **Branch of Thoughts**. In order to explore different formulations following from an LLM's non-determinism, we can build a *Tree of Thoughts*.
+
+> [!Warning]
+> Only optimization problems that have a maximization objective are supported at the time.
+
+### Usage
+
+Use `run_k_sequential_pipeline_runs` in order to create k independent branches of thoughts, each yielding one result optimization model in OptDSL.
+
+Use `tree_search_dfs` in order to create a full Tree of Thoughts with DFS (depth-first-search). Each leave of this tree represents one result optimization model in OptDSL. Attention: set the variable `NR_MAX_CHILDREN` in `constants.py` to the number of desired children per node. This will also determine the number of resulting models (e.g. NR_MAX_CHILDREN = 2 yields 16 models in OptDSL).
+
+You may change various settings in the file `constants.py`:
+* `LLM`: Defines the LLMClient (currently AWS Amazon Bedrock (default) or VLLM by huggingface supported)
+* `DEBUG_MODE_ON`: Printing debug logs to console.
+* `NR_MAX_CHILDREN`: Number of children per node in `tree_search_dfs.py` (Tree of Thoughts)
+* `SAVE_MODEL`: Saves the resulting OptDSL-encoded model as json.
+* `SAVE_NODES`: When running `tree_search_dfs.py`, each node may be saved in a nested structure of folders.
+
+### Input
+`input_instance.json` for the input parameter variables.
+```json
+{
+  "BOX_HEIGHT": 5,
+  "BOX_WIDTH": 10,
+  "ITEMS": [
+    {
+      "name": "item1",
+      "width": 10,
+      "height": 5
+    },
+    {
+      "name": "item2",
+      "width": 2,
+      "height": 2
+    }
+  ]
+}
+```
+`2d_bin_packing.json` as the problem description file including output variables, global problem description and subproblems.
+```json
+{
+  "output": [
+    {
+      "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+      "is_objective": true,
+      "mandatory_variable_name": "nr_used_boxes",
+      "suggested_shape": "integer"
+    },
+    {
+      "description": "Which item is assigned to which box.",
+      "is_objective": false,
+      "mandatory_variable_name": "item_box_assignments",
+      "suggested_shape": "array"
+    },
+    {
+      "description": "Position x and y of each item within box",
+      "is_objective": false,
+      "mandatory_variable_name": "x_y_positions",
+      "suggested_shape": "array"
+    }
+  ],
+  "global_problem": "Global problem:\n    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box \n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+  "subproblems": [
+    "Sub problem definition - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.\n    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.",
+    "Sub problem definition - part 2:\n    Taking the given items that are put into a box, they must not overlap.\n    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.",
+    "Sub problem definition - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box.\n    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box."
+  ]
+}
+```
+
+### Output
+The output constructed by prompting an LLM is the OptDSL-encoded optimization problem.
+
+#### Example output:
+```python
+# --- Objects ---
+Item = DSRecord({
+    "width": DSInt(lb=1, ub=10),
+    "height": DSInt(lb=1, ub=5)
+})
+
+BoxAssignment = DSRecord({
+    "box_id": DSInt(lb=1, ub=100),
+    "x": DSInt(lb=0, ub=1000),
+    "y": DSInt(lb=0, ub=1000)
+})
+
+
+# --- Constants ---
+BOX_HEIGHT : int = 5
+BOX_WIDTH : int = 10
+ITEM1 : Item = {"width": 10, "height": 5}
+ITEM2 : Item = {"width": 2, "height": 2}
+ITEMS : DSList(length=2, elem_type=Item) = [ITEM1, ITEM2]
+nr_used_boxes : DSInt(lb=1, ub=100)
+item_box_assignments : DSList(length=2, elem_type=BoxAssignment)
+x_y_positions : DSList(length=2, elem_type=BoxAssignment)
+N_ITEMS : int = 2
+N_ITEM_BOX_ASSIGNMENTS : int = 2
+N_X_Y_POSITIONS : int = 2
+
+
+# --- Objective ---
+def calculate_objective(assignments: DSList(length=2, elem_type=BoxAssignment)) -> int:
+    max_box_id = 0
+    for i in range(1, N_ITEM_BOX_ASSIGNMENTS + 1):
+        box_id = assignments[i].box_id
+        if box_id > max_box_id:
+            max_box_id = box_id
+    return max_box_id
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# -- Constraints --
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def fit_items_in_box(
+    items: DSList(length=2, elem_type=Item),
+    assignments: DSList(length=2, elem_type=BoxAssignment),
+    box_width: int,
+    box_height: int
+):
+    for i in range(1, N_ITEMS + 1):
+        item : Item = items[i]
+        assignment : BoxAssignment = assignments[i]
+        assert assignment.x + item.width <= box_width
+        assert assignment.y + item.height <= box_height
+
+fit_items_in_box(ITEMS, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def no_overlap(
+    items: DSList(length=2, elem_type=Item),
+    assignments: DSList(length=2, elem_type=BoxAssignment)
+):
+    for i in range(1, N_ITEMS + 1):
+        for j in range(i + 1, N_ITEMS + 1):
+            item_i : Item = items[i]
+            item_j : Item = items[j]
+            assignment_i : BoxAssignment = assignments[i]
+            assignment_j : BoxAssignment = assignments[j]
+            
+            # Check if items are in the same box
+            if assignment_i.box_id == assignment_j.box_id:
+                # Check for overlap
+                assert (assignment_i.x + item_i.width <= assignment_j.x) or \
+                       (assignment_j.x + item_j.width <= assignment_i.x) or \
+                       (assignment_i.y + item_i.height <= assignment_j.y) or \
+                       (assignment_j.y + item_j.height <= assignment_i.y)
+
+no_overlap(ITEMS, item_box_assignments)
+
+# --- constraints ---
+def ensure_item_in_one_box(
+    assignments: DSList(length=2, elem_type=BoxAssignment),
+    nr_used_boxes: DSInt(lb=1, ub=100)
+):
+    for i in range(1, N_ITEM_BOX_ASSIGNMENTS + 1):
+        assignment : BoxAssignment = assignments[i]
+        assert assignment.box_id >= 1
+        assert assignment.box_id <= nr_used_boxes
+
+ensure_item_in_one_box(item_box_assignments, nr_used_boxes)
+
+nr_used_boxes = objective
+```
+
+After each finished branch (leave node reached = model definition complete), a statistics log about that complete model is printed to console:
+```text
+**************************
+Syntactic validation: 0 failed steps
+Objective value: 2
+Solution model: {'objective': [0, 0, 2, 2, 2, 2, 2], 'nr_used_boxes': [2], 'item_box_assignments': [[2, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [2], 'assignments__calculate_objective__1': [[2, 1]], 'box_nr__calculate_objective__1': [2, 1], 'max_box__calculate_objective__1': [0, 2, 2], 'objective__calculate_objective__1': [0], 'assignments__fit_items_in_box__1': [[2, 1]], 'box_height__fit_items_in_box__1': [5], 'box_id__fit_items_in_box__1': [2, 1], 'box_width__fit_items_in_box__1': [10], 'item__fit_items_in_box__1': [{'height': 5, 'width': 10}, {'height': 2, 'width': 2}], 'items__fit_items_in_box__1': [[{'height': 5, 'width': 10}, {'height': 2, 'width': 2}]], 'objective__fit_items_in_box__1': [0], 'pos__fit_items_in_box__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'positions__fit_items_in_box__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'assignments__no_overlap__1': [[2, 1]], 'item_i__no_overlap__1': [{'height': 1, 'width': 1}], 'item_j__no_overlap__1': [{'height': 1, 'width': 1}], 'items__no_overlap__1': [[{'height': 5, 'width': 10}, {'height': 2, 'width': 2}]], 'objective__no_overlap__1': [0], 'pos_i__no_overlap__1': [{'x': 0, 'y': 0}], 'pos_j__no_overlap__1': [{'x': 0, 'y': 0}], 'positions__no_overlap__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'assignments__ensure_item_box_assignment_validity__1': [[2, 1]], 'nr_used_boxes__ensure_item_box_assignment_validity__1': [2], 'objective__ensure_item_box_assignment_validity__1': [0], 'objective__ensure_positions_are_assigned__1': [0], 'pos__ensure_positions_are_assigned__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'positions__ensure_positions_are_assigned__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec): 0.0008152
+Semantic validation: Successfully validated solution.
+**************************
+```
+The **syntactic validation** refers to the number of times the LLM failed to create a syntactically correct component.
+**Solution model** contains the full solution found by the MiniZinc solver within the displayed **Solve time (sec)**.
+Finally, at the very end the Solution model found by the solver is validated by a custom 2d-bin-packing validator (e.g. 2d-bin-packing: Given the x-y-coordinates of the items, they must not overlap, exceed box-boundaries etc.).
+
+### Upcomming:
+* json problem input
+* generic/exchangable constants  
+* automatic evaluation results
+* different search algorithm e.g. BFS, MCST
+
