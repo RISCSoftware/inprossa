@@ -66,6 +66,10 @@ def validate_solution(solver_solution : dict, task : dict):
     given_items = task["input"]["ITEMS"]
     box_height = task["input"]["BOX_HEIGHT"]
     box_width = task["input"]["BOX_WIDTH"]
+    if isinstance(given_items, str):
+        given_items = json.loads(given_items.replace("'", "\""))
+        box_height = int(box_height)
+        box_width = int(box_width)
     assert len(solution) == len(given_items), f"Incorrect number of assignments of items: {len(solution)}"
 
     # Validate objective

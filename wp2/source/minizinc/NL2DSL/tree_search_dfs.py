@@ -1,19 +1,24 @@
+import argparse
 
 import constants
 from constants import DEBUG_MODE_ON
+from input_reader import InputReader
 from structures_utils import TreeNode, VariablesConstantsNode, State
 from tree_search_base import TreeBase
 
 
 class DfsTree(TreeBase):
-    NR_MAX_CHILDREN = 1
+    NR_MAX_CHILDREN = constants.NR_MAX_CHILDREN
 
     def dfs(self, cur_node: TreeNode):
         if (cur_node.state == State.FAILED
                 or cur_node.n_failed_generations != 0
                 or cur_node.is_terminal):
             return
-        while len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN:
+        while (len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN or
+               cur_node.level == 0 and self.input_variable_spec and self.output_variable_spec and len(cur_node.get_correct_children()) < 1 or
+               cur_node.level == 1 and self.input_variable_spec and len(cur_node.get_correct_children()) < 1 or
+               cur_node.level == 2 and self.output_variable_spec and len(cur_node.get_correct_children()) < 1):
             if DEBUG_MODE_ON: print(f"""
 .....................................................
 Given:
@@ -152,12 +157,57 @@ new_constants = """
     ´´´
     """
 
-if __name__ == "__main__":
+
+def main():
+    parser = argparse.ArgumentParser(description="Tree of Thoughts generation script with DFS algorithm")
+    parser.add_argument("--problem_instance", "-pi", help="problem instance filepath")
+    parser.add_argument("--input_mode",
+                        "-m",
+                        choices=["flex_objects_fixed_input_values",
+                                 "flex_objects_flex_input_values",
+                                 "fixed_objects_fixed_object_types",
+                                 "fixed_objects_fixed_input_values",
+                                 "fixed_objects_fixed_output_values",
+                                 "fixed_objects_fixed_inoutput_values",
+                                 "reuse_model_fixed_inoutput_values"],
+                        help="Input mode: how input and output variables are provided.")
+    parser.add_argument("--problem_description", "-pd", help="problem description filepath")
+    parser.add_argument("--reusable_model_file_path", "-r", help="filepath to collection of reusable OptDSL-models")
+    parser.add_argument("--new_instance_filename", "-nc", help="filepath to collection of reusable OptDSL-models")
+
+    args = parser.parse_args()
+
     llm = constants.LLM
-    #tree = DfsTree(llm, problem_description=d2_bin_packing_formalized_problem_description_inst2)
-    #tree.create_full_tree_with_dfs()
 
-    tree = DfsTree(llm)
-    tree.use_given_model_with_input("optDSL_model_2026-01-07_14.json")
+    objects = None
+    intput_variable_spec = None
+    output_variable_spec = None
+    # Reuse model, insert new instance values and execute
+    if args.input_mode == "reuse_model_fixed_inoutput_values":
+        TreeBase.use_given_model_with_input(args.reusable_model_file_path, args.new_instance_filename)
+        return
+    # Generate full formulation (non-reusable version) - Constant translation done by LLM
+    elif args.input_mode == "flex_objects_fixed_input_values" or args.input_mode == "flex_objects_fixed_input_values":
+        problem_description = InputReader.read_problem_description_from_file(
+            args.problem_instance,
+            args.problem_description,
+            args.input_mode)
+    # Generate partial formulation (reusable version) - Constant/Decision variable translation done automatically script
+    else:
+        objects, intput_variable_spec, output_variable_spec, problem_description = InputReader.read_problem_description_and_generateDSLcode_from_file(
+            args.problem_instance,
+            args.problem_description,
+            args.input_mode)
 
-    print(tree.root)
+    tree = DfsTree(llm,
+                   problem_description=problem_description,
+                   save_model=constants.SAVE_MODEL,
+                   save_nodes=constants.SAVE_NODES,
+                   objects_spec=objects,
+                   input_variable_spec=intput_variable_spec,
+                   output_variable_spec=output_variable_spec)
+    tree.create_full_tree_with_dfs()
+
+
+if __name__ == "__main__":
+    main()

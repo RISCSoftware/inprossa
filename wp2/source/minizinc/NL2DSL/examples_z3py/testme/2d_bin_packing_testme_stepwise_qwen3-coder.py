@@ -84,7 +84,7 @@ else:
     print("Unsatisfiable")
 '''
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
-from minizinc_solver import MiniZincSolver
+from solver import MiniZincSolver
 
 code = """
 # -- Objects --
@@ -97,76 +97,26 @@ Item = DSRecord({
     "width": DSInt(lb=1, ub=10),
     "height": DSInt(lb=1, ub=10)
 })
-
-BoxAssignment = DSRecord({
-    "box_id": DSInt(lb=1, ub=100),
-    "x": DSInt(lb=0, ub=100),
-    "y": DSInt(lb=0, ub=100)
+BOX_HEIGHT : int = 3
+BOX_WIDTH : int = 3
+#ITEMS : DSList(length = 6, elem_type = Item) = [{'width': 4, 'height': 3}, {'width': 3, 'height': 2}, {'width': 5, 'height': 3}, {'width': 2, 'height': 4}, {'width': 3, 'height': 3}, {'width': 5, 'height': 2}]
+# --- Objects ---
+Item = DSRecord({
+    "value": DSInt(lb=1, ub=80),
+    "weight": DSInt(lb=1, ub=100)
 })
 
-# --- Constants ---
-BOX_HEIGHT : int = 5
-BOX_WIDTH : int = 10
-ITEM1 : Item = {"width": 10, "height": 5}
-ITEM2 : Item = {"width": 2, "height": 2}
-ITEMS : DSList(length=2, elem_type=Item) = [ITEM1, ITEM2]
-N_ITEMS : int = 2
-nr_used_boxes: DSInt(lb=1, ub=100)
-item_box_assignments: DSList(length=2, elem_type=BoxAssignment)
-x_y_positions: DSList(length=2, elem_type=BoxAssignment)
+BoxAssignment = DSRecord({
+    "box_id": DSInt(lb=1, ub=1000),
+    "x": DSFloat(lb=0, ub=10000),
+    "y": DSFloat(lb=0, ub=10000)
+})
 
 
-# -- Objective --
 
-def calculate_objective(assignments: DSList(length=2, elem_type=BoxAssignment)) -> int:
-    max_box_id = 0
-    for i in range(1, N_ITEMS + 1):
-        box_id = assignments[i].box_id
-        if box_id > max_box_id:
-            max_box_id = box_id
-    return max_box_id
-
-calculated_objective_value = calculate_objective(item_box_assignments)
-objective = calculated_objective_value
-
-def fit_items_in_boxes(
-    items: DSList(length=2, elem_type=Item),
-    assignments: DSList(length=2, elem_type=BoxAssignment)
-) -> None:
-    for i in range(1, 3):
-        item : Item = items[i]
-        pos : BoxAssignment = assignments[i]
-        assert pos.x >= 0
-        assert pos.y >= 0
-        assert pos.x + item.width <= BOX_WIDTH
-        assert pos.y + item.height <= BOX_HEIGHT
-
-fit_items_in_boxes(ITEMS, x_y_positions)
-
-def no_item_overlap(
-    items: DSList(length=2, elem_type=Item),
-    assignments: DSList(length=2, elem_type=BoxAssignment),
-    box_width: int,
-    box_height: int
-):
-    for i in range(1, 3):
-        for j in range(i + 1, 3):
-            if i != j:
-                item_i: Item = items[i]
-                item_j: Item = items[j]
-                assignment_i: BoxAssignment = assignments[i]
-                assignment_j: BoxAssignment = assignments[j]
-                
-                # Check if items are in the same box
-                if assignment_i.box_id == assignment_j.box_id:
-                    # Check for non-overlapping rectangles
-                    assert not (
-                        assignment_i.x < assignment_j.x + item_j.width and
-                        assignment_j.x < assignment_i.x + item_i.width and
-                        assignment_i.y < assignment_j.y + item_j.height and
-                        assignment_j.y < assignment_i.y + item_i.height
-                    )
-no_item_overlap(ITEMS, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)
+BOX_HEIGHT : int = 2
+BOX_WIDTH : int = 6
+ITEMS : DSList(length = 6, elem_type = Item) = [{'width': 4, 'height': 3}, {'width': 3, 'height': 2}, {'width': 5, 'height': 3}, {'width': 2, 'height': 4}, {'width': 3, 'height': 3}, {'width': 5, 'height': 2}]
 """
 
 translator = MiniZincTranslator(code)
