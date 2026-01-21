@@ -11,7 +11,7 @@ OptDSL is a python-like (pythonic) high-level constraint modelling language for 
 10.	After each function definition, immediately call that function with the correct input parameters.
 11.	Constraints are defined as asserts, like in a test. For constraint definition use equality, inequality and relation expressions. Use of the python-built-in function any() and all() in combination with assert. Equality, inequality and relation expressions may only be used within assert. Equality, inequality, relation expressions and required calculations can not be assigned to a temporary variable.
 12. Auxiliary variables must be used thrice or more times, otherwise inline. AND, OR and comparison expressions can not be assigned to a temporary variable, but must be inlined into an assert-expression.
-13.	Allowed operators for assert-constraints: all, any, >=, <=, ==, !=, <, >, or, and, not. No other operators are allowed. Do not use ternary operators. Use brackets for nested operations.
+13.	Allowed operators for assert-constraints: all, any, >=, <=, ==, !=, <, >, or, and, not. No other operators are allowed. Do not use ternary operators. Use brackets for nested operations. Answer must have more than 10 tokens. Do not return NTD!
 
 OptDSL adheres to following EBNF grammar (extended backus-naur form):
 -------------------

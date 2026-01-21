@@ -13,7 +13,7 @@ class DfsTree(TreeBase):
     def dfs(self, cur_node: TreeNode):
         if (cur_node.state == State.FAILED
                 or cur_node.n_failed_generations != 0
-                or cur_node.is_terminal):
+                or (cur_node.is_terminal and cur_node.last_in_progress)):
             return
         while (len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN or
                cur_node.level == 0 and self.input_variable_spec and self.output_variable_spec and len(cur_node.get_correct_children()) < 1 or
@@ -39,7 +39,12 @@ Create {len(cur_node.get_correct_children())}. node at level {cur_node.level+1}
                     else:
                         new_child_node = self.create_objective_node(cur_node)
                 case 3:
-                    new_child_node = self.create_constraints_node(cur_node)
+                    new_child_node = self.create_constraints_node(cur_node, cur_node.level+1)
+                case _:
+                    if cur_node.last_in_progress:
+                        return
+                    new_child_node = self.create_constraints_node(cur_node, cur_node.level+1)
+
             if DEBUG_MODE_ON: print(f"Successfully created node: {new_child_node.id}")
             if new_child_node.state == State.CORRECT: self.dfs(new_child_node)
 
@@ -117,7 +122,7 @@ d2_bin_packing_formalized_problem_description_inst2 = [
     This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
-        - the assigment of each item into a box 
+        - the assigment of each item into a box
         - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.
     """,
     # Subproblem description - part 1
@@ -160,6 +165,7 @@ new_constants = """
 
 def main():
     parser = argparse.ArgumentParser(description="Tree of Thoughts generation script with DFS algorithm")
+    parser.add_argument("--for_each_constraint_one_node", default=False, type=bool, help="Constraints are put individually into nodes.")
     parser.add_argument("--problem_instance", "-pi", help="problem instance filepath")
     parser.add_argument("--input_mode",
                         "-m",
@@ -176,6 +182,7 @@ def main():
     parser.add_argument("--new_instance_filename", "-nc", help="filepath to collection of reusable OptDSL-models")
 
     args = parser.parse_args()
+    args.for_each_constraint_one_node = constants.CONSTRAINT_NODES if not args.for_each_constraint_one_node else args.for_each_constraint_one_node
 
     llm = constants.LLM
 
@@ -205,7 +212,8 @@ def main():
                    save_nodes=constants.SAVE_NODES,
                    objects_spec=objects,
                    input_variable_spec=intput_variable_spec,
-                   output_variable_spec=output_variable_spec)
+                   output_variable_spec=output_variable_spec,
+                   for_each_constraint_one_node=args.for_each_constraint_one_node)
     tree.create_full_tree_with_dfs()
 
 
