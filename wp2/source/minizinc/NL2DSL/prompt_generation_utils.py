@@ -1,3 +1,4 @@
+import ast
 import json
 import re
 
@@ -13,6 +14,7 @@ FAILED_GENERATIONS = []  # problem desc. indices of failed generation steps
 
 
 def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_problem_description: list[str] = None, subproblem_description: str = None):
+    execution_error = None
     for _ in range(MAX_NR_RESETS):
         nr_unsat_error = 0
         for i in range(LOOP_OF_DOOM_MAX_IT):
@@ -55,18 +57,18 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
             # Send prompt anew, no feedback loop
             if ("NTD" in raw_definitions or
                     "Minizinc Solver Error" in raw_definitions or
-                    "Constraints FormatError" in raw_definitions or
-                    "Constraints/Objective FormatError" in raw_definitions or
+                    (execution_error is not None and "Constraints FormatError" in execution_error) or
+                    (execution_error is not None and "Constraints/Objective FormatError" in execution_error) or
                     raw_definitions.strip() == "" or
                     nr_unsat_error == LOOP_OF_DOOM_UNSAT_MAX_IT):
                 if DEBUG_MODE_ON: print(
-                    f"Checking node created for level {node.level}: {raw_definitions} NTD, solver error, format error or end of loop of doom encountered")
+                    f"Checking node created for level {node.level}: {raw_definitions}\nNTD, solver error, format error or end of loop of doom encountered")
                 raw_definitions = create_and_send_prompt_for_strictly_iterative_approach(node,
                                                                                          full_problem_description=full_problem_description,
                                                                                          subproblem_description=subproblem_description,
                                                                                          llm=llm)
+                execution_error = None
                 nr_unsat_error = 0
-                continue
 
             # Constants and dec. variables - responses need to be json
             if node.level == 2:
@@ -121,6 +123,9 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
             execution_error = None
             if node.level == 3 or node.level == 4:
                 decomposed_code = decompose_full_definition(raw_definitions)
+                if decomposed_code == {}:
+                    ü = 2
+                    decompose_full_definition(raw_definitions)
                 raw_definitions: str = ""
                 if decomposed_code is None:
                     execution_error = "Constraints/Objective FormatError"
@@ -158,6 +163,10 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                                    """,
                             max_tokens=(1000 if node.level == 4 else 800)
                         ))
+                raw_definitions.replace(f"# --- Incorrect Code ---\n", "")
+                # Safety check: function does not consist only of a return of a variable
+                if _contains_func_that_just_returns_var(raw_definitions):
+                    execution_error = "Error: The function within this code does not include any calculation, but only returns an unmodified input variable."
 
             # Check for syntactical correctness and handle execution error, if no "Constraints/Objective FormatError" has occurred yet
             if execution_error is None:
@@ -167,14 +176,15 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                 if DEBUG_MODE_ON: print(
                     f"Checking node created for level {node.level} not executable: {execution_error}\n")
                 if ("NTD" in raw_definitions or
-                        "Constraints FormatError" in raw_definitions or
-                        "Constraints/Objective FormatError" in raw_definitions):
+                        (execution_error is not None and "Constraints FormatError" in execution_error) or
+                        (execution_error is not None and "Constraints/Objective FormatError" in execution_error)):
                     if DEBUG_MODE_ON: print(
-                        f"Checking node created for level {node.level}: {raw_definitions} NTD, Constraints FormatError or Constraints/Objective ForamtErrorencountered")
+                        f"Checking node created for level {node.level}: {raw_definitions}\nNTD, Constraints FormatError or Constraints/Objective ForamtErrorencountered")
                     raw_definitions = create_and_send_prompt_for_strictly_iterative_approach(node,
                                                                                              full_problem_description=full_problem_description,
                                                                                              subproblem_description=subproblem_description,
                                                                                              llm=llm)
+                    execution_error = None
                     continue
                 elif "Syntax Error" in execution_error:
                     raw_definitions = (llm.send_prompt(
@@ -479,6 +489,13 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
         )
     return response
 
+def send_prompt_with_system_prompt(prompt: str, llm):
+    return llm.send_prompt(
+        system_prompt=f"{_get_system_prompt("format_sp")}\n{_get_icl()}",
+        prompt=prompt,
+        max_tokens=4000
+    )
+
 # Sends correct partial formulations generated by LLM, in the hopes the feedback creates a learning effect
 def send_feedback(node: TreeNode, llm, full_problem_formulation: list[str] = None, syntax: bool = True):
     if syntax:
@@ -504,6 +521,21 @@ def send_feedback(node: TreeNode, llm, full_problem_formulation: list[str] = Non
         {node.get_partial_formulation_up_until_now()}
         ´´´""",
             max_tokens=1)
+
+def send_polish_feedback(old_encoding: str, refactored_encoding: str, llm, syntax: bool = True):
+    if DEBUG_MODE_ON: print("Sending feedback for a partial job well done.")
+    _ = llm.send_prompt(
+        prompt=
+        f"""The following is an example for a syntactically valid refactoring.
+[Old code]
+´´´ python
+{old_encoding}
+´´´
+[Refactored code]
+´´´ python
+{refactored_encoding}
+´´´""",
+        max_tokens=1)
 
 def _get_icl():
     if USE_OPTDSL:
@@ -632,3 +664,22 @@ You are an optimization problem formulation expert that encodes specific parts o
             1. "<initialization_left> = <initialization_right>" must be valid python z3py code."""
         }
         return system_prompt.get(key)
+
+def _contains_func_that_just_returns_var(func_code: str) -> bool:
+    # parse the code into an AST
+    try:
+        tree = ast.parse(func_code)
+    except SyntaxError:
+        return False
+
+    func_defs = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+    for func in func_defs:
+        # exclude docstrings and comments
+        body = [node for node in func.body
+                if not (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant))]
+
+        # check it's one statement that is a return which returns a single name (variable)
+        if len(body) == 1 and isinstance(body[0], ast.Return) and isinstance(body[0].value, ast.Name):
+            return True
+    return False

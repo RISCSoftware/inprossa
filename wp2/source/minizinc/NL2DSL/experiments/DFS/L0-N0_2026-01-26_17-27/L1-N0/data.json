@@ -1,0 +1,10 @@
+{
+    "id": "L0-N0|L1-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "content": "\n\n# --- Objects ---\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=12), \"y\" : DSInt(lb=0, ub=5)})",
+    "partial_formulation_up_until_now": "\n\n# --- Objects ---\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=12), \"y\" : DSInt(lb=0, ub=5)})",
+    "objective_val": null,
+    "solution_model": null,
+    "solve_time": null
+}

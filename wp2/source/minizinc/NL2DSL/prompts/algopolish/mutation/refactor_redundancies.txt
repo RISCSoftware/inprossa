@@ -1,0 +1,7 @@
+[Task]
+The goal is to improve performance by radically removing redundancies within the encoded pythonic OptDsl model implemented above.
+Modify the code so that the redundancies in terms of variables and blocks, while preserving the encoded logic and constraints.
+If merging two methods reduces redundancies without losing logic or constraints, merge them.
+Improved output OptDsl model must have valid syntax and the same logic/semantics as the input encoded model.
+Assume objects, constants and decision variables are defined somewhere else. Do not initialize objects, constants or decision variables. Refactor the code given radically.
+Output code only and enclose your code with python codeblock: ```python... ```.

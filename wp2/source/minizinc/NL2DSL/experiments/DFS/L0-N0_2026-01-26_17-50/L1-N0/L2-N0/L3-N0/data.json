@@ -1,0 +1,84 @@
+{
+    "id": "L0-N0|L1-N0|L2-N0|L3-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "content": "\n\n# --- objective ---\ndef calculate_objective(nr_used_boxes: int) -> int:\n    calculated_value: int = nr_used_boxes\n    return calculated_value\n\ncalculated_objective_value = calculate_objective(nr_used_boxes)\nobjective = calculated_objective_value",
+    "partial_formulation_up_until_now": "\n\n# --- Objects ---\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=12), \"y\" : DSInt(lb=0, ub=5)})\n\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 5\nBOX_WIDTH : int = 12\nITEMS : Annotated[list[Item], Len(9, 9)] = [{'name': 'item1', 'width': 4, 'height': 3}, {'name': 'item2', 'width': 1, 'height': 2}, {'name': 'item3', 'width': 5, 'height': 3}, {'name': 'item4', 'width': 4, 'height': 2}, {'name': 'item5', 'width': 1, 'height': 3}, {'name': 'item6', 'width': 5, 'height': 2}, {'name': 'item7', 'width': 9, 'height': 5}, {'name': 'item8', 'width': 3, 'height': 5}, {'name': 'item9', 'width': 5, 'height': 1}]\nN_ITEMS : int = 9\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=9)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=9)]], Len(9, 9)]\nN_ITEM_BOX_ASSIGNMENTS : int = 9\nx_y_positions : Annotated[list[X_Y_Position], Len(9, 9)]\nN_X_Y_POSITIONS : int = 9\n\n\n# --- objective ---\ndef calculate_objective(nr_used_boxes: int) -> int:\n    calculated_value: int = nr_used_boxes\n    return calculated_value\n\ncalculated_objective_value = calculate_objective(nr_used_boxes)\nobjective = calculated_objective_value",
+    "objective_val": 1,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            1
+        ],
+        "nr_used_boxes": [
+            1
+        ],
+        "item_box_assignments": [
+            [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            1
+        ],
+        "calculated_value__calculate_objective__1": [
+            1
+        ],
+        "nr_used_boxes__calculate_objective__1": [
+            1
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ]
+    },
+    "solve_time": 0.0001685
+}

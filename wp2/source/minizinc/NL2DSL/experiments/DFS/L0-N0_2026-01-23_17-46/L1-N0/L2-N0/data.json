@@ -1,0 +1,136 @@
+{
+    "id": "L0-N0|L1-N0|L2-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "content": [
+        {
+            "description": "",
+            "variable_name": "BOX_HEIGHT",
+            "type": "BOX_HEIGHT : int",
+            "variable_instance": [
+                5
+            ],
+            "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+            "initialization": "BOX_HEIGHT : int = 5"
+        },
+        {
+            "description": "",
+            "variable_name": "BOX_WIDTH",
+            "type": "BOX_WIDTH : int",
+            "variable_instance": [
+                12
+            ],
+            "variable_dslcode_template": "BOX_WIDTH : int = {}",
+            "initialization": "BOX_WIDTH : int = 12"
+        },
+        {
+            "description": "",
+            "variable_name": "ITEMS",
+            "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+            "variable_instance": [
+                9,
+                [
+                    {
+                        "name": "item1",
+                        "width": 4,
+                        "height": 3
+                    },
+                    {
+                        "name": "item2",
+                        "width": 1,
+                        "height": 2
+                    },
+                    {
+                        "name": "item3",
+                        "width": 5,
+                        "height": 3
+                    },
+                    {
+                        "name": "item4",
+                        "width": 4,
+                        "height": 2
+                    },
+                    {
+                        "name": "item5",
+                        "width": 1,
+                        "height": 3
+                    },
+                    {
+                        "name": "item6",
+                        "width": 5,
+                        "height": 2
+                    },
+                    {
+                        "name": "item7",
+                        "width": 9,
+                        "height": 5
+                    },
+                    {
+                        "name": "item8",
+                        "width": 3,
+                        "height": 5
+                    },
+                    {
+                        "name": "item9",
+                        "width": 5,
+                        "height": 1
+                    }
+                ],
+                9
+            ],
+            "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+            "initialization": "ITEMS : Annotated[list[Item], Len(9, 9)] = [{'name': 'item1', 'width': 4, 'height': 3}, {'name': 'item2', 'width': 1, 'height': 2}, {'name': 'item3', 'width': 5, 'height': 3}, {'name': 'item4', 'width': 4, 'height': 2}, {'name': 'item5', 'width': 1, 'height': 3}, {'name': 'item6', 'width': 5, 'height': 2}, {'name': 'item7', 'width': 9, 'height': 5}, {'name': 'item8', 'width': 3, 'height': 5}, {'name': 'item9', 'width': 5, 'height': 1}]\nN_ITEMS : int = 9"
+        },
+        {
+            "description": "",
+            "variable_name": "nr_used_boxes",
+            "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+            "variable_instance": [
+                1,
+                9
+            ],
+            "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+            "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=9)]"
+        },
+        {
+            "description": "",
+            "variable_name": "item_box_assignments",
+            "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+            "variable_instance": [
+                9,
+                1,
+                9,
+                9
+            ],
+            "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+            "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=9)]], Len(9, 9)]\nN_ITEM_BOX_ASSIGNMENTS : int = 9"
+        },
+        {
+            "description": "",
+            "variable_name": "x_y_positions",
+            "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+            "variable_instance": [
+                9,
+                9
+            ],
+            "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+            "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(9, 9)]\nN_X_Y_POSITIONS : int = 9"
+        },
+        {
+            "description": "Length of item_box_assignments",
+            "variable_name": "N_item_box_assignments",
+            "type": "int",
+            "initialization": "N_ITEM_BOX_ASSIGNMENTS : int = 9"
+        },
+        {
+            "description": "Length of x_y_positions",
+            "variable_name": "N_x_y_positions",
+            "type": "int",
+            "initialization": "N_X_Y_POSITIONS : int = 9"
+        }
+    ],
+    "partial_formulation_up_until_now": "\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=12), \"y\" : DSInt(lb=0, ub=5)})\n\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 5\nBOX_WIDTH : int = 12\nITEMS : Annotated[list[Item], Len(9, 9)] = [{'name': 'item1', 'width': 4, 'height': 3}, {'name': 'item2', 'width': 1, 'height': 2}, {'name': 'item3', 'width': 5, 'height': 3}, {'name': 'item4', 'width': 4, 'height': 2}, {'name': 'item5', 'width': 1, 'height': 3}, {'name': 'item6', 'width': 5, 'height': 2}, {'name': 'item7', 'width': 9, 'height': 5}, {'name': 'item8', 'width': 3, 'height': 5}, {'name': 'item9', 'width': 5, 'height': 1}]\nN_ITEMS : int = 9\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=9)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=9)]], Len(9, 9)]\nN_ITEM_BOX_ASSIGNMENTS : int = 9\nx_y_positions : Annotated[list[X_Y_Position], Len(9, 9)]\nN_X_Y_POSITIONS : int = 9\nN_ITEM_BOX_ASSIGNMENTS : int = 9\nN_X_Y_POSITIONS : int = 9\n",
+    "objective_val": null,
+    "solution_model": null,
+    "solve_time": null
+}

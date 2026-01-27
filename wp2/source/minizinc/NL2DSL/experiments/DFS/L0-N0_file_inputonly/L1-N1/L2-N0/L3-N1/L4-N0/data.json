@@ -1,0 +1,559 @@
+{
+    "id": "L0-N0|L1-N1|L2-N0|L3-N1|L4-N0",
+    "state": 0,
+    "n_failed_generations": 0,
+    "content": "# -- Constraints --\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef fit_items_in_box(\n    items: Annotated[list[Item], Len(5, 5)],\n    assignments: Annotated[list[BoxAssignment], Len(5, 5)],\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        assignment : BoxAssignment = assignments[i]\n        x : float = assignment.x\n        y : float = assignment.y\n        assert x + item.width <= box_width\n        assert y + item.height <= box_height\n        assert x >= 0\n        assert y >= 0\n\nfit_items_in_box(ITEMS, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\n# --- constraints ---\ndef no_overlap(\n    items: Annotated[list[Item], Len(5, 5)],\n    assignments: Annotated[list[BoxAssignment], Len(5, 5)]\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            assignment_i : BoxAssignment = assignments[i]\n            assignment_j : BoxAssignment = assignments[j]\n            item_i : Item = items[i]\n            item_j : Item = items[j]\n            \n            # Check for non-overlapping rectangles\n            assert (\n                assignment_i.box_id != assignment_j.box_id or\n                assignment_i.x + item_i.width <= assignment_j.x or\n                assignment_j.x + item_j.width <= assignment_i.x or\n                assignment_i.y + item_i.height <= assignment_j.y or\n                assignment_j.y + item_j.height <= assignment_i.y\n            )\n\nno_overlap(ITEMS, item_box_assignments)\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef ensure_item_box_assignment_validity(\n    assignments: Annotated[list[BoxAssignment], Len(5, 5)]\n):\n    for i in range(1, N_ITEM_BOX_ASSIGNMENTS + 1):\n        assignment : BoxAssignment = assignments[i]\n        assert assignment.box_id >= 1\n\nensure_item_box_assignment_validity(item_box_assignments)\n\nnr_used_boxes = objective",
+    "partial_formulation_up_until_now": "# --- Objects ---\nItem = DSRecord({\n    \"value\": DSInt(lb=1, ub=100),\n    \"weight\": DSInt(lb=1, ub=100)\n})\n\nBoxAssignment = DSRecord({\n    \"box_id\": DSInt(lb=1, ub=1000),\n    \"x\": DSFloat(lb=0, ub=10000),\n    \"y\": DSFloat(lb=0, ub=10000)\n})\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=5), \"height\" : DSInt(lb=1, ub=6)})\n\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 6\nBOX_WIDTH : int = 19\nITEMS : DSList(length=5, elem_type=Item) = [{'width': 3, 'height': 1}, {'width': 4, 'height': 2}, {'width': 4, 'height': 2}, {'width': 2, 'height': 4}, {'width': 5, 'height': 6}]\nN_ITEMS : int = 5\nnr_used_boxes : DSInt(lb=1, ub=1000)\nitem_box_assignments : DSList(length=5, elem_type=BoxAssignment)\nx_y_positions : DSList(length=5, elem_type=BoxAssignment)\nN_ITEM_BOX_ASSIGNMENTS : int = 5\nN_X_Y_POSITIONS : int = 5\n\n\n# --- objective ---\ndef calculate_objective(assignments: DSList(length=5, elem_type=BoxAssignment)) -> int:\n    max_box_id = 0\n    for i in range(1, N_ITEM_BOX_ASSIGNMENTS + 1):\n        box_id = assignments[i].box_id\n        if box_id > max_box_id:\n            max_box_id = box_id\n    return max_box_id\n\ncalculated_objective_value = calculate_objective(item_box_assignments)\nobjective = calculated_objective_value\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef fit_items_in_box(\n    items: DSList(length=5, elem_type=Item),\n    assignments: DSList(length=5, elem_type=BoxAssignment),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        assignment : BoxAssignment = assignments[i]\n        x : float = assignment.x\n        y : float = assignment.y\n        assert x + item.width <= box_width\n        assert y + item.height <= box_height\n        assert x >= 0\n        assert y >= 0\n\nfit_items_in_box(ITEMS, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\n# --- constraints ---\ndef no_overlap(\n    items: DSList(length=5, elem_type=Item),\n    assignments: DSList(length=5, elem_type=BoxAssignment)\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            assignment_i : BoxAssignment = assignments[i]\n            assignment_j : BoxAssignment = assignments[j]\n            item_i : Item = items[i]\n            item_j : Item = items[j]\n            \n            # Check for non-overlapping rectangles\n            assert (\n                assignment_i.box_id != assignment_j.box_id or\n                assignment_i.x + item_i.width <= assignment_j.x or\n                assignment_j.x + item_j.width <= assignment_i.x or\n                assignment_i.y + item_i.height <= assignment_j.y or\n                assignment_j.y + item_j.height <= assignment_i.y\n            )\n\nno_overlap(ITEMS, item_box_assignments)\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef ensure_item_box_assignment_validity(\n    assignments: DSList(length=5, elem_type=BoxAssignment)\n):\n    for i in range(1, N_ITEM_BOX_ASSIGNMENTS + 1):\n        assignment : BoxAssignment = assignments[i]\n        assert assignment.box_id >= 1\n\nensure_item_box_assignment_validity(item_box_assignments)\n\nnr_used_boxes = objective",
+    "objective_val": 5,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            5,
+            5,
+            5,
+            5
+        ],
+        "nr_used_boxes": [
+            1
+        ],
+        "item_box_assignments": [
+            [
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            5
+        ],
+        "assignments__calculate_objective__1": [
+            [
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "box_id__calculate_objective__1": [
+            4,
+            5,
+            3,
+            2,
+            1
+        ],
+        "max_box_id__calculate_objective__1": [
+            0,
+            4,
+            5,
+            5,
+            5,
+            5
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ],
+        "assignment__fit_items_in_box__1": [
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__fit_items_in_box__1": [
+            [
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "box_height__fit_items_in_box__1": [
+            6
+        ],
+        "box_width__fit_items_in_box__1": [
+            19
+        ],
+        "item__fit_items_in_box__1": [
+            {
+                "height": 1,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 6,
+                "width": 5
+            }
+        ],
+        "items__fit_items_in_box__1": [
+            [
+                {
+                    "height": 1,
+                    "width": 3
+                },
+                {
+                    "height": 2,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 4
+                },
+                {
+                    "height": 4,
+                    "width": 2
+                },
+                {
+                    "height": 6,
+                    "width": 5
+                }
+            ]
+        ],
+        "objective__fit_items_in_box__1": [
+            0
+        ],
+        "x__fit_items_in_box__1": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "y__fit_items_in_box__1": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "assignment_i__no_overlap__1": [
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignment_j__no_overlap__1": [
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__no_overlap__1": [
+            [
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "item_i__no_overlap__1": [
+            {
+                "height": 1,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 3
+            },
+            {
+                "height": 1,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 4,
+                "width": 2
+            }
+        ],
+        "item_j__no_overlap__1": [
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 6,
+                "width": 5
+            },
+            {
+                "height": 2,
+                "width": 4
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 6,
+                "width": 5
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 6,
+                "width": 5
+            },
+            {
+                "height": 6,
+                "width": 5
+            }
+        ],
+        "items__no_overlap__1": [
+            [
+                {
+                    "height": 1,
+                    "width": 3
+                },
+                {
+                    "height": 2,
+                    "width": 4
+                },
+                {
+                    "height": 2,
+                    "width": 4
+                },
+                {
+                    "height": 4,
+                    "width": 2
+                },
+                {
+                    "height": 6,
+                    "width": 5
+                }
+            ]
+        ],
+        "objective__no_overlap__1": [
+            0
+        ],
+        "assignment__ensure_item_box_assignment_validity__1": [
+            {
+                "box_id": 4,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 5,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 3,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 2,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__ensure_item_box_assignment_validity__1": [
+            [
+                {
+                    "box_id": 4,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 5,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 3,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 2,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "objective__ensure_item_box_assignment_validity__1": [
+            0
+        ]
+    },
+    "solve_time": 59.8312,
+    "final_evaluation_result": "Successfully validated solution."
+}

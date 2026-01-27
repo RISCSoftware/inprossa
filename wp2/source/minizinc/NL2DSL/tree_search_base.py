@@ -170,10 +170,10 @@ class TreeBase:
                 constraints_node = self._generate_constraint_code(constraints_node, i)
 
         # Create connection between objective and given objective decision variable
-        objective_var_name = [variable["mandatory_variable_name"] for variable in json.loads(
-            remove_programming_environment(self.problem_description[1])) if
-                              variable["is_objective"]][0]
-        constraints_node.set_content(f"\n{objective_var_name} = objective\n")
+        #objective_var_name = [variable["mandatory_variable_name"] for variable in json.loads(
+        #    remove_programming_environment(self.problem_description[1])) if
+        #                      variable["is_objective"]][0]
+        #constraints_node.set_content(f"\n{objective_var_name} = objective\n")
 
         # Validate minizinc solution
         task = {}
@@ -196,8 +196,10 @@ class TreeBase:
             validate_solution(constraints_node.solution_model, task)
         except AssertionError as e:
             validation_res = f"Failed to validate solution: {e}"
+            constraints_node.state = State.FAILED
         except Exception as e:
             validation_res = f"Evaluation failed: {e}"
+            constraints_node.state = State.FAILED
         else:
             validation_res = f"Successfully validated solution."
         constraints_node.save_child_to_file(validation_res, problem_description=self.problem_description, filename=self.result_models_file)
@@ -334,10 +336,13 @@ Semantic validation: {validation_res}
                 validate_solution(solution_model, task)
             except AssertionError as e:
                 validation_res = f"Failed to validate solution: {e}"
+                model.update({"validated": False})
             except Exception as e:
                 validation_res = f"Evaluation failed: {e}"
+                model.update({"validated": False})
             else:
                 validation_res = f"Successfully validated solution."
+                model.update({"validated": True})
             model.update({"final_evaluation_result": validation_res})
 
             updated_models.append(model)

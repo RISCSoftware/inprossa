@@ -1,0 +1,5 @@
+[Task]
+The goal is to improve the solving-time of the encoded pythonic OptDsl model implemented above.
+Do not initialize objects, constants or decision variables.
+Modify the code so that the optimization-problem-solving-time is reduced, while preserving the encoded logic and constraints.
+Output code only and enclose your code with python codeblock: ```python... ```.
