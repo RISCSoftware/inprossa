@@ -8,7 +8,7 @@ from tree_search_base import TreeBase
 
 
 # Test case class
-class TestAddFunction(unittest.TestCase):
+class TestInputReaderAndResuse(unittest.TestCase):
 
     def test_flex_objects_flex_input_values(self):
         problem_description = InputReader.read_problem_description_from_file(
@@ -57,7 +57,7 @@ class TestAddFunction(unittest.TestCase):
     This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
-        - the assigment of each item into a box 
+        - the assigment of each item into a box
         - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.""")
         self.assertEqual(problem_description[3], """Sub problem definition - items that go in the bin - part 1:
     The items that are put into a box, must fit exactly inside the box and must not stick out of the box.
@@ -99,7 +99,7 @@ class TestAddFunction(unittest.TestCase):
     This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
-        - the assigment of each item into a box 
+        - the assigment of each item into a box
         - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.""")
         self.assertEqual(problem_description[3], """Sub problem definition - items that go in the bin - part 1:
     The items that are put into a box, must fit exactly inside the box and must not stick out of the box.
@@ -116,7 +116,7 @@ class TestAddFunction(unittest.TestCase):
             "problem_descriptions/2d_bin_packing_generic_input_inst_1.json",
             "problem_descriptions/2d_bin_packing_inst_1.json",
             "fixed_objects_fixed_input_values")
-        self.assertEqual(objects, {'Item': 'Item = DSRecord({"width" : DSInt(lb=1, ub=5), "height" : DSInt(ub=6)})\n'})
+        self.assertEqual(objects, {'Item': 'Item = DSRecord({"width" : DSInt(lb=1, ub=5), "height" : DSInt(lb=1, ub=6)})\n'})
         self.assertEqual(intput_variable_spec[0], {
             'description': '',
             'initialization': 'BOX_HEIGHT : int = 6',
@@ -143,6 +143,21 @@ class TestAddFunction(unittest.TestCase):
         self.assertEqual(output_variable_spec[2]["variable_name"], 'x_y_positions')
         self.assertEqual(output_variable_spec[2]["variable_dslcode_template"], 'x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}')
         self.assertEqual(intput_variable_spec, None)
+        self.assertEqual(problem_description[2], """Global problem:
+    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
+    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
+    The result and expected output is:
+        - the assigment of each item into a box
+        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.""")
+        self.assertEqual(problem_description[3], """Sub problem definition - items that go in the bin - part 1:
+    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.""")
+        self.assertEqual(problem_description[4], """Sub problem definition - items that go in the bin - part 2:
+    Taking the given items that are put into a box, they must not overlap.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.""")
+        self.assertEqual(problem_description[5], """Sub problem definition - items that go in the bin - part 3:
+    Taking the given items that are put into a box, one item can be exactly in one box.
+    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.""")
 
     def test_fixed_objects_fixed_inoutput_values(self):
         objects, intput_variable_spec, output_variable_spec, problem_description = InputReader.read_problem_description_and_generateDSLcode_from_file(
@@ -191,7 +206,7 @@ class TestAddFunction(unittest.TestCase):
         self.assertEqual(intput_variable_spec[1]["variable_dslcode_template"], 'BOX_WIDTH : int = {}')
         self.assertEqual(intput_variable_spec[2], {
             'description': '',
-            'initialization': 'ITEMS : DSList(length = 5, elem_type = Item) = [{\'width\': 4, \'height\': 3}, {\'width\': 1, \'height\': 2}, {\'width\': 5, \'height\': 3}, {\'width\': 4, \'height\': 2}, {\'width\': 1, \'height\': 3}]\nN_ITEMS : int = 5',
+            'initialization': 'ITEMS : Annotated[list[Item], Len(5, 5)] = [{\'width\': 4, \'height\': 3}, {\'width\': 1, \'height\': 2}, {\'width\': 5, \'height\': 3}, {\'width\': 4, \'height\': 2}, {\'width\': 1, \'height\': 3}]\nN_ITEMS : int = 5',
             'type': 'ITEMS : DSList(length = {}, elem_type = Item)',
             'variable_dslcode_template': 'ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}',
             'variable_instance': [5, [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}], 5],

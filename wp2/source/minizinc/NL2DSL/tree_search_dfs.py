@@ -15,10 +15,11 @@ class DfsTree(TreeBase):
                 or cur_node.n_failed_generations != 0
                 or (cur_node.is_terminal and cur_node.last_in_progress)):
             return
-        while (len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN or
-               cur_node.level == 0 and self.input_variable_spec and self.output_variable_spec and len(cur_node.get_correct_children()) < 1 or
-               cur_node.level == 1 and self.input_variable_spec and len(cur_node.get_correct_children()) < 1 or
-               cur_node.level == 2 and self.output_variable_spec and len(cur_node.get_correct_children()) < 1):
+        while (cur_node.level == 0 and (self.input_variable_spec and self.output_variable_spec) and len(cur_node.get_correct_children()) < 1 or
+               cur_node.level == 0 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN or
+               cur_node.level == 1 and self.input_variable_spec and self.output_variable_spec and len(cur_node.get_correct_children()) < 1 or
+               cur_node.level == 1 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN or
+               cur_node.level >= 2 and len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN):
             if DEBUG_MODE_ON: print(f"""
 .....................................................
 Given:
@@ -194,7 +195,7 @@ def main():
         TreeBase.use_given_model_with_input(args.reusable_model_file_path, args.new_instance_filename)
         return
     # Generate full formulation (non-reusable version) - Constant translation done by LLM
-    elif args.input_mode == "flex_objects_fixed_input_values" or args.input_mode == "flex_objects_fixed_input_values":
+    elif args.input_mode == "flex_objects_flex_input_values" or args.input_mode == "flex_objects_fixed_input_values":
         problem_description = InputReader.read_problem_description_from_file(
             args.problem_instance,
             args.problem_description,

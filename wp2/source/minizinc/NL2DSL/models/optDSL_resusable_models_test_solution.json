@@ -93,9 +93,9 @@
                 "initialization": "x_y_positions : DSList(length = 2, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = 2"
             }
         ],
-        "objective": "# --- Objective ---\n\n\n# --- objective ---\ndef calculate_objective(assignments: DSList(length=5, elem_type=DSInt())) -> int:\n    max_box = 0\n    for i in range(1, N_ITEMS + 1):\n        if assignments[i] > max_box:\n            max_box = assignments[i]\n    return max_box\n\ncalculated_objective_value = calculate_objective(item_box_assignments)\nobjective = calculated_objective_value",
-        "constraints": "# -- Constraints --\n# --- Constraints ---\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef fits_in_box(items: DSList(length=5, elem_type=Item), positions: DSList(length=5, elem_type=X_Y_Position), assignments: DSList(length=5, elem_type=DSInt())):\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        pos : X_Y_Position = positions[i]\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y + item.height <= BOX_HEIGHT\n\nfits_in_box(ITEMS, x_y_positions, item_box_assignments)\n\ndef no_overlap(items: DSList(length=5, elem_type=Item), positions: DSList(length=5, elem_type=X_Y_Position), assignments: DSList(length=5, elem_type=DSInt())):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                pos_i : X_Y_Position = positions[i]\n                pos_j : X_Y_Position = positions[j]\n                item_i : Item = items[i]\n                item_j : Item = items[j]\n                assert (pos_i.x + item_i.width <= pos_j.x) or (pos_j.x + item_j.width <= pos_i.x) or (pos_i.y + item_i.height <= pos_j.y) or (pos_j.y + item_j.height <= pos_i.y)\n\nno_overlap(ITEMS, x_y_positions, item_box_assignments)# --- Constraints ---\n\n\n# --- constraints ---\ndef box_assignment_constraints(items: DSList(length=5, elem_type=Item), assignments: DSList(length=5, elem_type=DSInt()), nr_used_boxes: DSInt(lb=1, ub=5)):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= nr_used_boxes\n\nbox_assignment_constraints(ITEMS, item_box_assignments, nr_used_boxes)# --- Constraints ---\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef ensure_item_in_one_box(assignments: DSList(length=5, elem_type=DSInt()), nr_used_boxes: DSInt(lb=1, ub=5)):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= nr_used_boxes\n\nensure_item_in_one_box(item_box_assignments, nr_used_boxes)# --- Constraints ---\n\n\nnr_used_boxes = objective",
-        "full_formulation": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=6), \"height\" : DSInt(lb=1, ub=5)})\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=8), \"y\" : DSInt(lb=0, ub=6)})\n\nBOX_HEIGHT : int = 6\nBOX_WIDTH : int = 8\nITEMS : DSList(length = 2, elem_type = Item) = [{'width': 6, 'height': 5}, {'width': 2, 'height': 2}]\nN_ITEMS : int = 2\nnr_used_boxes : DSInt(lb=1, ub=2)\nitem_box_assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))\nN_ITEM_BOX_ASSIGNMENTS : int = 2\nx_y_positions : DSList(length = 2, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = 2\n# --- Objective ---\n\n\n# --- objective ---\ndef calculate_objective(assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))) -> int:\n    max_box = 0\n    for i in range(1, N_ITEMS + 1):\n        if assignments[i] > max_box:\n            max_box = assignments[i]\n    return max_box\n\ncalculated_objective_value = calculate_objective(item_box_assignments)\nobjective = calculated_objective_value# -- Constraints --\n# --- Constraints ---\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef fits_in_box(items : DSList(length = 2, elem_type = Item), positions : DSList(length = 2, elem_type = X_Y_Position), assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))):\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        pos : X_Y_Position = positions[i]\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y + item.height <= BOX_HEIGHT\n\nfits_in_box(ITEMS, x_y_positions, item_box_assignments)\n\ndef no_overlap(items : DSList(length = 2, elem_type = Item), positions : DSList(length = 2, elem_type = X_Y_Position), assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                pos_i : X_Y_Position = positions[i]\n                pos_j : X_Y_Position = positions[j]\n                item_i : Item = items[i]\n                item_j : Item = items[j]\n                assert (pos_i.x + item_i.width <= pos_j.x) or (pos_j.x + item_j.width <= pos_i.x) or (pos_i.y + item_i.height <= pos_j.y) or (pos_j.y + item_j.height <= pos_i.y)\n\nno_overlap(ITEMS, x_y_positions, item_box_assignments)# --- Constraints ---\n\n\n# --- constraints ---\ndef box_assignment_constraints(items : DSList(length = 2, elem_type = Item), assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2)), nr_used_boxes : DSInt(lb=1, ub=2)):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= nr_used_boxes\n\nbox_assignment_constraints(ITEMS, item_box_assignments, nr_used_boxes)# --- Constraints ---\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef ensure_item_in_one_box(assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2)), nr_used_boxes : DSInt(lb=1, ub=2)):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= nr_used_boxes\n\nensure_item_in_one_box(item_box_assignments, nr_used_boxes)# --- Constraints ---\n\n\nnr_used_boxes = objective",
+        "objective": "# --- objective ---\ndef calculate_objective(assignments: DSList(length=5, elem_type=DSInt())) -> int:\n    max_box_nr = 0\n    for i in range(1, N_ITEMS + 1):\n        box_nr = assignments[i]\n        if box_nr > max_box_nr:\n            max_box_nr = box_nr\n    return max_box_nr\n\ncalculated_objective_value = calculate_objective(item_box_assignments)\nobjective = calculated_objective_value",
+        "constraints": "# -- Constraints --\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef fits_in_bin(\n    items: DSList(length=5, elem_type=Item),\n    positions: DSList(length=5, elem_type=X_Y_Position),\n    assignments: DSList(length=5, elem_type=DSInt())\n) -> None:\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: int = assignments[i]\n\n        # Ensure item is within box boundaries\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y + item.height <= BOX_HEIGHT\n\n        # Ensure item is placed positively within the bin\n        assert pos.x >= 0\n        assert pos.y >= 0\n\nfits_in_bin(ITEMS, x_y_positions, item_box_assignments)# -- Constraints --\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n\n# --- Constraints ---\ndef no_overlap(\n    items: DSList(length=5, elem_type=Item),\n    positions: DSList(length=5, elem_type=X_Y_Position),\n    assignments: DSList(length=5, elem_type=DSInt())\n) -> None:\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            # Only check for overlap if both items are in the same box\n            if assignments[i] == assignments[j]:\n                pos_i: X_Y_Position = positions[i]\n                pos_j: X_Y_Position = positions[j]\n                item_i: Item = items[i]\n                item_j: Item = items[j]\n\n                # Check for non-overlapping conditions\n                assert (pos_i.x + item_i.width <= pos_j.x) or \\\n                       (pos_j.x + item_j.width <= pos_i.x) or \\\n                       (pos_i.y + item_i.height <= pos_j.y) or \\\n                       (pos_j.y + item_j.height <= pos_i.y)\n\nno_overlap(ITEMS, x_y_positions, item_box_assignments)# -- Constraints --\n\n\ndef ensure_item_in_one_box(\n    assignments: DSList(length=5, elem_type=DSInt())\n) -> None:\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 5\n\nensure_item_in_one_box(item_box_assignments)\n\ndef minimize_boxes(\n    assignments: DSList(length=5, elem_type=DSInt())\n) -> None:\n    max_box_used: int = 0\n    for i in range(1, N_ITEMS + 1):\n        if assignments[i] > max_box_used:\n            max_box_used = assignments[i]\n    assert max_box_used <= 5\n\nminimize_boxes(item_box_assignments)\n\nnr_used_boxes = objective",
+        "full_formulation": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=6), \"height\" : DSInt(lb=1, ub=5)})\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=8), \"y\" : DSInt(lb=0, ub=6)})\n\nBOX_HEIGHT : int = 6\nBOX_WIDTH : int = 8\nITEMS : DSList(length = 2, elem_type = Item) = [{'width': 6, 'height': 5}, {'width': 2, 'height': 2}]\nN_ITEMS : int = 2\nnr_used_boxes : DSInt(lb=1, ub=2)\nitem_box_assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))\nN_ITEM_BOX_ASSIGNMENTS : int = 2\nx_y_positions : DSList(length = 2, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = 2\n# --- objective ---\ndef calculate_objective(assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))) -> int:\n    max_box_nr = 0\n    for i in range(1, N_ITEMS + 1):\n        box_nr = assignments[i]\n        if box_nr > max_box_nr:\n            max_box_nr = box_nr\n    return max_box_nr\n\ncalculated_objective_value = calculate_objective(item_box_assignments)\nobjective = calculated_objective_value# -- Constraints --\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef fits_in_bin(\n    items : DSList(length = 2, elem_type = Item),\n    positions : DSList(length = 2, elem_type = X_Y_Position),\n    assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))\n) -> None:\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: int = assignments[i]\n\n        # Ensure item is within box boundaries\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y + item.height <= BOX_HEIGHT\n\n        # Ensure item is placed positively within the bin\n        assert pos.x >= 0\n        assert pos.y >= 0\n\nfits_in_bin(ITEMS, x_y_positions, item_box_assignments)# -- Constraints --\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n\n# --- Constraints ---\ndef no_overlap(\n    items : DSList(length = 2, elem_type = Item),\n    positions : DSList(length = 2, elem_type = X_Y_Position),\n    assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))\n) -> None:\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            # Only check for overlap if both items are in the same box\n            if assignments[i] == assignments[j]:\n                pos_i: X_Y_Position = positions[i]\n                pos_j: X_Y_Position = positions[j]\n                item_i: Item = items[i]\n                item_j: Item = items[j]\n\n                # Check for non-overlapping conditions\n                assert (pos_i.x + item_i.width <= pos_j.x) or \\\n                       (pos_j.x + item_j.width <= pos_i.x) or \\\n                       (pos_i.y + item_i.height <= pos_j.y) or \\\n                       (pos_j.y + item_j.height <= pos_i.y)\n\nno_overlap(ITEMS, x_y_positions, item_box_assignments)# -- Constraints --\n\n\ndef ensure_item_in_one_box(\n    assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))\n) -> None:\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 5\n\nensure_item_in_one_box(item_box_assignments)\n\ndef minimize_boxes(\n    assignments : DSList(length = 2, elem_type = DSInt(lb=1, ub=2))\n) -> None:\n    max_box_used: int = 0\n    for i in range(1, N_ITEMS + 1):\n        if assignments[i] > max_box_used:\n            max_box_used = assignments[i]\n    assert max_box_used <= 5\n\nminimize_boxes(item_box_assignments)\n\nnr_used_boxes = objective",
         "objective_val": 1,
         "solution_model": {
             "objective": [
@@ -137,7 +137,11 @@
                     1
                 ]
             ],
-            "max_box__calculate_objective__1": [
+            "box_nr__calculate_objective__1": [
+                1,
+                1
+            ],
+            "max_box_nr__calculate_objective__1": [
                 0,
                 1,
                 1
@@ -145,13 +149,17 @@
             "objective__calculate_objective__1": [
                 0
             ],
-            "assignments__fits_in_box__1": [
+            "assignments__fits_in_bin__1": [
                 [
                     1,
                     1
                 ]
             ],
-            "item__fits_in_box__1": [
+            "box_id__fits_in_bin__1": [
+                1,
+                1
+            ],
+            "item__fits_in_bin__1": [
                 {
                     "height": 5,
                     "width": 6
@@ -161,7 +169,7 @@
                     "width": 2
                 }
             ],
-            "items__fits_in_box__1": [
+            "items__fits_in_bin__1": [
                 [
                     {
                         "height": 5,
@@ -173,10 +181,10 @@
                     }
                 ]
             ],
-            "objective__fits_in_box__1": [
+            "objective__fits_in_bin__1": [
                 0
             ],
-            "pos__fits_in_box__1": [
+            "pos__fits_in_bin__1": [
                 {
                     "x": 0,
                     "y": 0
@@ -186,7 +194,7 @@
                     "y": 0
                 }
             ],
-            "positions__fits_in_box__1": [
+            "positions__fits_in_bin__1": [
                 [
                     {
                         "x": 0,
@@ -255,44 +263,31 @@
                     }
                 ]
             ],
-            "assignments__box_assignment_constraints__1": [
-                [
-                    1,
-                    1
-                ]
-            ],
-            "items__box_assignment_constraints__1": [
-                [
-                    {
-                        "height": 5,
-                        "width": 6
-                    },
-                    {
-                        "height": 2,
-                        "width": 2
-                    }
-                ]
-            ],
-            "nr_used_boxes__box_assignment_constraints__1": [
-                1
-            ],
-            "objective__box_assignment_constraints__1": [
-                0
-            ],
             "assignments__ensure_item_in_one_box__1": [
                 [
                     1,
                     1
                 ]
             ],
-            "nr_used_boxes__ensure_item_in_one_box__1": [
+            "objective__ensure_item_in_one_box__1": [
+                0
+            ],
+            "assignments__minimize_boxes__1": [
+                [
+                    1,
+                    1
+                ]
+            ],
+            "max_box_used__minimize_boxes__1": [
+                0,
+                1,
                 1
             ],
-            "objective__ensure_item_in_one_box__1": [
+            "objective__minimize_boxes__1": [
                 0
             ]
         },
-        "solve_time": 0.0002419,
+        "solve_time": 0.0001913,
         "final_evaluation_result": "Successfully validated solution."
     }
 ]

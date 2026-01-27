@@ -70,7 +70,7 @@
       "suggested_shape": "array"
     }
   ],
-  "global_problem": "Global problem:\n    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box \n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+  "global_problem": "Global problem:\n    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
   "subproblems": [
     "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.\n    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.",
     "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.\n    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.",

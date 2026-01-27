@@ -87,36 +87,72 @@ from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from solver import MiniZincSolver
 
 code = """
-# -- Objects --
-
-
-
-
 # --- Objects ---
-Item = DSRecord({
-    "width": DSInt(lb=1, ub=10),
-    "height": DSInt(lb=1, ub=10)
-})
-BOX_HEIGHT : int = 3
-BOX_WIDTH : int = 3
-#ITEMS : DSList(length = 6, elem_type = Item) = [{'width': 4, 'height': 3}, {'width': 3, 'height': 2}, {'width': 5, 'height': 3}, {'width': 2, 'height': 4}, {'width': 3, 'height': 3}, {'width': 5, 'height': 2}]
-# --- Objects ---
-Item = DSRecord({
-    "value": DSInt(lb=1, ub=80),
-    "weight": DSInt(lb=1, ub=100)
-})
-
-BoxAssignment = DSRecord({
-    "box_id": DSInt(lb=1, ub=1000),
-    "x": DSFloat(lb=0, ub=10000),
-    "y": DSFloat(lb=0, ub=10000)
-})
+Item = DSRecord({"width" : DSInt(lb=1, ub=10), "height" : DSInt(lb=1, ub=10)})
+X_Y_Position = DSRecord({"x" : DSInt(lb=0, ub=12), "y" : DSInt(lb=0, ub=5)})
 
 
 
-BOX_HEIGHT : int = 2
-BOX_WIDTH : int = 6
-ITEMS : DSList(length = 6, elem_type = Item) = [{'width': 4, 'height': 3}, {'width': 3, 'height': 2}, {'width': 5, 'height': 3}, {'width': 2, 'height': 4}, {'width': 3, 'height': 3}, {'width': 5, 'height': 2}]
+# --- Constants and Decision Variables ---
+BOX_HEIGHT : int = 5
+BOX_WIDTH : int = 12
+ITEMS : DSList(length=9, elem_type=Item) = [{'name': 'item1', 'width': 4, 'height': 3}, {'name': 'item2', 'width': 1, 'height': 2}, {'name': 'item3', 'width': 5, 'height': 3}, {'name': 'item4', 'width': 4, 'height': 2}, {'name': 'item5', 'width': 1, 'height': 3}, {'name': 'item6', 'width': 5, 'height': 2}, {'name': 'item7', 'width': 9, 'height': 5}, {'name': 'item8', 'width': 3, 'height': 5}, {'name': 'item9', 'width': 5, 'height': 1}]
+N_ITEMS : int = 9
+nr_used_boxes : DSInt(lb=1, ub=9)
+item_box_assignments : DSList(length=9, elem_type=DSInt(lb=1, ub=9))
+N_ITEM_BOX_ASSIGNMENTS : int = 9
+x_y_positions : DSList(length=9, elem_type=X_Y_Position)
+N_X_Y_POSITIONS : int = 9
+N_ITEM_BOX_ASSIGNMENTS : int = 9
+N_X_Y_POSITIONS : int = 9
+
+
+# --- objective ---
+def calculate_objective(assignments: DSList(length=9, elem_type=DSInt(lb=1, ub=9))) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def validate_all_constraints(
+    items: DSList(length=9, elem_type=Item),
+    assignments: DSList(length=9, elem_type=DSInt(lb=1, ub=9)),
+    positions: DSList(length=9, elem_type=X_Y_Position),
+    nr_used_boxes: DSInt(lb=1, ub=9)
+) -> None:
+    # Items fit in box constraint
+    for i in range(1, 10):
+        item : Item = items[i]
+        pos : X_Y_Position = positions[i]
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+
+        # Ensure item-box assignment validity
+        assert assignments[i] >= 1
+        assert assignments[i] <= nr_used_boxes
+
+        # Non-negative positions
+        assert pos.x >= 0
+        assert pos.y >= 0
+
+    # No overlap constraint
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            if assignments[i] == assignments[j]:
+                item_i : Item = items[i]
+                item_j : Item = items[j]
+                pos_i : X_Y_Position = positions[i]
+                pos_j : X_Y_Position = positions[j]
+                assert (pos_i.x + item_i.width <= pos_j.x) or (pos_j.x + item_j.width <= pos_i.x) or (pos_i.y + item_i.height <= pos_j.y) or (pos_j.y + item_j.height <= pos_i.y)
+
+validate_all_constraints(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)
+
+nr_used_boxes = objective
 """
 
 translator = MiniZincTranslator(code)

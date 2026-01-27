@@ -1,0 +1,60 @@
+{
+  "input": {
+  "BOX_HEIGHT": 5,
+  "BOX_WIDTH": 12,
+  "ITEMS": [
+    {
+      "name": "item1",
+      "width": 4,
+      "height": 3
+    },
+    {
+      "name": "item2",
+      "width": 1,
+      "height": 2
+    },
+    {
+      "name": "item3",
+      "width": 5,
+      "height": 3
+    },
+    {
+      "name": "item4",
+      "width": 4,
+      "height": 2
+    },
+    {
+      "name": "item5",
+      "width": 1,
+      "height": 3
+    },
+    {
+      "name": "item6",
+      "width": 5,
+      "height": 2
+    },
+    {
+      "name": "item7",
+      "width": 9,
+      "height": 5
+    },
+    {
+      "name": "item8",
+      "width": 3,
+      "height": 5
+    },
+    {
+      "name": "item9",
+      "width": 5,
+      "height": 1
+    }
+  ]
+},
+  "output": [],
+  "global_problem": "Global problem:\n    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+  "subproblems": [
+    "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.\n    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.",
+    "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.\n    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.",
+    "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box.\n    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box."
+  ]
+}

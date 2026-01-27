@@ -1,0 +1,18 @@
+[BetterCode]
+```python
+{}
+```
+
+[WorseCode]
+```python
+{}
+```
+
+[Task]
+Write new encoding of an optimization problem taking the two given encodings.
+Assume objects, constants and decision variables are defined somewhere else. Do not initialize objects, constants or decision variables.
+Your implementation should be across over of the two implementations above,taking most ideas from the
+better code ({}%) and only some ideas from the worse code ({}%).
+Ensure that the new code maintains a comparable overall complexity and length to the
+two implementations above.
+Output code only and enclose your code with python codeblock: ```python... ```.
