@@ -1,0 +1,12 @@
+# Ignore everything
+*
+
+# but
+!/pyproject.toml
+!/uv.lock
+!/README.md
+!/inprossa/**/*.py
+
+# but but
+# Ignore the unignored
+# /inprossa/super/specific.py
