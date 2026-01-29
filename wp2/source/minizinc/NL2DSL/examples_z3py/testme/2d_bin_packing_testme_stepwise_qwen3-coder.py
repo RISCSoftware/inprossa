@@ -87,8 +87,7 @@ from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from solver import MiniZincSolver
 
 code = """
-# --- Objects ---
-Item = DSRecord({"width" : DSInt(lb=1, ub=10), "height" : DSInt(lb=1, ub=10)})
+Item = DSRecord({"width" : DSInt(lb=1, ub=12), "height" : DSInt(lb=1, ub=5)})
 X_Y_Position = DSRecord({"x" : DSInt(lb=0, ub=12), "y" : DSInt(lb=0, ub=5)})
 
 
@@ -96,21 +95,54 @@ X_Y_Position = DSRecord({"x" : DSInt(lb=0, ub=12), "y" : DSInt(lb=0, ub=5)})
 # --- Constants and Decision Variables ---
 BOX_HEIGHT : int = 5
 BOX_WIDTH : int = 12
-ITEMS : DSList(length=9, elem_type=Item) = [{'name': 'item1', 'width': 4, 'height': 3}, {'name': 'item2', 'width': 1, 'height': 2}, {'name': 'item3', 'width': 5, 'height': 3}, {'name': 'item4', 'width': 4, 'height': 2}, {'name': 'item5', 'width': 1, 'height': 3}, {'name': 'item6', 'width': 5, 'height': 2}, {'name': 'item7', 'width': 9, 'height': 5}, {'name': 'item8', 'width': 3, 'height': 5}, {'name': 'item9', 'width': 5, 'height': 1}]
-N_ITEMS : int = 9
-nr_used_boxes : DSInt(lb=1, ub=9)
-item_box_assignments : DSList(length=9, elem_type=DSInt(lb=1, ub=9))
-N_ITEM_BOX_ASSIGNMENTS : int = 9
-x_y_positions : DSList(length=9, elem_type=X_Y_Position)
-N_X_Y_POSITIONS : int = 9
-N_ITEM_BOX_ASSIGNMENTS : int = 9
-N_X_Y_POSITIONS : int = 9
+ITEMS : DSList(length=8, elem_type=Item) = [
+        {
+            "height": 3,
+            "width": 8
+        },
+        {
+            "height": 2,
+            "width": 10
+        },
+        {
+            "height": 4,
+            "width": 9
+        },
+        {
+            "height": 1,
+            "width": 7
+        },
+        {
+            "height": 5,
+            "width": 10
+        },
+        {
+            "height": 2,
+            "width": 6
+        },
+        {
+            "height": 4,
+            "width": 7
+        },
+        {
+            "height": 2,
+            "width": 12
+        }
+      ]
+N_ITEMS : int = 8
+nr_used_boxes : DSInt(lb=1, ub=8)
+item_box_assignments : DSList(length=8, elem_type=DSInt(lb=1, ub=8))
+N_ITEM_BOX_ASSIGNMENTS : int = 8
+x_y_positions : DSList(length=8, elem_type=X_Y_Position)
+N_X_Y_POSITIONS : int = 8
+N_ITEM_BOX_ASSIGNMENTS : int = 8
+N_X_Y_POSITIONS : int = 8
 
 
 # --- objective ---
-def calculate_objective(assignments: DSList(length=9, elem_type=DSInt(lb=1, ub=9))) -> int:
+def calculate_objective(assignments: DSList(length=8, elem_type=DSInt())) -> int:
     max_box = 0
-    for i in range(1, 10):
+    for i in range(1, 8):
         if assignments[i] > max_box:
             max_box = assignments[i]
     return max_box
@@ -118,39 +150,65 @@ def calculate_objective(assignments: DSList(length=9, elem_type=DSInt(lb=1, ub=9
 calculated_objective_value = calculate_objective(item_box_assignments)
 objective = calculated_objective_value
 
-# --- Constraints ---
-def validate_all_constraints(
-    items: DSList(length=9, elem_type=Item),
-    assignments: DSList(length=9, elem_type=DSInt(lb=1, ub=9)),
-    positions: DSList(length=9, elem_type=X_Y_Position),
-    nr_used_boxes: DSInt(lb=1, ub=9)
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def items_fit_in_box(
+    items: DSList(length=8, elem_type=Item),
+    assignments: DSList(length=8, elem_type=DSInt()),
+    positions: DSList(length=8, elem_type=X_Y_Position)
 ) -> None:
-    # Items fit in box constraint
-    for i in range(1, 10):
+    for i in range(1, 8):
         item : Item = items[i]
         pos : X_Y_Position = positions[i]
         assert pos.x + item.width <= BOX_WIDTH
         assert pos.y + item.height <= BOX_HEIGHT
 
-        # Ensure item-box assignment validity
+items_fit_in_box(ITEMS, item_box_assignments, x_y_positions)
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+
+# --- Constraints ---
+def no_overlap(
+    assignments: DSList(length=8, elem_type=DSInt()),
+    positions: DSList(length=8, elem_type=X_Y_Position),
+    items: DSList(length=8, elem_type=Item)
+) -> None:
+    for i in range(1, 8):
+        for j in range(i + 1, 8):
+            item_i : Item = items[i]
+            item_j : Item = items[j]
+            pos_i : X_Y_Position = positions[i]
+            pos_j : X_Y_Position = positions[j]
+            assert assignments[i] != assignments[j] or pos_i.x >= pos_j.x + item_j.width or pos_j.x >= pos_i.x + item_i.width or pos_i.y >= pos_j.y + item_j.height or pos_j.y >= pos_i.y + item_i.height
+
+no_overlap(item_box_assignments, x_y_positions, ITEMS)
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+
+# --- Constraints ---
+def ensure_item_assignment_valid(
+    assignments: DSList(length=8, elem_type=DSInt()),
+    nr_used_boxes: DSInt(lb=1, ub=8)
+) -> None:
+    for i in range(1, 8):
         assert assignments[i] >= 1
         assert assignments[i] <= nr_used_boxes
 
-        # Non-negative positions
-        assert pos.x >= 0
-        assert pos.y >= 0
+ensure_item_assignment_valid(item_box_assignments, nr_used_boxes)
 
-    # No overlap constraint
-    for i in range(1, 10):
-        for j in range(i + 1, 10):
-            if assignments[i] == assignments[j]:
-                item_i : Item = items[i]
-                item_j : Item = items[j]
-                pos_i : X_Y_Position = positions[i]
-                pos_j : X_Y_Position = positions[j]
-                assert (pos_i.x + item_i.width <= pos_j.x) or (pos_j.x + item_j.width <= pos_i.x) or (pos_i.y + item_i.height <= pos_j.y) or (pos_j.y + item_j.height <= pos_i.y)
+def minimize_used_boxes(
+    assignments: DSList(length=8, elem_type=DSInt()),
+    nr_used_boxes: DSInt(lb=1, ub=8)
+) -> None:
+    for i in range(1, 8):
+        assert assignments[i] <= nr_used_boxes
 
-validate_all_constraints(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)
+minimize_used_boxes(item_box_assignments, nr_used_boxes)
+
+assert objective == nr_used_boxes
 
 nr_used_boxes = objective
 """

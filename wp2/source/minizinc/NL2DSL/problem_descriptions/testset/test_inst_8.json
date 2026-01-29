@@ -5,13 +5,13 @@
         "name": "width",
         "type": "integer",
         "minimum": 1,
-        "maximum": 12
+        "maximum": 4
       },
       {
         "name": "height",
         "type": "integer",
         "minimum": 1,
-        "maximum": 5
+        "maximum": 16
       }
     ],
     "X_Y_Position": [
@@ -19,62 +19,66 @@
         "name": "x",
         "type": "integer",
         "minimum": 0,
-        "maximum": 12
+        "maximum": 4
       },
       {
         "name": "y",
         "type": "integer",
         "minimum": 0,
-        "maximum": 5
+        "maximum": 16
       }
     ]
   },
   "input_variables": {
     "BOX_HEIGHT": {
       "type": "integer",
-      "value": 5
+      "value": 16
     },
     "BOX_WIDTH": {
       "type": "integer",
-      "value": 12
+      "value": 4
     },
     "ITEMS": {
       "type": {
         "elem_type": "Item",
-        "length": 8
+        "length": 9
       },
       "value": [
         {
-            "height": 3,
-            "width": 8
+            "height": 5,
+            "width": 4
+        },
+        {
+            "height": 13,
+            "width": 1
+        },
+        {
+            "height": 7,
+            "width": 3
         },
         {
             "height": 2,
-            "width": 10
+            "width": 1
         },
         {
-            "height": 4,
-            "width": 9
+            "height": 6,
+            "width": 4
         },
         {
             "height": 1,
-            "width": 7
+            "width": 2
         },
         {
-            "height": 5,
-            "width": 10
+            "height": 12,
+            "width": 2
         },
         {
-            "height": 2,
-            "width": 6
+            "height": 8,
+            "width": 3
         },
         {
-            "height": 4,
-            "width": 7
-        },
-        {
-            "height": 2,
-            "width": 12
+            "height": 12,
+            "width": 2
         }
       ]
     }
@@ -83,20 +87,20 @@
     "nr_used_boxes": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 8
+      "maximum": 9
     },
     "item_box_assignments": {
       "type": {
         "elem_type": "integer",
         "minimum": 1,
-        "maximum": 8,
-        "length": 8
+        "maximum": 9,
+        "length": 9
       }
     },
     "x_y_positions": {
       "type": {
         "elem_type": "X_Y_Position",
-        "length": 8
+        "length": 9
       }
     }
   }

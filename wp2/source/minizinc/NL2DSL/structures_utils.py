@@ -13,6 +13,7 @@ from sentence_transformers import util
 import constants
 from sentence_transformers import *
 
+from BinPackingValidator import check_satisfiability_given
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from constants import SYSTEM_PROMPT_FOLDER, DEBUG_MODE_ON, USE_TYPING, USE_PYDANTIC
 import logging
@@ -66,6 +67,22 @@ class PolishModel:
         self.type = type
         self.id = f"{type}_{self.id}"
 
+    def get_as_dict(self):
+        return {
+            "problem_description": self.problem_description,
+            "llm_generated_objects": initial_clean_up(self.llm_generated_objects),
+            "script_generated_objects": self.script_generated_objects,
+            "constants": self.constants,
+            "decision_variables": self.decision_variables,
+            "objective": initial_clean_up(self.objective),
+            "constraints": initial_clean_up(self.constraints),
+            "full_formulation": self.full_formulation,
+            "objective_val": self.objective_val,
+            "solution_model": self.solution_model,
+            "solve_time": self.solve_time,
+            "final_evaluation_result": ""
+        }
+
     def calculate_and_set_fitness(self):
         self.fitness = PolishModel.calculate_fitness(self.objective_val, self.solve_time, self.objective, self.constraints)
 
@@ -99,7 +116,7 @@ class PolishModel:
         block += f"{self.llm_generated_objects}\n"
         for object_name, object_spec in self.script_generated_objects.items():
             block += object_spec + "\n"
-        block += "# --- Constants and Decision Variables ---\n"
+        block += "\n# --- Constants and Decision Variables ---\n"
         for constant in self.constants:
             block += constant["initialization"] + "\n"
         for constant in self.decision_variables:
@@ -318,6 +335,10 @@ class VariablesConstantsNode(TreeNode):
         else:
             self.content += incomming_constants
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
+
+        # Only check satisfiability for constants if mode is "fixed_objects_fixed_input_values", "fixed_objects_fixed_inoutput_values"
+        if "variable_instance" in self.variables_and_constants[0]: check_satisfiability_given(self.variables_and_constants)
+
         self.state = State.CORRECT
         if self.save_nodes: self.save_child_to_file()
         return True
@@ -1012,7 +1033,7 @@ def remove_duplicate_lines(variable_block: str, raw_code: str):
     # If you want to preserve original order (from str1) of the common lines:
     return "\n".join([line for line in lines2 if line not in common])
 
-def _split_at_outer_equals(s: str):
+def split_at_outer_equals(s: str):
     depth = 0
     for i, ch in enumerate(s):
         if ch == "(":

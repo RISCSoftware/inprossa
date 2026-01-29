@@ -1,8 +1,12 @@
-import ast
 import json
-import re
 
-from structures_utils import remove_programming_environment
+class UnsatisfiableProblemError(Exception):
+    def __init__(self, dimension, message="Given the provided constants, the problem is unsatisfiable. At least one item's dimensions exceeds a box dimension."):
+        super().__init__(message)
+        self.dimension = dimension
+
+    def __str__(self):
+        return f"{self.dimension} -> {self.args[0]}"
 
 
 def _extract_assignment_and_position(solver_solution: dict):
@@ -115,6 +119,28 @@ def validate_solution(solver_solution : dict, task : dict):
                         # item i is on the above of item j
                         assign_j["y"] + item_j["height"] <= assign_i["y"]), f"Items {i} and {j} overlap."
 
+def check_satisfiability_given(constants: list[dict]):
+    box_height = None
+    box_width = None
+    items = []
+    for constant in constants:
+        if "box_height" in constant["variable_name"].lower():
+            box_height = constant["variable_instance"][0]
+        if "box_width" in constant["variable_name"].lower():
+            box_width = constant["variable_instance"][0]
+        if "items" in constant["variable_name"].lower():
+            items = constant["variable_instance"][1]
+    if box_height is None or box_width is None or items is None or len(items) != len(items):
+        raise ValueError("Could not find box_height or box_width or items.")
+    if min([item["width"] for item in items]) < 0:
+        raise ValueError(f"Invalid item width: {min([item["width"] for item in items])}")
+    if min([item["height"] for item in items]) < 0:
+        raise ValueError(f"Invalid item height: {min([item["height"] for item in items])}")
+    if max([item["width"] for item in items]) > box_width:
+        raise UnsatisfiableProblemError(max([item["width"] for item in items]))
+    if max([item["height"] for item in items]) > box_height:
+        raise UnsatisfiableProblemError(max([item["height"] for item in items]))
+
 
 d2_bin_packing_formalized_problem_description_inst2 = [
     # Input
@@ -189,7 +215,7 @@ d2_bin_packing_formalized_problem_description_inst2 = [
     This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
-        - the assigment of each item into a box 
+        - the assigment of each item into a box
         - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.
     """,
     # Subproblem description - part 1
@@ -209,7 +235,7 @@ d2_bin_packing_formalized_problem_description_inst2 = [
     """
     ]
 
-
+"""
 # Example of calling from another function:
 if __name__ == "__main__":
     task = {
@@ -245,3 +271,4 @@ if __name__ == "__main__":
         else:
             print(f"Successfully validated solution {i}.")
         print(f"Solution: {m}")
+"""
