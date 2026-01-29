@@ -813,7 +813,7 @@ solve minimize a[1];"""
 #     },
 # ]
 
-from Translator.Objects.MinizincRunner import MiniZincRunner
+from Tools.MinizincRunner import MiniZincRunner
 
 class TestMiniZincTranslation(unittest.TestCase):
 

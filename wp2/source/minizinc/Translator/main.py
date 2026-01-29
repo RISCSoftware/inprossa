@@ -1,6 +1,6 @@
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from Translator.WoodCuttingPipeline.check_machine import code_check_machine
-from Translator.Objects.MinizincRunner import MiniZincRunner
+from Tools.MinizincRunner import MiniZincRunner
 from Translator.Objects.trial import run_mzn_and_detect_inconsistency
 
 # ===== Example usage =====
