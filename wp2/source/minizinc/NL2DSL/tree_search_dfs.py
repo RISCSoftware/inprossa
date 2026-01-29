@@ -3,12 +3,14 @@ import argparse
 import constants
 from constants import DEBUG_MODE_ON
 from input_reader import InputReader
-from structures_utils import TreeNode, VariablesConstantsNode, State
+from model_reuser import ModelReuser
+from structures_utils import TreeNode, VariablesConstantsNode, State, initial_clean_up
 from tree_search_base import TreeBase
 
 
 class DfsTree(TreeBase):
-    NR_MAX_CHILDREN = constants.NR_MAX_CHILDREN
+    NR_MIN_VALID_CHILDREN = constants.NR_MAX_CHILDREN
+    NR_MAX_CHILDREN = 5
 
     def dfs(self, cur_node: TreeNode):
         if (cur_node.state == State.FAILED
@@ -16,10 +18,10 @@ class DfsTree(TreeBase):
                 or (cur_node.is_terminal and cur_node.last_in_progress)):
             return
         while (cur_node.level == 0 and (self.input_variable_spec and self.output_variable_spec) and len(cur_node.get_correct_children()) < 1 or
-               cur_node.level == 0 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN or
+               (cur_node.level == 0 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
                cur_node.level == 1 and self.input_variable_spec and self.output_variable_spec and len(cur_node.get_correct_children()) < 1 or
-               cur_node.level == 1 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN or
-               cur_node.level >= 2 and len(cur_node.get_correct_children()) < DfsTree.NR_MAX_CHILDREN):
+               (cur_node.level == 1 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
+               (cur_node.level >= 2 and len(cur_node.children) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN)):
             if DEBUG_MODE_ON: print(f"""
 .....................................................
 Given:
@@ -43,6 +45,11 @@ Create {len(cur_node.get_correct_children())}. node at level {cur_node.level+1}
                     new_child_node = self.create_constraints_node(cur_node, cur_node.level+1)
                 case _:
                     if cur_node.last_in_progress:
+                        if (cur_node.state == State.CORRECT and
+                            cur_node.validated and
+                            (cur_node.objective_val < self.best_child.objective_val or
+                             cur_node.objective_val == self.best_child.objective_val and cur_node.solve_time < self.best_child.solve_time)):
+                            self.best_child = cur_node
                         return
                     new_child_node = self.create_constraints_node(cur_node, cur_node.level+1)
 
@@ -51,6 +58,11 @@ Create {len(cur_node.get_correct_children())}. node at level {cur_node.level+1}
 
     def create_full_tree_with_dfs(self):
         self.dfs(self.root)
+        print(f"""*-*-*-*-*-*-*-*-Best Child*-*-*-*-*-*-*-*-*-*
+Objective val: {self.best_child.objective_val}
+Solve time: {self.best_child.solve_time}
+Encoding: {initial_clean_up(self.best_child.partial_formulation_up_until_now)}
+*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*""")
         return self.root
 
 
@@ -192,7 +204,7 @@ def main():
     output_variable_spec = None
     # Reuse model, insert new instance values and execute
     if args.input_mode == "reuse_model_fixed_inoutput_values":
-        TreeBase.use_given_model_with_input(args.reusable_model_file_path, args.new_instance_filename)
+        ModelReuser.use_given_models_with_input(args.reusable_model_file_path, args.new_instance_filename)
         return
     # Generate full formulation (non-reusable version) - Constant translation done by LLM
     elif args.input_mode == "flex_objects_flex_input_values" or args.input_mode == "flex_objects_fixed_input_values":

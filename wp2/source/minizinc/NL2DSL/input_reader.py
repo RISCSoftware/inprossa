@@ -4,7 +4,7 @@ import random
 import string
 
 from constants import RANDOM_SEED, RANDOM_STRING_LENGTH
-from structures_utils import _split_at_outer_equals, \
+from structures_utils import split_at_outer_equals, \
     initial_clean_up
 
 
@@ -189,7 +189,7 @@ class InputReader:
             variables.append({
                 "description": "",
                 "variable_name": variable,
-                "type": _split_at_outer_equals(code_piece)[0],
+                "type": split_at_outer_equals(code_piece)[0],
                 "variable_instance": instance,
                 "variable_dslcode_template": code_piece,
                 "initialization": initial_clean_up(code_piece.format(*instance), to_typing=True)
@@ -247,7 +247,7 @@ class InputReader:
             variables.append({
                  "description": "",
                  "variable_name": variable.upper(),
-                 "type": _split_at_outer_equals(code_piece)[0],
+                 "type": split_at_outer_equals(code_piece)[0],
                  "variable_instance": value,
                  "variable_dslcode_template": code_piece,
                  "initialization": initial_clean_up(code_piece.format(*value), to_typing=True)

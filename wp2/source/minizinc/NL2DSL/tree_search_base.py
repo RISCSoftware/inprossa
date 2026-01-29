@@ -1,17 +1,13 @@
-import re
 from datetime import datetime
 import json
 
 import constants
 from BinPackingValidator import validate_solution
-from Translator.Objects.MiniZincTranslator import MiniZincTranslator
-from input_reader import InputReader
 from prompt_generation_utils import create_and_send_prompt_for_strictly_iterative_approach, \
     enter_variable_definitions_feedback_loop, LOOP_OF_DOOM_MAX_IT, send_feedback
 from structures_utils import RootNode, ObjectsNode, VariablesConstantsNode, \
     ObjectiveNode, ConstraintsNode, State, remove_programming_environment, initial_clean_up, \
-    check_executability, check_solver_executability_for_plain_model, \
-    _split_at_outer_equals
+    check_executability, split_at_outer_equals
 
 
 
@@ -33,6 +29,7 @@ class TreeBase:
         self.objects_spec = objects_spec
         self.result_models_file = f'optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json'
         self.for_each_constraint_one_node = for_each_constraint_one_node
+        self.best_child : ConstraintsNode
 
     def create_objects_node(self, parent: RootNode):
         # Query object types, data types
@@ -180,7 +177,7 @@ class TreeBase:
         if self.input_variable_spec:
             vars = {}
             for variable in self.input_variable_spec:
-                vars.update({variable["variable_name"]: _split_at_outer_equals(variable["initialization"])[1].split("N_", 1)[0].strip()})
+                vars.update({variable["variable_name"]: split_at_outer_equals(variable["initialization"])[1].split("N_", 1)[0].strip()})
             task.update({"input": vars})
         else:
             task.update({"input": json.loads(remove_programming_environment(self.problem_description[0]))})
@@ -244,109 +241,3 @@ Semantic validation: {validation_res}
         # Syntactic feedback to LLM
         if i == len(self.problem_description) - 1: send_feedback(constraints_node, llm=self.llm)
         return constraints_node
-
-    @staticmethod
-    def use_given_model_with_input(file_path, new_instance_filename: str = None):
-        return TreeBase._reuse_model_from_file(file_path, new_instance_filename=new_instance_filename)
-
-    @staticmethod
-    def _reuse_model_from_file(models_file_path: str, new_instance_filename: str):
-        with open(models_file_path, "r", encoding="utf-8") as f:
-            models = json.load(f)
-        with open(new_instance_filename, "r", encoding="utf-8") as f:
-            new_instance = json.load(f)
-
-        updated_models = []
-        # Query object types, data types
-        if "objects" in new_instance:
-            objects = InputReader.generate_objects_as_DSL_code(new_instance["objects"])
-        # Query constants
-        if "input_variables" in new_instance:
-            input_variables = InputReader.update_data_by_instance(models[0]["constants"], new_instance["input_variables"], new_instance["objects"])
-        # Query decision variables
-        if "output_variables" in new_instance:
-            output_variables = InputReader.update_data_by_instance(models[0]["decision_variables"], new_instance["output_variables"], new_instance["objects"], is_decision_var=True)
-
-        for model in models:
-            full_formulation = ""
-            # Query object types, data types
-            if "objects" in new_instance:
-                model.update({"script_generated_objects": objects})
-            for object, initialization in model["script_generated_objects"].items():
-                full_formulation += initialization
-            if model["llm_generated_objects"] != "null":
-                full_formulation += model["llm_generated_objects"] + "\n"
-
-            # Query constants
-            if "input_variables" in new_instance:
-                model.update({"constants": input_variables})
-            for constant in model["constants"]:
-                full_formulation += constant["initialization"] + "\n"
-
-            # Query decision variables
-            if "output_variables" in new_instance:
-                model.update({"decision_variables": output_variables})
-            for decision_variable in model["decision_variables"]:
-                full_formulation += decision_variable["initialization"] + "\n"
-
-            # Update method signatures of objective fun. and constraints
-            code = model["objective"] + model["constraints"]
-            for code_def_part in code.split("def "):
-                for match in re.findall(r"([a-zA-Z_][a-zA-Z0-9_]*)\s*: +(DSInt\((?:.*?(?:\blb\s*=\s*)?)?(?:.*?(?:\bub\s*=\s*)?)?\)|DSFloat\((?:.*?(?:\blb\s*=\s*)?)?(?:.*?(?:\bub\s*=\s*)?)?\)|\s*DSList\s*\(\s*length\s*=\s*(\d+)\s*,\s*elem_type\s*=\s*([A-Za-z_][A-Za-z0-9_]*)(?:\(\))?\s*\))", code_def_part):
-                    result = next(
-                        (c for c in model["constants"] if match[0].lower() in c.get("variable_name").strip().lower()),
-                        None)
-                    if result is None:
-                        result = next((d for d in model["decision_variables"] if
-                                       match[0].lower() in d.get("variable_name").strip().lower()),
-                                      None)
-                    n_placeholders = result["type"].split("\n")[0].count("{}")
-                    inst = result["variable_instance"][:n_placeholders]
-                    code = code.replace(f"{match[0]}: {match[1]}", result["type"].split("\n")[0].format(*inst).replace(result["variable_name"], match[0].strip()))
-            full_formulation = full_formulation + code
-            model.update({"full_formulation": full_formulation})
-
-
-            # Execute code block of full formulation
-            full_formulation = initial_clean_up(full_formulation)
-            # Syntax CHECK
-            compile(full_formulation, "<string>", "exec")
-            minizinc_model = MiniZincTranslator(full_formulation).unroll_translation()
-            objective_val, solve_time, solution_model = "", 0, ""
-            try:
-                # Semantic CHECK
-                objective_val, solve_time, solution_model = check_solver_executability_for_plain_model(minizinc_model)
-            except Exception as e:
-                print(str(e))
-
-            model.update({"objective_val": objective_val})
-            model.update({"solve_time": solve_time})
-            model.update({"solution_model": solution_model})
-
-            # Validate minizinc solution
-            task = {}
-            if model["constants"]:
-                vars = {}
-                for variable in model["constants"]:
-                    vars.update({variable["variable_name"]:
-                                     _split_at_outer_equals(variable["initialization"])[1].split("N_", 1)[
-                                         0].strip()})
-                task.update({"input": vars})
-            try:
-                validate_solution(solution_model, task)
-            except AssertionError as e:
-                validation_res = f"Failed to validate solution: {e}"
-                model.update({"validated": False})
-            except Exception as e:
-                validation_res = f"Evaluation failed: {e}"
-                model.update({"validated": False})
-            else:
-                validation_res = f"Successfully validated solution."
-                model.update({"validated": True})
-            model.update({"final_evaluation_result": validation_res})
-
-            updated_models.append(model)
-        updated_models_filename = f'optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json'
-        with open(updated_models_filename, "w", encoding="utf-8") as f:
-            json.dump(updated_models, f, indent=4)
-        return updated_models_filename

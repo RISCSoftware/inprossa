@@ -1,13 +1,12 @@
-# my_tests.py
 import json
 import os
 import unittest
 
 from input_reader import InputReader
+from model_reuser import ModelReuser
 from tree_search_base import TreeBase
 
 
-# Test case class
 class TestInputReaderAndResuse(unittest.TestCase):
 
     def test_flex_objects_flex_input_values(self):
@@ -221,7 +220,7 @@ class TestInputReaderAndResuse(unittest.TestCase):
                          'x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}')
 
     def test_reuse_model_fixed_inoutput_values(self):
-        updated_models_filename = TreeBase.use_given_model_with_input("models/optDSL_resusable_models_test.json",
+        updated_models_filename = ModelReuser.use_given_models_with_input("models/optDSL_resusable_models_test.json",
                                             "problem_descriptions/2d_bin_packing_generic_input_and_output_inst_2.json")
         with open(updated_models_filename, "r", encoding="utf-8") as f:
             updated_models = json.load(f)

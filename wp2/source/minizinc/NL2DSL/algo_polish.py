@@ -3,9 +3,10 @@ import json
 
 import constants
 from BinPackingValidator import validate_solution
+from model_reuser import ModelReuser
 from prompt_generation_utils import send_prompt_with_system_prompt
 from structures_utils import initial_clean_up, PolishModel, check_executability_for_polish, \
-    _split_at_outer_equals, Type, load_algopolish_file, decompose_full_polished_definition
+    split_at_outer_equals, Type, load_algopolish_file, decompose_full_polished_definition
 
 
 class AlgoPolish:
@@ -68,21 +69,14 @@ f"""[Code]
 
 {load_algopolish_file(AlgoPolish.POLISHING_MUTATION_TYPES[m_index])}""",
                 self.llm)
-                execution_error = check_executability_for_polish(mutated_model.llm_generated_objects
-                                                                 + "\n\n"
-                                                                 + mutated_model.get_variables_codeblock()
-                                                                 + "\n\n"
-                                                                 + encoding, mutated_model)
-                if execution_error is not None:
-                    print(f"Execution error: {execution_error}")
-                    continue
-                validation_result = self._validate_model(mutated_model, mutated_model.solution_model)
+                new_model = self._execute_and_validate_model(encoding, copy.deepcopy(elite))
+                if new_model is None: continue
                 print(f"""Successful refactoring:
 *******************************************
 Obj. + Constraints: {encoding}
 Objective value: {mutated_model.objective_val}
 Solver time: {mutated_model.solve_time}
-Semantic validation: {validation_result}
+Semantic validation: {new_model.solution_model}
 *******************************************""")
                 encoding_components = decompose_full_polished_definition(encoding)
                 mutated_model.objective = encoding_components["objective"]
@@ -93,7 +87,7 @@ Semantic validation: {validation_result}
                 else:
                     mutated_models.append(unmutated_model)
 
-    def _execute_and_validate_model(self, encoding: str, model: PolishModel):
+    def _execute_and_validate_model(self, encoding: str, model: PolishModel) -> PolishModel:
         execution_error = check_executability_for_polish(model.llm_generated_objects
                                                          + "\n\n"
                                                          + model.get_variables_codeblock()
@@ -122,7 +116,7 @@ Semantic validation: {validation_result}
             vars = {}
             for variable in model.constants:
                 vars.update({variable["variable_name"]:
-                                 _split_at_outer_equals(variable["initialization"])[1].split("N_", 1)[
+                                 split_at_outer_equals(variable["initialization"])[1].split("N_", 1)[
                                      0].strip()})
             task.update({"input": vars})
         try:
@@ -144,9 +138,16 @@ Semantic validation: {validation_result}
         if top_n is not None: elites = self.elites[:top_n]
         return elites
 
+    def _test_on_training_set(self):
+        model = self.models[0]
+        model = ModelReuser.use_given_model_with_input(model.get_as_dict(), "problem_descriptions/testset/test_inst_3.json")
+        i = 5
+        return model["objective_val"]
+
 def main():
     polishSomething = AlgoPolish(file_path="models/optDSL_models_2026-01-23_17-46.json")
-    polishSomething.mutate()
+    #polishSomething.mutate()
+    polishSomething._test_on_training_set()
 
 
 if __name__ == "__main__":

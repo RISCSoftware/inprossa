@@ -5,13 +5,13 @@
         "name": "width",
         "type": "integer",
         "minimum": 1,
-        "maximum": 12
+        "maximum": 11
       },
       {
         "name": "height",
         "type": "integer",
         "minimum": 1,
-        "maximum": 5
+        "maximum": 13
       }
     ],
     "X_Y_Position": [
@@ -19,24 +19,24 @@
         "name": "x",
         "type": "integer",
         "minimum": 0,
-        "maximum": 12
+        "maximum": 11
       },
       {
         "name": "y",
         "type": "integer",
         "minimum": 0,
-        "maximum": 5
+        "maximum": 13
       }
     ]
   },
   "input_variables": {
     "BOX_HEIGHT": {
       "type": "integer",
-      "value": 5
+      "value": 13
     },
     "BOX_WIDTH": {
       "type": "integer",
-      "value": 12
+      "value": 11
     },
     "ITEMS": {
       "type": {
@@ -45,36 +45,36 @@
       },
       "value": [
         {
-            "height": 3,
-            "width": 8
-        },
-        {
-            "height": 2,
-            "width": 10
-        },
-        {
-            "height": 4,
-            "width": 9
+            "height": 11,
+            "width": 5
         },
         {
             "height": 1,
-            "width": 7
+            "width": 8
         },
         {
-            "height": 5,
-            "width": 10
+            "height": 8,
+            "width": 11
         },
         {
             "height": 2,
             "width": 6
         },
         {
-            "height": 4,
-            "width": 7
+            "height": 3,
+            "width": 11
         },
         {
-            "height": 2,
-            "width": 12
+            "height": 12,
+            "width": 6
+        },
+        {
+            "height": 9,
+            "width": 8
+        },
+        {
+            "height": 4,
+            "width": 10
         }
       ]
     }

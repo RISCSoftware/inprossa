@@ -5,13 +5,13 @@
         "name": "width",
         "type": "integer",
         "minimum": 1,
-        "maximum": 10
+        "maximum": 11
       },
       {
         "name": "height",
         "type": "integer",
         "minimum": 1,
-        "maximum": 10
+        "maximum": 4
       }
     ],
     "X_Y_Position": [
