@@ -139,16 +139,11 @@ class CodeBlock:
             raise Exception("Constant definitions should indicate their type:", var)
 
         # For evolving variables, emit a versioned constraint
-        print("Inside execute_block_assign:")
-        print(var in self.variable_table)
-        print("Still inside")
         if var not in self.variable_table:
             self.new_evolving_variable(var)
-        print(f"Variable '{var}' type before assignment: {self.variable_table[var].type}")
 
         
         self.find_original_variable_and_assign(lhs, rhs_expr, rhs, loop_scope)
-        print(f"Variable '{var}' type after assignment: {self.variable_table[var].type}")
         # type_ = self.create_equality_constraint(self.variable_table[var].versioned_name(), rhs_expr, rhs, loop_scope)
         # if self.variable_table[var].type == None:
         #     self.variable_table[var].define_type(type_)
@@ -581,11 +576,6 @@ class CodeBlock:
             var_type_if = index_after_if.get(var, idx_before).type
             idx_else = index_after_else.get(var, idx_before).versions
             var_type_else = index_after_else.get(var, idx_before).type
-
-            print("VAR NAME:", var)
-            if var == "pos_i":
-                print("TYPE IF:", var_type_if)
-                print("TYPE ELSE:", var_type_else)
             
             constraints = self.merge_variable(var, idx_if, idx_else, var_type_if, var_type_else)
             if "if" in constraints:
@@ -622,15 +612,11 @@ class CodeBlock:
             return  # Don't emit constraint for constants
         
         else:
-            print(f"Declaring variable: {var} of type {type_}")
-            print(var in self.variable_table)
             if var not in self.variable_table:
                 self.new_evolving_variable(var, type_=type_)
-            print(self.variable_table[var].type)
             # TODO call execute_block_assign to handle assignment
             if stmt.value is not None:
                 self.execute_block_assign(stmt.target, stmt.value, loop_scope)
-            print(self.variable_table[var].type)
             # value = self.rewrite_expr(stmt.value, loop_scope) if stmt.value is not None else None
             # if value is not None:
             #     self.create_deep_equality_constraint(self.variable_table[var], [], value, stmt.value, loop_scope)
