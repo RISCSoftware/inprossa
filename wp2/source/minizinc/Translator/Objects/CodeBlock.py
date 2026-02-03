@@ -189,6 +189,7 @@ class CodeBlock:
     def create_deep_equality_constraint(self, var_obj, chain, rhs_expr=None, rhs=None, loop_scope=None):
         """Creates equality constraints for nested attribute/subscript assignments."""
         is_unassigned = var_obj.is_chain_unassigned(chain)
+        print(f"Creating deep equality constraint for variable '{var_obj.name}' with chain {chain}, is_unassigned: {is_unassigned}")
         # Learn whether the field is already assigned
         if not is_unassigned:
             # If assigned, create a new version for the base variable
@@ -197,6 +198,7 @@ class CodeBlock:
         # In any case, create the equality constraint for the field being assigned and mark it as assigned
         lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
         var_obj.assigned_fields = var_obj.mark_chain_as_assigned(chain)
+        print("Updated assigned fields:", var_obj.assigned_fields)
         if rhs_expr is not None:
             fields_after_chain = var_obj.fields_after_chain(chain)
             self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope, fields=fields_after_chain)
@@ -500,7 +502,11 @@ class CodeBlock:
     
     # --- IF ---
 
-    def merge_variable(self, var, idx_if, idx_else, var_type_if, var_type_else):
+    def merge_variable(self, var,
+                       idx_if, idx_else,
+                       var_type_if, var_type_else,
+                       assigned_fields_if, assigned_fields_else
+                       ):
         """
         Merges variable versions after an if-else branch by using the highest index
         """
@@ -524,6 +530,7 @@ class CodeBlock:
                 var_type = var_type_if
             self.new_evolving_variable(var, type_=var_type)
         self.variable_table[var].versions = merged_idx
+        self.variable_table[var].assigned_fields = merge_assigned_fields(assigned_fields_if, assigned_fields_else)
         constraints = dict()
 
         if idx_if != merged_idx:
@@ -574,10 +581,16 @@ class CodeBlock:
             idx_before = pre_branch_index.get(var, Variable(name="", versions=0))
             idx_if = index_after_if.get(var, idx_before).versions
             var_type_if = index_after_if.get(var, idx_before).type
+            assigned_fields_if = index_after_if.get(var, idx_before).assigned_fields
             idx_else = index_after_else.get(var, idx_before).versions
             var_type_else = index_after_else.get(var, idx_before).type
+            assigned_fields_else = index_after_else.get(var, idx_before).assigned_fields
             
-            constraints = self.merge_variable(var, idx_if, idx_else, var_type_if, var_type_else)
+            constraints = self.merge_variable(var,
+                                              idx_if, idx_else,
+                                              var_type_if, var_type_else,
+                                              assigned_fields_if, assigned_fields_else
+                                              )
             if "if" in constraints:
                 branch_if_constraints.append(constraints["if"])
             if "else" in constraints:
@@ -661,3 +674,31 @@ def all_indices(shape):
     # e.g. shape=[2,4] -> (1..2)×(1..4)
     for idx in product(*(range(1, n+1) for n in shape)):
         yield idx
+
+
+def merge_assigned_fields(fields_if, fields_else):
+    """Merges assigned fields dictionaries from two branches."""
+    if fields_if is None:
+        return fields_else
+    if fields_else is None:
+        return fields_if
+
+    if isinstance(fields_if, dict) and isinstance(fields_else, dict):
+        merged = {}
+        all_keys = set(fields_if.keys()) | set(fields_else.keys())
+        for key in all_keys:
+            sub_if = fields_if.get(key)
+            sub_else = fields_else.get(key)
+            merged[key] = merge_assigned_fields(sub_if, sub_else)
+        return merged
+    elif isinstance(fields_if, list) and isinstance(fields_else, list):
+        merged = []
+        max_len = max(len(fields_if), len(fields_else))
+        for i in range(max_len):
+            sub_if = fields_if[i] if i < len(fields_if) else None
+            sub_else = fields_else[i] if i < len(fields_else) else None
+            merged.append(merge_assigned_fields(sub_if, sub_else))
+        return merged
+    else:
+        # One branch assigned, the other did not
+        return fields_if if fields_if is not None else fields_else
