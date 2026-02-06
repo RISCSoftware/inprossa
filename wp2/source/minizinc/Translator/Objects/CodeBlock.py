@@ -189,7 +189,6 @@ class CodeBlock:
     def create_deep_equality_constraint(self, var_obj, chain, rhs_expr=None, rhs=None, loop_scope=None):
         """Creates equality constraints for nested attribute/subscript assignments."""
         is_unassigned = var_obj.is_chain_unassigned(chain)
-        print(f"Creating deep equality constraint for variable '{var_obj.name}' with chain {chain}, is_unassigned: {is_unassigned}")
         # Learn whether the field is already assigned
         if not is_unassigned:
             # If assigned, create a new version for the base variable
@@ -198,7 +197,6 @@ class CodeBlock:
         # In any case, create the equality constraint for the field being assigned and mark it as assigned
         lhs_name = var_obj.versioned_name() + self.chain_to_appended_text(chain)
         var_obj.assigned_fields = var_obj.mark_chain_as_assigned(chain)
-        print("Updated assigned fields:", var_obj.assigned_fields)
         if rhs_expr is not None:
             fields_after_chain = var_obj.fields_after_chain(chain)
             self.create_equality_constraint(lhs_name, rhs_expr, rhs, loop_scope, fields=fields_after_chain)

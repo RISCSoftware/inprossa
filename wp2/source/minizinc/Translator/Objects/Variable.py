@@ -85,7 +85,6 @@ class Variable:
         is marked as unassigned (0) in `assigned_fields`.
         """
         target = self.assigned_fields
-        print("Assigned fields:", self.assigned_fields)
         for step_type, step in access_chain:
             if step_type == "dict":
                 if step not in target:
@@ -156,8 +155,6 @@ class Variable:
         
         else:
             # Now assigned fields inside target should be marked as 1
-
-            print("Marking all recursive in:", target)
             return self._mark_all_recursive_inplace(target)
 
     def _mark_all_recursive_inplace(self, value):
