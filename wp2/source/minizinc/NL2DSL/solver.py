@@ -66,13 +66,13 @@ class MiniZincSolver:
                          "--solver", "gecode",
                          "--statistics",
                          "--output-mode", "item",
-                         "--time-limit", "60000",
+                         "--time-limit", "150000",
                          "temp.mzn"],
                         text=True,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
                 try:
-                    solver_output, errs = result.communicate(timeout=90)
+                    solver_output, errs = result.communicate(timeout=170)
                 except subprocess.TimeoutExpired:
                     if DEBUG_MODE_ON: print("Minizinc failed the first time - lets try that again")
                     result.kill()  # or proc.terminate()

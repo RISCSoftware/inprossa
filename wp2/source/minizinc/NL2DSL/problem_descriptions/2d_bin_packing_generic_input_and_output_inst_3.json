@@ -4,28 +4,24 @@
       {
         "name": "width",
         "type": "integer",
-        "minimum": 1,
-        "maximum": 10
+        "minimum": 1
       },
       {
         "name": "height",
         "type": "integer",
-        "minimum": 1,
-        "maximum": 10
+        "minimum": 1
       }
     ],
     "X_Y_Position": [
       {
         "name": "x",
         "type": "integer",
-        "minimum": 0,
-        "maximum": 12
+        "minimum": 0
       },
       {
         "name": "y",
         "type": "integer",
-        "minimum": 0,
-        "maximum": 5
+        "minimum": 0
       }
     ]
   },
@@ -45,47 +41,38 @@
       },
       "value": [
         {
-          "name": "item1",
           "width": 4,
           "height": 3
         },
         {
-          "name": "item2",
           "width": 1,
           "height": 2
         },
         {
-          "name": "item3",
           "width": 5,
           "height": 3
         },
         {
-          "name": "item4",
           "width": 4,
           "height": 2
         },
         {
-          "name": "item5",
           "width": 1,
           "height": 3
         },
         {
-          "name": "item6",
-          "width": 5,
+          "width": 9,
           "height": 2
         },
         {
-          "name": "item7",
           "width": 9,
           "height": 5
         },
         {
-          "name": "item8",
           "width": 3,
           "height": 5
         },
         {
-          "name": "item9",
           "width": 5,
           "height": 1
         }

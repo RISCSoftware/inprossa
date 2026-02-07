@@ -10,7 +10,7 @@ USE_PYDANTIC = True
 CHOSEN_LANGUAGE = "optdsl"
 SYSTEM_PROMPT_FOLDER = ("prompts/optdsl_typing/" if USE_OPTDSL else "prompts/z3py_typing/") \
     if USE_TYPING else \
-    (("prompts/optdsl_pydantic/" if USE_OPTDSL else "prompts/z3py_pydantic/")
+    (("prompts/optdsl_pydantic_minmaximize/" if USE_OPTDSL else "prompts/z3py_pydantic/") #
      if USE_PYDANTIC
      else ("prompts/optdsl/" if USE_OPTDSL else "prompts/z3py/"))
 
@@ -25,8 +25,8 @@ RANDOM_STRING_LENGTH = 10
 
 # DFS Tree of Thought
 NR_MAX_CHILDREN = 2
-CONSTRAINT_NODES = True
-SAVE_NODES = True
+CONSTRAINT_NODES = False
+SAVE_NODES = False
 SAVE_MODEL = True
 
 # AlgoPolish

@@ -1,12 +1,12 @@
 Define required object types as compilable OptDSL code, if there are any needed as pythonic OptDSL code.
 Following requirements must be fulfilled:
     Be very careful with this step, only define records if needed for the described problem. If that is the case return empty output.
-    1. If that is the case return empty output. But if possible, do create object types, nothing else.
+    1. If that is the case return empty output. But if possible, do create object types.
     2. If tuples will be required in the future, create object types instead.
     3. If a parameter has a complex object-like structure create a fitting object types for it.
     4. If a output or result has a complex object-like structure create a fitting object types for it.
     5. The members of an object must be of a DS-type (e.g. Annotated[<type>, Field(<optional_properties>)]). Set lower (ge) as low as possible and upper bound (le) as high as possible for DSInt. See EBNF grammar of OptDSL in the system prompt.
-    6. Do not define constants or an objective.
+    6. Do not define constants.
     7. Do not define instances.
     8. Do not define any decision variables or variables.
     9. Do not define constraints.

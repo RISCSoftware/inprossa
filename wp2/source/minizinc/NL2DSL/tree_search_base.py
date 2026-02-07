@@ -20,7 +20,8 @@ class TreeBase:
                  input_variable_spec: list[dict] = None,
                  output_variable_spec: list[dict] = None,
                  objects_spec: dict = None,
-                 for_each_constraint_one_node: bool = False):
+                 for_each_constraint_one_node: bool = False,
+                 semantic_feedback_enabled: bool = False):
         self.root = RootNode(save_nodes=save_nodes, save_model=save_model)
         self.problem_description = problem_description
         self.llm = llm
@@ -29,7 +30,8 @@ class TreeBase:
         self.objects_spec = objects_spec
         self.result_models_file = f'optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json'
         self.for_each_constraint_one_node = for_each_constraint_one_node
-        self.best_child : ConstraintsNode
+        self.semantic_feedback_enabled = semantic_feedback_enabled
+        self.best_child : ConstraintsNode = None
 
     def create_objects_node(self, parent: RootNode):
         # Query object types, data types
@@ -212,11 +214,22 @@ Solve time (sec): {constraints_node.solve_time}
 Semantic validation: {validation_res}
 **************************
 ----------------------------------------------------------------------------""")
+        # Save best child yet
+        if constraints_node.last_in_progress:
+            if self.best_child is None:
+                self.best_child = constraints_node
+            elif (constraints_node.state == State.CORRECT and
+                constraints_node.validated and
+                (constraints_node.objective_val < self.best_child.objective_val or
+                 constraints_node.objective_val == self.best_child.objective_val and constraints_node.solve_time < self.best_child.solve_time)):
+                self.best_child = constraints_node
+
         # Semantic feedback to LLM
-        if (constraints_node.n_failed_generations == 0 and
-                "Successfully" in validation_res and
-                constraints_node.objective_val is not None):
-            send_feedback(constraints_node, self.llm, full_problem_formulation=self.problem_description, syntax=False)
+        if (self.semantic_feedback_enabled and
+            constraints_node.n_failed_generations == 0 and
+            "Successfully" in validation_res and
+            constraints_node.objective_val is not None):
+            send_feedback(constraints_node, self.llm, full_problem_formulation=self.problem_description, syntax=False, best_child_yet=self.best_child == constraints_node)
 
         return constraints_node
 
@@ -239,5 +252,6 @@ Semantic validation: {validation_res}
             print(f"Creating constraints succeeded: {response}")
 
         # Syntactic feedback to LLM
-        if i == len(self.problem_description) - 1: send_feedback(constraints_node, llm=self.llm)
+        if (i == len(self.problem_description) - 1 and
+            constraints_node.state == State.CORRECT): send_feedback(constraints_node, llm=self.llm)
         return constraints_node

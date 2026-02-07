@@ -3,42 +3,34 @@
   "BOX_WIDTH": 5,
   "ITEMS": [
     {
-      "name": "item1",
       "width": 3,
       "height": 4
     },
     {
-      "name": "item2",
       "width": 1,
       "height": 2
     },
     {
-      "name": "item3",
       "width": 5,
       "height": 4
     },
     {
-      "name": "item4",
       "width": 2,
       "height": 4
     },
     {
-      "name": "item5",
       "width": 1,
       "height": 3
     },
     {
-      "name": "item6",
       "width": 5,
       "height": 9
     },
     {
-      "name": "item7",
       "width": 5,
       "height": 3
     },
     {
-      "name": "item8",
       "width": 5,
       "height": 1
     }

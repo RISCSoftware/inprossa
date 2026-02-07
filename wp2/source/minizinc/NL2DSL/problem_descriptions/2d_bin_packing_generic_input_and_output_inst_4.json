@@ -5,13 +5,13 @@
         "name": "width",
         "type": "integer",
         "minimum": 1,
-        "maximum": 10
+        "maximum": 5
       },
       {
         "name": "height",
         "type": "integer",
         "minimum": 1,
-        "maximum": 6
+        "maximum": 12
       }
     ],
     "X_Y_Position": [
@@ -19,54 +19,62 @@
         "name": "x",
         "type": "integer",
         "minimum": 0,
-        "maximum": 10
+        "maximum": 5
       },
       {
         "name": "y",
         "type": "integer",
         "minimum": 0,
-        "maximum": 6
+        "maximum": 12
       }
     ]
   },
   "input_variables": {
     "BOX_HEIGHT": {
       "type": "integer",
-      "value": 6
+      "value": 12
     },
     "BOX_WIDTH": {
       "type": "integer",
-      "value": 10
+      "value": 5
     },
     "ITEMS": {
       "type": {
         "elem_type": "Item",
-        "length": 2
+        "length": 9
       },
       "value": [
         {
-          "width": 4,
-          "height": 3
+          "width": 3,
+          "height": 4
         },
         {
-          "width": 3,
+          "width": 1,
           "height": 2
         },
         {
           "width": 5,
-          "height": 3
+          "height": 4
         },
         {
           "width": 2,
           "height": 4
         },
         {
-          "width": 3,
+          "width": 1,
           "height": 3
         },
         {
           "width": 5,
-          "height": 2
+          "height": 9
+        },
+        {
+          "width": 5,
+          "height": 3
+        },
+        {
+          "width": 5,
+          "height": 1
         }
       ]
     }
@@ -75,20 +83,20 @@
     "nr_used_boxes": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 6
+      "maximum": 8
     },
     "item_box_assignments": {
       "type": {
         "elem_type": "integer",
         "minimum": 1,
-        "maximum": 6,
-        "length": 6
+        "maximum": 8,
+        "length": 8
       }
     },
     "x_y_positions": {
       "type": {
         "elem_type": "X_Y_Position",
-        "length": 6
+        "length": 8
       }
     }
   }
