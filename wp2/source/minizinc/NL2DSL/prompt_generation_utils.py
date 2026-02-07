@@ -3,7 +3,8 @@ import json
 import re
 
 from structures_utils import load_sp_file, TreeNode, is_valid_json, \
-    decompose_full_definition, check_executability, check_functions_appear_twice, VariablesConstantsNode
+    decompose_full_definition, check_executability, check_functions_appear_twice, VariablesConstantsNode, \
+    remove_programming_environment, initial_clean_up
 from constants import DEBUG_MODE_ON, USE_OPTDSL, CHOSEN_LANGUAGE
 
 LOOP_OF_DOOM_UNSAT_MAX_IT = 2
@@ -96,9 +97,10 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                     ))
                     continue
                 # Check if there are any constants/decision variables, there must be at least 1 each
-                if len([item for item in json.loads(raw_definitions) if (
+                filtered_constants_variables = [item for item in json.loads(raw_definitions) if (
                 item.get("variable_name", "").isupper() if len(node.variables_and_constants) == 0 else item.get(
-                        "variable_name", "").islower())]) == 0:
+                        "variable_name", "").islower())]
+                if len(filtered_constants_variables) == 0:
                     raw_definitions = (llm.send_prompt(
                         system_prompt=_get_system_prompt("sp"),
                         prompt="""The code answer you gave, did not contain any variables of the required type {constants, decision variables}. Create them now.
@@ -118,13 +120,36 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                         max_tokens=1000
                     ))
                     continue
+                # safety check: constants that are DSLists must have the same length in the encoding as in the given input data
+                if filtered_constants_variables[0]["variable_name"].isupper() and full_problem_description[0] != []:
+                    for variable in filtered_constants_variables:
+                        initialization = initial_clean_up(variable["initialization"])
+                        if ("DSList" in initialization):
+                            if int(re.search(r"length\s*=\s*(\d+)", initialization).group(1)) != len(json.loads(remove_programming_environment(full_problem_description[0]))[variable["variable_name"]]):
+                                if DEBUG_MODE_ON: print(f"Incorrect length of {variable["variable_name"]}.")
+                                raw_definitions = remove_programming_environment(llm.send_prompt(
+                                    system_prompt=(_get_system_prompt(
+                                        "json_sp") if node.level == 2 else _get_system_prompt(
+                                        "format_sp")) + _get_icl(),
+                                    prompt=f"´´´\njson\n{raw_definitions}´´´\n\n" +
+                                           f"The Json code above contains an error: Incorrect length of {variable["variable_name"]}. It should have been {len(json.loads(remove_programming_environment(full_problem_description[0]))[variable["variable_name"]])}, not {int(re.search(r"length\s*=\s*(\d+)", initialization).group(1))}. Correct it.\n" +
+                                           "Given this error message, improve the mentioned lines of the \"initialization\" and/or the \"variable_type\" field according to the error message and the problem description, nothing else." +
+                                            f"The problem description is: {full_problem_description[0]}\n"
+                                           "Return the given json code with the corrections. Do not copy the in-context-training example. Do not return \"NTD\".",
+                                    max_tokens=1500
+                                ))
+                                execution_error = "Incorrect length of constant."
+                                break
+                            else:
+                                execution_error = None
+                    if execution_error is not None:
+                        continue
 
             # Extracted objective and constraints + auxiliary vars
             execution_error = None
             if node.level == 3 or node.level == 4:
                 decomposed_code = decompose_full_definition(raw_definitions)
                 if decomposed_code == {}:
-                    ü = 2
                     decompose_full_definition(raw_definitions)
                 raw_definitions: str = ""
                 if decomposed_code is None:
@@ -166,7 +191,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                 raw_definitions.replace(f"# --- Incorrect Code ---\n", "")
                 # Safety check: function does not consist only of a return of a variable
                 if _contains_func_that_just_returns_var(raw_definitions):
-                    execution_error = "Error: The function within this code does not include any calculation, but only returns an unmodified input variable."
+                    execution_error = "Error: The function within this code does not include any calculation, but only returns an unmodified input variable. Encode the calculation of the objective function mentioned in the last prompt."
 
             # Check for syntactical correctness and handle execution error, if no "Constraints/Objective FormatError" has occurred yet
             if execution_error is None:
@@ -242,6 +267,23 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                                "´´´python\n" +
                                f"# --- {node.name.lower()} ---\n" +
                                "<code>\n",
+                        max_tokens=(1500 if node.level >= 4 else 800)
+                    ))
+                elif "Memory violation" in execution_error:
+                    raw_definitions = (llm.send_prompt(
+                        system_prompt=(_get_system_prompt(
+                            "json_sp") if node.level == 2 else _get_system_prompt(
+                            "format_sp")) + _get_icl(),
+                        prompt=f"´´´python\n" +
+                               f"{node.get_partial_formulation_up_until_now()}\n"
+                               f"\n# --- Incorrect Code --- \n{raw_definitions}´´´\n\n" +
+                               f"Improve the code of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet as follows: Inline expressions and list accesses instead of creating temporary variables. Reduce the number of temporary variables. Increase efficiency of constraints and reduce constraint length." +
+                               "Nothing else. Do not change the semantics of the code. Do not return NTD."
+                               "Return your answer in the format\n" +
+                               "´´´python\n" +
+                               "# --- Incorrect Code ---\n" +
+                               "<corrected code>\n" +
+                               "\n´´´, where <corrected code> all lines underneath \"# --- Incorrect Code ---\" with the corrections.",
                         max_tokens=(1500 if node.level >= 4 else 800)
                     ))
                 elif node.level == 2:
@@ -497,13 +539,13 @@ def send_prompt_with_system_prompt(prompt: str, llm):
     )
 
 # Sends correct partial formulations generated by LLM, in the hopes the feedback creates a learning effect
-def send_feedback(node: TreeNode, llm, full_problem_formulation: list[str] = None, syntax: bool = True):
+def send_feedback(node: TreeNode, llm, full_problem_formulation: list[str] = None, syntax: bool = True, best_child_yet: bool = False):
     if syntax:
         if DEBUG_MODE_ON: print("Sending feedback for a partial job well done.")
         _ = llm.send_prompt(
             prompt=
             f"""The following is an example for a syntactically valid {"full" if node.level == 4 else "partial"} formulation of a optimization problem in OptDSL.
-        Learn from it the syntax of OptDSL, not its semantics. Apply the syntax knowledge in the future.
+        Learn from it the syntax of OptDSL only. Ignore its semantics. Apply the syntax knowledge in the future.
         ´´´ python
         {node.get_partial_formulation_up_until_now()}
         ´´´""",
@@ -512,14 +554,16 @@ def send_feedback(node: TreeNode, llm, full_problem_formulation: list[str] = Non
     else:
         if full_problem_formulation is None: raise ValueError("Full problem formulation is required")
         if DEBUG_MODE_ON: print("Sending feedback for a partial job well done.")
+
+        prompt = f"""The following is an example for a, maybe not optimal, but syntactically valid {"full" if node.level == 4 else "partial"} OptDSL formulation of the optimization problem:
+{full_problem_formulation}
+Learn from it its syntax and semantics of OptDSL. Apply the syntax knowledge in the future. Provide diverse encodings in the future.
+´´´ python
+{node.get_partial_formulation_up_until_now()}
+´´´"""
+        prompt += "\nThis encoding provided the best objective value yet, but always strive for improvement." if best_child_yet else "\nAlthough this encoding is semantically correct, it is not optimal. Strive for optimality in the future."
         _ = llm.send_prompt(
-            prompt=
-            f"""The following is an example for a, maybe not optimal, but syntactically valid {"full" if node.level == 4 else "partial"} OptDSL formulation of the optimization problem:
-        {full_problem_formulation}
-        Learn from it its syntax and semantics of OptDSL. Apply the syntax knowledge in the future. Provide diverse encodings in the future.
-        ´´´ python
-        {node.get_partial_formulation_up_until_now()}
-        ´´´""",
+            prompt=prompt,
             max_tokens=1)
 
 def send_polish_feedback(old_encoding: str, refactored_encoding: str, llm, syntax: bool = True):

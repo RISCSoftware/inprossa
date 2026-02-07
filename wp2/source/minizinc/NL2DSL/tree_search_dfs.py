@@ -10,7 +10,7 @@ from tree_search_base import TreeBase
 
 class DfsTree(TreeBase):
     NR_MIN_VALID_CHILDREN = constants.NR_MAX_CHILDREN
-    NR_MAX_CHILDREN = 5
+    NR_MAX_CHILDREN = constants.NR_MAX_CHILDREN + 5
 
     def dfs(self, cur_node: TreeNode):
         if (cur_node.state == State.FAILED
@@ -21,7 +21,8 @@ class DfsTree(TreeBase):
                (cur_node.level == 0 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
                cur_node.level == 1 and self.input_variable_spec and self.output_variable_spec and len(cur_node.get_correct_children()) < 1 or
                (cur_node.level == 1 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
-               (cur_node.level >= 2 and len(cur_node.children) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN)):
+               (cur_node.level == 2 and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
+               (cur_node.level >= 3 and len(cur_node.children) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN)):
             if DEBUG_MODE_ON: print(f"""
 .....................................................
 Given:
@@ -45,11 +46,6 @@ Create {len(cur_node.get_correct_children())}. node at level {cur_node.level+1}
                     new_child_node = self.create_constraints_node(cur_node, cur_node.level+1)
                 case _:
                     if cur_node.last_in_progress:
-                        if (cur_node.state == State.CORRECT and
-                            cur_node.validated and
-                            (cur_node.objective_val < self.best_child.objective_val or
-                             cur_node.objective_val == self.best_child.objective_val and cur_node.solve_time < self.best_child.solve_time)):
-                            self.best_child = cur_node
                         return
                     new_child_node = self.create_constraints_node(cur_node, cur_node.level+1)
 
@@ -226,7 +222,8 @@ def main():
                    objects_spec=objects,
                    input_variable_spec=intput_variable_spec,
                    output_variable_spec=output_variable_spec,
-                   for_each_constraint_one_node=args.for_each_constraint_one_node)
+                   for_each_constraint_one_node=args.for_each_constraint_one_node,
+                   semantic_feedback_enabled=(args.input_mode != "flex_objects_flex_input_values" and args.input_mode != "flex_objects_fixed_input_values"))
     tree.create_full_tree_with_dfs()
 
 

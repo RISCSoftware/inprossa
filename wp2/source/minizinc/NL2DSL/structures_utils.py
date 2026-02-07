@@ -517,6 +517,10 @@ The structure must fulfill following requirements:
         # Result must not be empty
         if raw_code == "": return "Error - Invalid result: Result is empty."
 
+        # Safety check: check if calculated objective is assigned to a variable "objective" at some point
+        if node.level == 3 and "objective" not in raw_code:
+            return "Add an assigment, where the decision variable that represents the objective is assigned to a variable \"objective\". Nothing else."
+
         # Safety check: check that there are no non-constants in range
         m = re.search(r"(.*)(range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\))", raw_code)
         if m:
@@ -542,6 +546,8 @@ The structure must fulfill following requirements:
         else:
             exec(variable_block, {})
     except SyntaxError as e:
+        if "Annotated" in variable_block:
+            return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or object type, or complex type list as typing.Annotated of typing.Annotated with pydantic.Field of type int, float, int or object type, or DSRecord"
         return f"Syntax Error \"{e.msg}\" in line {e.lineno}, at offset {e.offset}: {e.text.rstrip() if e.text else None}"
     except Exception as e:
         logger.exception(e)
@@ -684,7 +690,9 @@ def check_solver_executability(model: str, node):
         solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model, node.last_in_progress if node.is_terminal else False)
     else:
         solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model, True)
-    if "Error" in solution:
+    if "Memory violation detected (stack overflow)." in solution:
+        return "Memory violation detected (stack overflow)."
+    elif "Error" in solution:
         return solution
     elif "type error" in solution:
         return "Minizinc Solver Error"
@@ -692,7 +700,10 @@ def check_solver_executability(model: str, node):
         print("Solver failed: Invalid encoding yielded invalid solution.")
         return f"Semantic Error, correct the semantics."
     elif "unknown" in str(solution).lower():
-        return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all."
+        if node.level == 3:
+            return None
+        else:
+            return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all."
     elif "unsatisfiable" in str(solution).lower():
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable."
@@ -703,6 +714,9 @@ def check_solver_executability(model: str, node):
             node.solution_model = solution
             print(f"Solution for objective is: {solution["objective"]}")
         else:
+            if "nr_used_boxes" in solution:
+                node.objective_val = solution["nr_used_boxes"][len(solution["nr_used_boxes"])-1]
+            node.solution_model = solution
             print("Solver succeeded, but no _objective is available.")
         return None
 

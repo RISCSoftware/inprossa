@@ -297,3 +297,90 @@ class TestValidator(unittest.TestCase):
         validate_solution(json.loads(
             "{\"objective\": [0, 1, 1, 2], \"nr_used_boxes\": [1], \"item_box_assignments\": [[1, 2, 2]], \"x_y_positions\": [[{\"box_id\": 1, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 3, \"x\": 3, \"y\": 0}]]}"),
             task)
+
+    def test_strange_case(self):
+        d2_bin_packing_formalized_problem_description_inst2 = [
+            # Input
+            """
+            ´´´ json
+            {
+                "BOX_HEIGHT": 5,
+                "BOX_WIDTH": 12,
+                "ITEMS": [
+                    {
+                        "width": 4,
+                        "height": 3
+                    },
+                    {
+                        "width": 1,
+                        "height": 2
+                    },
+                    {
+                        "width": 5,
+                        "height": 3
+                    },
+                    {
+                        "width": 4,
+                        "height": 2
+                    },
+                    {
+                        "width": 1,
+                        "height": 3
+                    },
+                    {
+                        "width": 9,
+                        "height": 2
+                    },
+                    {
+                        "width": 9,
+                        "height": 5
+                    },
+                    {
+                        "width": 3,
+                        "height": 5
+                    },
+                    {
+                        "width": 5,
+                        "height": 1
+                    }
+                ]
+            }´´´
+            """,
+            # Output
+            """
+            ´´´json
+            [
+                {
+                    "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+                    "is_objective": true,
+                    "mandatory_variable_name": "nr_used_boxes",
+                    "suggested_shape": "integer"
+                },
+                {
+                    "description": "Which item is assigned to which box.",
+                    "is_objective": false,
+                    "mandatory_variable_name": "item_box_assignments",
+                    "suggested_shape": "array"
+                },
+                {
+                    "description": "Position x and y of each item within box",
+                    "is_objective": false,
+                    "mandatory_variable_name": "x_y_positions",
+                    "suggested_shape": "array"
+                }
+            ]
+            ´´´
+            """
+        ]
+
+        # Example of calling from another function:
+        task = {
+            "input": json.loads(
+                remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[0])),
+            "output": json.loads(
+                remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[1]))
+        }
+        # Validate solver solutions
+        print(validate_solution(json.loads(
+            "{\"nr_used_boxes\": [1], \"item_box_assignments\": [[{\"box_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 5, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}]], \"x_y_positions\": [[{\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}]], \"objective\": [8]}"),
+            task))

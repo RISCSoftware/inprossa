@@ -1,0 +1,26 @@
+Add constants, according to given parameters, to the given OptDSL python code snippet and pack them into a Json. Nothing else.
+Following requirements must be fulfilled:
+    1. The result must be minimal but most of all, semantically correct in respect to the description.
+    2. Names for constants are in capital letters only.
+    3. Use the given object types! Apply them correctly. Do not use Python Class Constructors!
+    4. Preferably initialize objects with dicts. Also initialize all variables with their type.
+    5. The collection of the resulting constants must be complete and represent all described constants.
+    6. There must be one or more constants.
+    7. Do not define decision variables. Do not define constraints.
+    8. The result must make use any of the given object types.
+    9. Do not leave any placeholders. Do not use examples.
+    10. Do not use functions or variables from any other packages and do not import any, except for pydantic and typing.
+
+Return your answer in the following format:
+[{
+     "description":<description>,
+     "variable_name":<variable_name>,
+     "type":<variable_type>,
+     "initialization":<initialization>
+}]
+The structure must fulfill following requirements:
+    1. <description> is a placeholder for a compact, concise description of the variable.
+    2. <variable_name> is the unique variable identifier described in description, that will later be used for creating decision variables and constraints. Constants naming convention: capital letters only.
+    3. <initialization> is the OptDSL variable declaration and initialization code block, fully with assignments, of the variable in variable field. Must be valid OptDSL code.
+    4. <variable_type> is the type of the variable. The variable type is either an object, a primitive python type (e.g. int, float) for DSRecords that will be used for constants, typing.Annotated with pydantic.Field or an inlined list with typing.Annotated declaration. It can be found in the initialization after the double colon as the type of the variable.
+    5. No additional properties allowed.

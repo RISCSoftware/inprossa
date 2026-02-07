@@ -1,0 +1,231 @@
+OptDSL is a python-like (pythonic) high-level constraint modelling language for formulizing optimization problems diversely, efficient and optimally in a programmatical fashion. Eventually, OptDSL is translated into Minizinc. 10. If you encountered a similar problem before, provide a diverse formulation while being syntactically valid.
+1.	OptDSL is python where constants have python native primitive types int, float. For strings do not use str, but float. Do not use None. Decision variables must be of primitive type with typing.Annotated with pydantic.Field of type int, float, int or object type, or of complex type list as typing.Annotated or DSRecord. Do not use tuple as variable types.
+2.  Set reasonable, optimal lower (ge) and upper bound (le) for the integer or float pydantic.Field within typing.Annotated. If you initialize typing.Annotated of type float and integer, set them at least lower bound and at most with upper bound.
+3.  Object type creation with DSRecord and initialization of a variable with an object type must be two separate steps. For object type creation and variable initialization, each attribute needs to be explicitly set manually with accessing each attribute or initializing it as dict or json.
+4.  Object fields may be accessed and used in asserts. Object fields can not be assigned a value.
+5.  All variables must define a correct type, <variable_name> : <type>. Possible types are int, float, object types or typing.Annotated with pydantic.Field.
+6.	Indices in a list start at 1, not 0. Consequently, when iterating with a variable through a list we need, LIST_LEN = <constant length of list> + 1 for i in range(1, LIST_LEN) for a list in typing.Annotated, where LIST_LEN is a expression of constants or one constant.
+7.  List as typing.Annotated is a fixed-size list, in the form of "list_x : Annotated[list[<element_type>], Len(<list_length>, <list_length>)]". Do not use list comprehension. For the field elem_type do not inline DSRecords, but use defined object types. But do not inline other DS types (e.g. Annotated[<type>, Field(<optional_properties>)]). List as typing.Annotated does not support functions append() and extend().
+8.  Do not use python's len(), max() or min() functions. Do not use continue, pass and break statements. Variables must not be of type "dict" or set. For loops with range() only use constants and integers and the second parameter must contain a constant as expression or just the constant.
+9.	Constraints are defined within a python function. Define input parameter. There must at least be one input parameter. Define all decision variables and auxiliary variables as input parameters, that are required for constraint formulation and are defined at root. Constants (variables in capital letters) can be accessed everywhere and do not have to be given as input parameter. Either do not call return or only return names or tuple of names.
+10.	After each function definition, immediately call that function with the correct input parameters.
+11.	Constraints are defined as asserts, like in a test. For constraint definition use equality, inequality and relation expressions. Use of the python-built-in function any() and all() in combination with assert. Equality, inequality and relation expressions may only be used within assert. Equality, inequality, relation expressions and required calculations can not be assigned to a temporary variable.
+12. Auxiliary variables must be used thrice or more times, otherwise inline. AND, OR and comparison expressions can not be assigned to a temporary variable, but must be inlined into an assert-expression.
+13.	Allowed operators for assert-constraints: all, any, >=, <=, ==, !=, <, >, or, and, not. No other operators are allowed. Do not use ternary operators. Use brackets for nested operations. Answer must have more than 10 tokens. Do not return NTD!
+
+OptDSL adheres to following EBNF grammar (extended backus-naur form):
+-------------------
+Block := Statement*
+Statement := ConstDecl | VarDecl | FunDef | SimpleStmt
+
+# Top-level type declarations
+DSTypeExp := DSIntType | DSFloatType | DSBoolType | DSListType | DSRecordType
+ArgumentList := ID*
+FunArg([]) := # Nothing
+FunArgs(First :: Rest) := # [ID1, ID2, ID3, ...,  IDn] := ID1 :: [ID2, ID3, ...,  IDn]
+    Expr, FunArgs(Rest) |
+    First "=" Expr, NamedFunArgs(Rest) |
+    NamedFunArgs(Rest)
+NamedFunArgs(First :: Rest) :=
+    First "=" Expr, NamedFunArgs(Rest) |
+    NamedFunArgs(Rest)
+DSIntType := "Annotated" "["int, "Field" "(" "strict=True," "ge=" INT "," "le=" INT ")" "]"
+DSFloatType := "Annotated" "["float, "Field" "(" "strict=True," "ge=" INT "," "le=" INT ")" "]"
+DSBoolType := "Annotated[bool, Field()]"
+DSListType := "Annotated" "[" "list" "[" ListTypeRef "]," "Len" "(" INT "," INT ")" "]"
+DSRecordType := "DSRecord" "(" "{" RecordField ("," RecordField)* "}" ")"
+RecordField := STR ":" TypeRef
+ListTypeRef := DSIntType | DSFloatType | DSBoolType | ID
+TypeRef := "int" | "float" | "bool" | ID | DSTypeExp
+
+# Constants
+ConstDecl := UPPER_ID ":" TypeRef "=" ConstExpr
+ConstExpr := Literal | ListLiteral | RecordLiteral | ID
+ListLiteral := "[" ConstExpr? "]"
+RecordLiteral := "{" RecordFieldLiteral ("," RecordFieldLiteral)* "}"
+RecordFieldLiteral := STR ":" ConstExpr
+
+# Variables and assignments
+VarDecl := VAR_ID ":" (TypeRef | "Annotated" "[" ID "," "Field" "(" ")" "]") ("=" Expr)
+
+# Functions
+FunDef := "def" ID "(" ParamList? ")" ":" Block
+ParamList := Param ("," Param)*
+Param := ID ":" TypeRef ("=" Expr)?
+FunCall := ID "(" ArgList? ")"
+    | "minimize" "(" VAR_ID ")"
+    | "maximize" "(" VAR_ID ")"
+ArgList := (Arg ("," Arg)*)?
+Arg := (ID "=")? Expr
+
+# Simple statements in blocks
+SimpleStmt := AssignStmt
+    | AssertStmt
+    | ForStmt
+    | IfStmt
+    | ReturnStmt
+AssignStmt := Target "=" Expr // covers x=â€¦, a[i]=â€¦, obj.f=â€¦
+Target := ID
+    | Target "." ID
+    | Target "[" Expr "]"
+AssertStmt := "assert" ComparisionExpr
+ReturnStmt := "return" Expr
+
+Control flow
+ForStmt := "for" ID "in" Iterable ":" Block
+| "for" ID "," ID "in" "enumerate" "(" Iterable ")" ":" Block
+Iterable := ID | ListLiteral | "range" "(" RangeExpr "," RangeExpr ")"
+IfStmt := "if" (ComparisionExpr | Expr) ":" Block ElseClause?
+ElseClause := "else" ":" Block
+
+Expressions
+Exps := Expr ("," Expr)*
+Expr := ID
+| Literal # No variables inside
+| ListLiteral
+| RecordLiteral
+| FunCall
+| "(" Expr ")" # to give priorities
+| Expr ArithmeticBinOp Expr
+| UnOp Expr
+ComparisionExpr := Expr RelationBinOp Expr
+| Expr LogicalBinOp Expr
+| ComparisionExpr RelationBinOp ComparisionExpr
+| ComparisionExpr LogicalBinOp ComparisionExpr
+| UnOp Expr
+RangeExpr := UPPER_ID
+| INT
+| RangeExpr ArithmeticBinOp RangeExpr
+Literal := INT | FLOAT | "True" | "False"
+BinOp := ArithmeticBinOp
+| RelationBinOp
+| LogicalBinOp
+ArithmeticBinOp := "+" | "-" | "*" | "/" | "%"
+RelationBinOp := "==" | "!=" | "<" | "<=" | ">" | ">="
+LogicalBinOp := "and" | "or"
+UnOp := "-" | "not"
+
+Lexical / structural conventions
+ID: Python identifier | VAR_ID.
+VAR_ID: Python identifier in lower case for decision variables.
+UPPER_ID: identifier in all caps (and _), used for constants.
+INT: integer literal.
+FLOAT: floating-point literal.
+STR: quoted string literal.
+-------------------
+
+In-context learning full translation example for OptDSL - START
+-------------------
+Global problem:
+Prompt:
+´´´ json
+{
+    "input" = {
+        "MAX_ALLOWED_WEIGHT": 110,
+        "ITEMS": [
+            {
+                "name": "item1"
+                "value": 15,
+                "weight": 12
+            },
+            {
+                "name": "item2",
+                "value": 50,
+                "weight": 70
+            },
+            {
+                "name": "item3",
+                "value": 80,
+                "weight": 100
+            },
+            {
+                "name": "item4",
+                "value": 80,
+                "weight": 20
+            },
+            {
+                "name": "item5",
+                "value": 20,
+                "weight": 12
+            },
+            {
+                "name": "item6",
+                "value": 25,
+                "weight": 5
+            }
+        ]
+    },
+    "output": [
+        {
+            "description": "Chosen Items",
+            "mandatory_variable_name": "chosen_items",
+            "suggested_shape": "boolean array"
+        },
+        {
+            "description": "Accumulated Value, which is the objective to maximize"
+            "mandatory_variable_name": "accumulated_value",
+            "suggested_shape": "integer"
+        }
+    ]
+}
+´´´
+Global problem description:
+This problem involves a collection of items, where each have a value and a weight. The goal is to decide which items are chosen to put into a schoolbag that a maximal accumulated value is achieved.
+
+Sub problem description - items that go in the bag:
+In the bag only go items from the given collection, such that the cumulative weight of all chosen items must never exceed the maximum allowed weight of 110.
+At the same time, we want to achieve a maximum of accumulated item value. One or more items are chosen and put into the schoolbag. The result are the chosen items.
+
+
+Expected result:
+´´´ python
+# --- Objects ---
+Item = DSRecord({
+    "value": DSInt(lb=1, ub=80),
+    "weight": DSInt(lb=1, ub=100)
+})
+
+# --- Constants ---
+ITEM1 : Item = {\"value": 15, \"weight": 12}
+ITEM2 : Item = {\"value": 50, \"weight": 70}
+ITEM3 : Item
+ITEM3.value = 80
+ITEM3.weight = 100
+ITEM4 : Item
+ITEM4.value = 80
+ITEM4.weight = 20
+ITEM5 : Item
+ITEM5.value = 20
+ITEM5.weight = 12
+ITEM6 : Item
+ITEM6.value = 25
+ITEM6.weight = 5
+ITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
+N_ITEMS : int = 6
+MAX_WEIGHT : int = 110
+
+# --- Decision Variables ---
+chosen_items : DSList(length=6, elem_type=DSBool())
+accumulated_value : DSInt(lb=0)
+accumulated_weight : DSInt(lb=0, ub=MAX_WEIGHT)
+
+# --- Constraints ---
+def pack_item(items: DSList(length=6, elem_type=Item),
+                chosen_items: DSList(length=6, elem_type=DSBool())):
+    accumulated_weight: int = 0
+    accumulated_value: int = 0
+    for i in range(1, N_ITEMS + 1):
+        if chosen_items[i]:
+            #item : Item = items[i]
+            accumulated_weight = accumulated_weight + items[i].weight
+            accumulated_value = accumulated_value + items[i].value
+    return accumulated_value, accumulated_weight
+
+accumulated_value, accumulated_weight = pack_item(ITEMS, chosen_items)
+assert accumulated_weight >= 0
+assert accumulated_weight < MAX_WEIGHT
+assert accumulated_value >= 0
+maximize(accumulated_value)
+´´´
+-------------------
+In-context learning full translation example for OptDSL - END
