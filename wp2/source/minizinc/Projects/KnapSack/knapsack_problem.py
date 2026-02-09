@@ -50,13 +50,16 @@ maximize(accumulated_value)
 
 """
 
+
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
-translator = MiniZincTranslator(dsl_code)
-model = translator.unroll_translation()
-print("\n")
-print(model)
-print("\n")
-from Tools.MinizincRunner import MiniZincRunner
-runner = MiniZincRunner()
-result = runner.run(model)
-print(result)
+
+if __name__ == "__main__":
+    translator = MiniZincTranslator(dsl_code)
+    model = translator.unroll_translation()
+    print("\n")
+    print(model)
+    print("\n")
+    from Tools.MinizincRunner import MiniZincRunner
+    runner = MiniZincRunner()
+    result = runner.run(model)
+    print(result)

@@ -10,7 +10,7 @@ And Records will have a dict of field_name:str -> field_type:DS...
 """
 import ast
 from typing import Optional, Union, Dict
-from Translator.Tools import ast_to_evaluation_constants, ExpressionRewriter
+from Translator.helper_tools import ast_to_evaluation_constants, ExpressionRewriter
 
 
 def remove_ast(input, constant_table: Optional[dict] = None):

@@ -60,4 +60,8 @@ class MiniZincRunner:
 
     
 def total_time(statistics):
-    return statistics["initTime"] + statistics["solveTime"] + statistics["optTime"]
+    if "optTime" in statistics:
+        # it is an optimisation problem
+        return statistics["initTime"] + statistics["solveTime"] + statistics["optTime"]
+    else:
+        return statistics["initTime"] + statistics["solveTime"]

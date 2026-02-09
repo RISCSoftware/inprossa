@@ -24,13 +24,15 @@ def not_exceed(assignments: DSList(NITEMS, DSInt(1, NBOXES))):
 
 not_exceed(assignments)
 """
-translator = MiniZincTranslator(code)
-model = translator.unroll_translation()
-print("\n")
-print(model)
-print("\n")
+
+if __name__ == "__main__":
+    translator = MiniZincTranslator(code)
+    model = translator.unroll_translation()
+    print("\n")
+    print(model)
+    print("\n")
 
 
-runner = MiniZincRunner()
-result = runner.run(model)
-print(result)
+    runner = MiniZincRunner()
+    result = runner.run(model)
+    print(result)

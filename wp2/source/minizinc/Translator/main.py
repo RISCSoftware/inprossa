@@ -1,7 +1,6 @@
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
-from Translator.WoodCuttingPipeline.check_machine import code_check_machine
+from Projects.WoodCuttingPipeline.check_machine import code_check_machine
 from Tools.MinizincRunner import MiniZincRunner
-from Translator.Objects.trial import run_mzn_and_detect_inconsistency
 
 # ===== Example usage =====
 if __name__ == "__main__":
@@ -123,9 +122,7 @@ assert all(x > 0 for x in a)
     print("\n")
 
     
-    # runner = MiniZincRunner()
-    # result = runner.run(model)
-    # print(result)
+    runner = MiniZincRunner()
+    result = runner.run(model)
+    print(result)
 
-    # Test dump_fzn
-    fzn_path = run_mzn_and_detect_inconsistency(model)

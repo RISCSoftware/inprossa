@@ -660,7 +660,7 @@ x : DSList(5, int)
 assert any(x[cut] > 0 for cut in range(1, 6))
 """,
         "expected_translation": """array[1..1] of array[1..5] of var int: x;
-constraint ((x[1][1] > 0) \/ (x[1][2] > 0) \/ (x[1][3] > 0) \/ (x[1][4] > 0) \/ (x[1][5] > 0));
+constraint ((x[1][1] > 0) \\/ (x[1][2] > 0) \\/ (x[1][3] > 0) \\/ (x[1][4] > 0) \\/ (x[1][5] > 0));
 solve satisfy;"""
     },
     {
@@ -813,52 +813,23 @@ solve minimize a[1];"""
 #     },
 # ]
 
+import pytest
 from Tools.MinizincRunner import MiniZincRunner
 
-class TestMiniZincTranslation(unittest.TestCase):
-
-    def test_translations(self):
-        for test in translation_tests:
-            with self.subTest(test["name"]):
-                translator = MiniZincTranslator(test["code"])
-                result = translator.unroll_translation().strip()
-                runner = MiniZincRunner(result)
-                run_result = runner.run()
-                print("MiniZinc run result:")
-                print(run_result)
-                expected = test["expected_translation"].strip()
-                self.assertEqual(result, expected)
-                if result != expected:
-                    print("Unexpected translation result:")
-                    print("Got:")
-                    print(result)
-                    print("Expected:")
-                    print(expected)
-
-failed = 0
-failed_tests = []
-for test in translation_tests:
-    print(f"Test {test['name']}")
-    translator = MiniZincTranslator(test["code"])
+@pytest.mark.parametrize(
+    "case",
+    translation_tests,
+    ids=[case["name"] for case in translation_tests],
+)
+def test_translation_matches_expected_and_runs(case):
+    translator = MiniZincTranslator(case["code"])
     result = translator.unroll_translation()
-    runner = MiniZincRunner()
-    run_result = runner.run(result)
-    print("MiniZinc run result:")
-    print("  ", run_result)
-    print(f"  status={getattr(run_result, 'status', None)}")
-    if result != test["expected_translation"]:
-        failed += 1
-        failed_tests.append(test["name"])
-        print(f"Test {test['name']} failed:")
-        print("Code:")
-        print(test["code"])
-        print("Expected:")
-        print(test["expected_translation"])
-        print("Got:")
-        print(result)
-print(f"Total failed tests: {failed}")
-print(f"Failed tests: {failed_tests}")
+    expected = case["expected_translation"]
 
-# if __name__ == "__main__":
-#     unittest.main()
-#     TestMiniZincTranslation().test_translations()
+    # run MiniZinc for the translated model:
+    runner = MiniZincRunner()
+    run_result = runner.run(result) 
+
+    assert "best_solution" in run_result # small check on solution validity
+
+    assert result == expected

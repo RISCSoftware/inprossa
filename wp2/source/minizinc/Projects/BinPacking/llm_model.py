@@ -22,12 +22,14 @@ def no_overlap(
 no_overlap(item_box_assignments, x_y_positions)
 
 """
-translator = MiniZincTranslator(code)
-model = translator.unroll_translation()
-print("\n")
-print(model)
-print("\n")
 
-runner = MiniZincRunner()
-result = runner.run(model)
-print(result)
+if __name__ == "__main__":
+    translator = MiniZincTranslator(code)
+    model = translator.unroll_translation()
+    print("\n")
+    print(model)
+    print("\n")
+
+    runner = MiniZincRunner()
+    result = runner.run(model)
+    print(result)

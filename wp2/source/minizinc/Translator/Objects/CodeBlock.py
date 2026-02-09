@@ -5,7 +5,7 @@ from Translator.Objects.DSTypes import DSInt, DSList, compute_type
 from Translator.Objects.Variable import Variable
 from itertools import product
 from Translator.Objects.Constant import Constant, ast_to_object
-from Translator.Tools import ExpressionRewriter
+from Translator.helper_tools import ExpressionRewriter
 import copy
 class CodeBlock:
     """
