@@ -473,7 +473,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                 # Component specific instr.: constants
                 # f"\nTask:Take this text description of required constants for an optimization problem: {text_representation}",
                 f"\nYour priority is to fulfill this task: {load_sp_file("sp_constants.txt")}\n"
-                , max_tokens=1000
+                , max_tokens=1500
             )
         else:
             response = llm.send_prompt(
@@ -490,7 +490,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                 {node.get_partial_formulation_up_until_now()}´´´\n""" +
                 # Component specific instr.: decision variables
                 f"\nYour priority is to fulfill this task: {load_sp_file("sp_decision_variables.txt")}\n"
-                , max_tokens=1000
+                , max_tokens=1500
             )
     # OBJ FUNCTION
     elif node.level == 3:

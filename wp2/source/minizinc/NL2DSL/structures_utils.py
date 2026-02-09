@@ -518,7 +518,7 @@ The structure must fulfill following requirements:
         if raw_code == "": return "Error - Invalid result: Result is empty."
 
         # Safety check: check if calculated objective is assigned to a variable "objective" at some point
-        if node.level == 3 and "objective" not in raw_code:
+        if node.level == 3 and "objective =" not in raw_code:
             return "Add an assigment, where the decision variable that represents the objective is assigned to a variable \"objective\". Nothing else."
 
         # Safety check: check that there are no non-constants in range
@@ -716,6 +716,7 @@ def check_solver_executability(model: str, node):
         else:
             if "nr_used_boxes" in solution:
                 node.objective_val = solution["nr_used_boxes"][len(solution["nr_used_boxes"])-1]
+            node.solve_time = solve_time
             node.solution_model = solution
             print("Solver succeeded, but no _objective is available.")
         return None
