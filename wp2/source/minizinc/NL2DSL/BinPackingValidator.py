@@ -113,13 +113,16 @@ def validate_solution(solver_solution : dict, task : dict):
 
     for i, item_placement in enumerate(solution):
         if "item_id" in item_placement:
-            item = given_items[item_placement["item_id"]]
+            if len([sol for sol in solution if sol["item_id"] == 0]) != 0:
+                item = given_items[item_placement["item_id"]]
+            else:
+                item = given_items[item_placement["item_id"] - 1]
         else:
             item = given_items[i]
 
         # Validate items do not exceed box boundaries
         assert item_placement["x"] + item["width"] <= box_width, f"Item placement {item_placement["x"] + item["width"]} exceeds box width {box_width}"
-        assert item_placement["y"] + item["height"] <= box_height, f"Item placement {item_placement["y"] + item["height"]} exceeds box width {box_height}"
+        assert item_placement["y"] + item["height"] <= box_height, f"Item placement {item_placement["y"] + item["height"]} exceeds box height {box_height}"
         if "item_id" in item_placement:
             assert item_placement["item_id"] >= 0, f"Invalid value for item_id: {item_placement["item_id"]}"
             assert item_placement["item_id"] <= len(given_items), f"Invalid value for item_id: {item_placement["item_id"]}"

@@ -601,7 +601,7 @@ def pack_item(items: DSList(length=6, elem_type=Item),
     accumulated_value: int = 0
     for i in range(1, N_ITEMS + 1):
         if chosen_items[i]:
-            #item : Item = items[i]
+            item : Item = items[i]
             accumulated_weight = accumulated_weight + items[i].weight
             accumulated_value = accumulated_value + items[i].value
     return accumulated_value, accumulated_weight
