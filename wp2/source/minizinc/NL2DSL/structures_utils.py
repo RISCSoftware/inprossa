@@ -518,7 +518,7 @@ The structure must fulfill following requirements:
         if raw_code == "": return "Error - Invalid result: Result is empty."
 
         # Safety check: check if calculated objective is assigned to a variable "objective" at some point
-        if node.level == 3 and "objective =" not in raw_code:
+        if node.level == 3 and "objective =" not in raw_code and "objective :" not in raw_code:
             return "Add an assigment, where the decision variable that represents the objective is assigned to a variable \"objective\". Nothing else."
 
         # Safety check: check that there are no non-constants in range

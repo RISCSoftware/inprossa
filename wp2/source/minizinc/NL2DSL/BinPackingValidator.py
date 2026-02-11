@@ -109,7 +109,7 @@ def validate_solution(solver_solution : dict, task : dict):
     assert objective_val > 0, f"Invalid value for objective: {objective_val}"
     assert (objective_val <= len(task["input"]["ITEMS"])), f"Invalid value for objective, more boxes than items: {objective_val}"
     max_box_id = max([solution_comp["box_id"] for solution_comp in solution])
-    assert objective_val == max_box_id or objective_val == max_box_id-1, "Invalid value for objective, max_box_id and said value do not match."
+    assert objective_val == max_box_id or objective_val == max_box_id+1, "Invalid value for objective, max_box_id and said value do not match."
 
     for i, item_placement in enumerate(solution):
         if "item_id" in item_placement:

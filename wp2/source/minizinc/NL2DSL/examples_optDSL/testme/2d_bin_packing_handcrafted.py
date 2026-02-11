@@ -8,7 +8,7 @@ from solver import MiniZincSolver
 directory = "../../problem_descriptions/testset_paper_2D-BPP/"
 result = {}
 for filename in os.listdir(directory):
-    if filename.endswith(".json") and "_n30." in filename: #
+    if filename.endswith(".json") and "_n10_" in filename: #
         filepath = os.path.join(directory, filename)
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)

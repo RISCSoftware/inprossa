@@ -21,7 +21,7 @@ class DfsTree(TreeBase):
                (cur_node.level == 0 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
                cur_node.level == 1 and self.input_variable_spec and self.output_variable_spec and len(cur_node.get_correct_children()) < 1 or
                (cur_node.level == 1 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
-               (cur_node.level == 2 and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
+               (cur_node.level == 2 and len(cur_node.children) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or #get_correct_children()
                (cur_node.level >= 3 and len(cur_node.children) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN)):
             if DEBUG_MODE_ON: print(f"""
 .....................................................
