@@ -8,37 +8,40 @@ from Tools.MinizincRunner import MiniZincRunner
 
 def improvement_and_scatter_plots(
         code_generating_function,
+        n_items,
         repeats=2,
         name: str = "unknown",
-        solver_name: str = "chuffed",
+        solver_name: str = "gecode",
+        timelimit: int = 10,
         print_figures: bool = False):
-    runner = MiniZincRunner(solver_name=solver_name)
+    runner = MiniZincRunner(solver_name=solver_name, timelimit=timelimit)
 
     instances = []
 
     for r in range(repeats):
         print("\n    Instance:", r+1)
         new_instance = InstanceProgress(f"b{name}_run{r+1}")
-        codes = code_generating_function()
+        codes = code_generating_function(n_items=n_items)
 
-        for n, dsl_code in enumerate(codes["dsl"]):
-            translator = MiniZincTranslator(dsl_code)
-            mzn_model = translator.unroll_translation()
+        if "dsl" in codes and len(codes["dsl"]) > 0:
+            for n, dsl_code in enumerate(codes["dsl"]):
+                translator = MiniZincTranslator(dsl_code)
+                mzn_model = translator.unroll_translation()
 
-            print(f"Model: DSL {n+1}")
-            dsl_result = runner.run(mzn_model)
-            new_instance.add(
-                f"dsl_solver_{n+1}",
-                result=dsl_result
-                )
-
-        for n, minizinc_code in enumerate(codes["minizinc"]):
-            print(f"Model: MiniZinc {n+1}")
-            minizinc_result = runner.run(minizinc_code)
-            new_instance.add(
-                f"minizinc_solver_{n+1}",
-                result=minizinc_result
-                )
+                print(f"Model: DSL {n+1}")
+                dsl_result = runner.run(mzn_model)
+                new_instance.add(
+                    f"dsl_solver_{n+1}",
+                    result=dsl_result
+                    )
+        if "minizinc" in codes and len(codes["minizinc"]) > 0:
+            for n, minizinc_code in enumerate(codes["minizinc"]):
+                print(f"Model: MiniZinc {n+1}")
+                minizinc_result = runner.run(minizinc_code)
+                new_instance.add(
+                    f"minizinc_solver_{n+1}",
+                    result=minizinc_result
+                    )
         
         new_instance.plot(
             outfile=f"Data/{name}/improvements_plots/compare_{r+1}_{solver_name}.png",
@@ -46,13 +49,13 @@ def improvement_and_scatter_plots(
             )
         instances.append(new_instance)
 
-    if len(codes["dsl"]) > 0 and len(codes["minizinc"]) > 0:
+    if "dsl" in codes and "minizinc" in codes and len(codes["dsl"]) > 0 and len(codes["minizinc"]) > 0:
         solver_1 = f"dsl_solver_1"
         solver_2 = f"minizinc_solver_1"
-    elif len(codes['dsl']) >= 2:
+    elif "dsl" in codes and len(codes['dsl']) >= 2:
         solver_1 = f"dsl_solver_1"
         solver_2 = f"dsl_solver_2"
-    elif len(codes['minizinc']) >= 2:
+    elif "minizinc" in codes and len(codes['minizinc']) >= 2:
         solver_1 = f"minizinc_solver_1"
         solver_2 = f"minizinc_solver_2"
     else:       
