@@ -364,16 +364,16 @@ solve satisfy;"""
 ValueType = DSList(3, int)
 VALUES : ValueType = [1, 2, 4]
 x = 0
-for i in range(1, 4):
+for i in range(0, 3):
     x = x + VALUES[i]
 """,
         "expected_translation": """type ValueType = array[1..3] of int;
 ValueType: VALUES = [1, 2, 4];
 array[1..4] of var int: x;
 constraint x[1] = 0;
-constraint x[2] = (x[1] + VALUES[1]);
-constraint x[3] = (x[2] + VALUES[2]);
-constraint x[4] = (x[3] + VALUES[3]);
+constraint x[2] = (x[1] + VALUES[0 + 1]);
+constraint x[3] = (x[2] + VALUES[1 + 1]);
+constraint x[4] = (x[3] + VALUES[2 + 1]);
 solve satisfy;"""
     },
     {
@@ -381,16 +381,16 @@ solve satisfy;"""
         "code": """
 MyList = DSList(3, int)
 VALUES : MyList = [1, 2, 4]
-I : int = 3
+I : int = 2
 x = 0
 x = x + VALUES[I]
 """,
         "expected_translation": """type MyList = array[1..3] of int;
 MyList: VALUES = [1, 2, 4];
-int: I = 3;
+int: I = 2;
 array[1..2] of var int: x;
 constraint x[1] = 0;
-constraint x[2] = (x[1] + VALUES[I]);
+constraint x[2] = (x[1] + VALUES[I + 1]);
 solve satisfy;"""
     },
     {
@@ -617,7 +617,7 @@ translation_tests += [
         "code": """
 pieces : DSList(2, DSList(3, int))
 pieces = [[2,1,5],[2,12,53]]
-pieces[1] = pieces[2]
+pieces[0] = pieces[1]
 """,
         "expected_translation": """array[1..2] of array[1..2] of array[1..3] of var int: pieces;
 constraint pieces[1][1][1] = [[2, 1, 5], [2, 12, 53]][1][1];
@@ -629,9 +629,9 @@ constraint pieces[1][2][3] = [[2, 1, 5], [2, 12, 53]][2][3];
 constraint pieces[2][2][1] = pieces[1][2][1];
 constraint pieces[2][2][2] = pieces[1][2][2];
 constraint pieces[2][2][3] = pieces[1][2][3];
-constraint pieces[2][1][1] = pieces[1][2][1];
-constraint pieces[2][1][2] = pieces[1][2][2];
-constraint pieces[2][1][3] = pieces[1][2][3];
+constraint pieces[2][1][1] = pieces[1][1 + 1][1];
+constraint pieces[2][1][2] = pieces[1][1 + 1][2];
+constraint pieces[2][1][3] = pieces[1][1 + 1][3];
 solve satisfy;"""
     },
     {
@@ -657,10 +657,10 @@ solve satisfy;"""
         "name": "test_assert_any",
         "code": """
 x : DSList(5, int)
-assert any(x[cut] > 0 for cut in range(1, 6))
+assert any(x[cut] > 0 for cut in range(0, 5))
 """,
         "expected_translation": """array[1..1] of array[1..5] of var int: x;
-constraint ((x[1][1] > 0) \\/ (x[1][2] > 0) \\/ (x[1][3] > 0) \\/ (x[1][4] > 0) \\/ (x[1][5] > 0));
+constraint ((x[1][0 + 1] > 0) \\/ (x[1][1 + 1] > 0) \\/ (x[1][2 + 1] > 0) \\/ (x[1][3 + 1] > 0) \\/ (x[1][4 + 1] > 0));
 solve satisfy;"""
     },
     {

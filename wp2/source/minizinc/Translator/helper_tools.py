@@ -123,7 +123,7 @@ class ExpressionRewriter:
 
             index_str = self.rewrite_expr(index)
             # print the whole tree under expr
-            return f"{base}[{index_str}]"
+            return f"{base}[{index_str} + 1]" # CHANGE from 0-based to 1-based indexing for MiniZinc
         
         elif isinstance(expr, ast.Attribute):
             # Handle attribute access like record.field

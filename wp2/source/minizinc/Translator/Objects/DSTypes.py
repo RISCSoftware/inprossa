@@ -160,7 +160,7 @@ class DSList:
         self.var_name = self.representation(with_vars=True)
 
     def representation(self, with_vars=False):
-        representation = f"array[1..{self.length}] of " # CHANGE (+1) if we want 0-based indexing
+        representation = f"array[1..{self.length}] of "
         type_repr = compute_type(self.elem_type, known_types=self.known_types)
         if with_vars:
             representation += type_repr.representation(with_vars=True)
