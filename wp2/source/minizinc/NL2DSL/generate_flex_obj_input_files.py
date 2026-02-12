@@ -44,7 +44,7 @@ nr_items = 10
 for i in range(1,21):
     width = random.randint(5,25)
     height = random.randint(5,20)
-    target_path = "problem_descriptions/testset_paper_2D-BPP/"
+    target_path = "problem_descriptions/testset_paper_2D-BPP_test/"
     general_item_spec["objects"]["Item"][0]["maximum"] = width
     general_item_spec["objects"]["Item"][1]["maximum"] = height
     general_item_spec["input_variables"]["BOX_WIDTH"]["value"] = width

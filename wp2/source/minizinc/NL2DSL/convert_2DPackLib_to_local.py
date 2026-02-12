@@ -1,4 +1,6 @@
 import json
+import os
+import random
 
 general_item_spec = {
     "BOX_HEIGHT": 9,
@@ -6,26 +8,31 @@ general_item_spec = {
     "ITEMS": []
 }
 
-with open("problem_descriptions/2DPackLib/BENG/BENG/BENG05.ins2D", "r") as f:
-    lines = f.read().strip().splitlines()
+directory = "problem_descriptions/2DPackLib/CLASS/CLASS"
+files = [filename for filename in os.listdir(directory) if "_020_" in filename]
+files = random.sample(files, 20)
+for filename in files:
+    filepath = os.path.join(directory, filename)
+    with open(filepath, "r", encoding="utf-8") as f:
+        lines = f.read().strip().splitlines()
 
-nr_items = int(lines[0])
+    nr_items = int(lines[0])
 
-second_line_parts = lines[1].split()
-bin_width = int(second_line_parts[0])
-bin_height = int(second_line_parts[1])
+    second_line_parts = lines[1].split()
+    bin_width = int(second_line_parts[0])
+    bin_height = int(second_line_parts[1])
 
-# extract 2nd and 3rd numbers from remaining lines
-items = []
-for line in lines[2:]:
-    parts = line.split()
-    second_num = int(parts[1])
-    third_num = int(parts[2])
-    items.append({"width": second_num, "height": third_num})
+    # extract 2nd and 3rd numbers from remaining lines
+    items = []
+    for line in lines[2:]:
+        parts = line.split()
+        second_num = int(parts[1])
+        third_num = int(parts[2])
+        items.append({"width": second_num, "height": third_num})
 
-target_path = "problem_descriptions/testset_paper_2D-BPP/"
-general_item_spec["BOX_WIDTH"] = bin_width
-general_item_spec["BOX_HEIGHT"] = bin_height
-general_item_spec["ITEMS"] = items
-with open(target_path + f"2d_bpp_inst_n{nr_items}" + ".json", "w") as f:
-    json.dump(general_item_spec, f, indent=4)
+    target_path = "problem_descriptions/testset_paper_2D-BPP_CLASS/"
+    general_item_spec["BOX_WIDTH"] = bin_width
+    general_item_spec["BOX_HEIGHT"] = bin_height
+    general_item_spec["ITEMS"] = items
+    with open(target_path + f"2d_bpp_inst_{filename}" + ".json", "w") as f:
+        json.dump(general_item_spec, f, indent=4)

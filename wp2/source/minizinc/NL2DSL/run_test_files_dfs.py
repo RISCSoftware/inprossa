@@ -4,8 +4,12 @@ import sys
 
 directory = "problem_descriptions/testset_paper_2D-BPP/"
 result = {}
-for filename in os.listdir(directory):
-    if filename.endswith(".json") and "_n80.json" in filename:
+files = sorted(
+    os.listdir(directory),
+    key=lambda name: int(name.rsplit("_", 1)[-1].split(".")[0])
+)
+for filename in files:
+    if filename.endswith(".json"):
         filepath = os.path.join(directory, filename)
         print(f"""----------------------------------------------------------------------------
         Starting run for {filename}: """)
