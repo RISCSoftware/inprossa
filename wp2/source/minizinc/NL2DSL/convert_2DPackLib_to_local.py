@@ -9,7 +9,7 @@ general_item_spec = {
 }
 
 directory = "problem_descriptions/2DPackLib/CLASS/CLASS"
-files = [filename for filename in os.listdir(directory) if "_020_" in filename]
+files = [filename for filename in os.listdir(directory) if "01_020_" in filename or "02_020_" in filename or "03_020_" in filename or "04_020_" in filename or "05_020_" in filename or "06_020_" in filename or "07_020_" in filename or "08_020_" in filename]
 files = random.sample(files, 20)
 for filename in files:
     filepath = os.path.join(directory, filename)

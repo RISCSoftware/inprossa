@@ -3,13 +3,13 @@ Following requirements must be fulfilled:
     1. Utilize the given object types! Apply them correctly! Do not use Python Class Constructors.
     2. If in the \"sub problem definition\" there can one or more decision variables be found that are not defined yet, then define them.
     3. Do not define multiple semantically identical instances of the same variable.
-    4. All decision variables must be defined.
+    4. All decision variables must be defined consistently. Avoid introducing redundancies. If redundancies are present make sure that all redundancies have the same value.
     5. Above each variable put a python comment with a description of that variable.
     6. There must be one or more decision variables.
     7. Do not return given object type definitions.
     8. The result must not contain any constraints.
     9. Do not return any constants.
-    10. The resulting code must be minimal but most of all, semantically correct in respect to the description.
+    10. The resulting code must be minimal but most of all, semantically correct in respect to the description. Define each variable with a type so that it correctly represents its description, no additional fields, nothing else.
     11. Do not return "NTD".
     12. Keep to the in-context-learning example.
     13. Do not use functions or variables from any other packages and do not import any, except for pydantic and typing.

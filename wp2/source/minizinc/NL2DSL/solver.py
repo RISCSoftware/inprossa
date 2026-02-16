@@ -8,6 +8,7 @@ import threading
 import pymzn
 from pymzn import Status
 
+import constants
 from constants import DEBUG_MODE_ON
 
 lock = threading.Lock()
@@ -52,7 +53,7 @@ class MiniZincSolver:
                 if not last_in_progress:
                     result = subprocess.Popen(
                         ["minizinc",
-                                    "--solver", "gecode",
+                                    "--solver", constants.SOLVER,
                                      "--statistics",
                                      "--output-mode", "item",
                                      "--time-limit", "5000",
@@ -63,7 +64,7 @@ class MiniZincSolver:
                 else:
                     result = subprocess.Popen(
                         ["minizinc",
-                         "--solver", "gecode",
+                         "--solver", constants.SOLVER,
                          "--statistics",
                          "--output-mode", "item",
                          "--time-limit", "150000",
@@ -72,21 +73,22 @@ class MiniZincSolver:
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
                 try:
-                    solver_output, errs = result.communicate(timeout=170)
+                    solver_output, errs = result.communicate(timeout=180)
                 except subprocess.TimeoutExpired:
                     if DEBUG_MODE_ON: print("Minizinc failed the first time - lets try that again")
                     result.kill()  # or proc.terminate()
                     solver_output, errs = result.communicate()
-                result.terminate()
+                finally:
+                    result.terminate()
                 solver_output = solver_output
             except KeyboardInterrupt:
                 print("Caught Ctrl-C! Probably MiniZinc died again ...")
-                print(minizinc_code)
+                #print(minizinc_code)
                 return "Unknown", None
 
         #print("Return code:", result.returncode)
         if solver_output:
-            if "unknown" not in solver_output.lower() and "unsatisfiable" not in solver_output.lower():
+            if "unsatisfiable" not in solver_output.lower(): # "unknown" not in solver_output.lower() and
                 solve_time = None
                 m = re.search(r"solveTime\s*=\s*([0-9]*\.?[0-9,e,-]+)", solver_output)
                 if m:
@@ -95,6 +97,10 @@ class MiniZincSolver:
                                                                                               and "---" not in line
                                                                                               and "===" not in line))
                 parsed_solution = minizinc_item_to_dict(filtered_result)
+                if "unknown" in str(solver_output).lower():
+                    parsed_solution.update({"solver_result_is": "unknown"})
+                else:
+                    parsed_solution.update({"solver_result_is": "optimal"})
                 print("Solver Output:\n", parsed_solution)
                 print("Solve time (sec):\n", solve_time)
                 return parsed_solution, solve_time

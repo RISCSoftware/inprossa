@@ -151,6 +151,7 @@ class TreeNode:
         self.save_nodes = (self.parent.save_nodes if self.parent is not None else save_nodes)
         self.save_model = (self.parent.save_model if self.parent is not None else save_model)
         self.children = []
+        self.is_optimal = False
         self.is_terminal = False
         self.level = level
         self.state = State.UNINITIALIZED
@@ -178,7 +179,8 @@ class TreeNode:
             "partial_formulation_up_until_now": self.partial_formulation_up_until_now if not final_evaluation_result else initial_clean_up(self.get_partial_formulation_up_until_now()),
             "objective_val": self.objective_val,
             "solution_model": self.solution_model,
-            "solve_time": self.solve_time
+            "solve_time": self.solve_time,
+            "is_solver_optimal": self.is_optimal
         }
         if final_evaluation_result: data.update({"final_evaluation_result": final_evaluation_result})
         file_path = f"{self.path}/{self.FILE_NAME}"
@@ -203,6 +205,7 @@ class TreeNode:
             "objective_val": self.objective_val,
             "solution_model": self.solution_model,
             "solve_time": self.solve_time,
+            "is_solver_optimal": self.is_optimal,
             "final_evaluation_result": final_evaluation_result
         }
         # Append new model to existing collection
@@ -314,7 +317,7 @@ class VariablesConstantsNode(TreeNode):
         self.all_variables_created = False
         super().__init__("Constants and Decision Variables", parent, level=2)
 
-    def set_constants(self, incomming_constants):
+    def set_constants(self, incomming_constants, expected_input_variables = None):
         self.content = "# --- Constants ---\n"
         if not is_valid_json(incomming_constants):
             self.state = State.FAILED
@@ -324,12 +327,25 @@ class VariablesConstantsNode(TreeNode):
         if not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
             # Filter constants
             filtered_constants_only = [item for item in json.loads(incomming_constants) if item.get("variable_name", "").isupper()]
-            # TODO add sanity check, nr of input parameter == len(filtered_constants_only)
+
             # Safety check: There must be at least one constant (input)
             if len(filtered_constants_only) == 0:
                 if constants.DEBUG_MODE_ON: print(f"Checking node created for level 2 (constants): No uppercase constants found.")
                 self.state = State.FAILED
                 return False
+
+            # Safety check: All expected input variable names must be defined
+            if expected_input_variables is not None:
+                variable_names = [item["variable_name"] for item in filtered_constants_only]
+                if isinstance(expected_input_variables, str):
+                    expected_input_variables = json.loads(remove_programming_environment(expected_input_variables))
+                    expected_input_variables = [variable for variable in expected_input_variables]
+                for expected_variable in expected_input_variables:
+                    if expected_variable not in variable_names:
+                        if DEBUG_MODE_ON: print(
+                            f"Constant variable not defined: {expected_variable}")
+                        return False
+
             self.variables_and_constants.extend(filtered_constants_only)
             self.content += self.get_as_codeblock()
         else:
@@ -519,14 +535,13 @@ The structure must fulfill following requirements:
 
         # Safety check: check if calculated objective is assigned to a variable "objective" at some point
         if node.level == 3 and "objective =" not in raw_code and "objective :" not in raw_code:
-            return "Add an assigment, where the decision variable that represents the objective is assigned to a variable \"objective\". Nothing else."
+            return "Add the assigment \"objective = <variable>\", replace <variable> with the decision variable that represents the objective."
 
         # Safety check: check that there are no non-constants in range
         m = re.search(r"(.*)(range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\))", raw_code)
         if m:
             if "#" not in m.group(1):
-                return f"Error - range() must contain constant variable or integer values only: {m.group(2)}"
-
+                return f"Error - range incorrectly used. Use range(<val_1>,<val_2>) where val_1 and val_2 must be a variable or a integer value: {m.group(2)}"
         variable_block += raw_code
     else:
         variable_block += raw_code
@@ -547,7 +562,7 @@ The structure must fulfill following requirements:
             exec(variable_block, {})
     except SyntaxError as e:
         if "Annotated" in variable_block:
-            return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or object type, or complex type list as typing.Annotated of typing.Annotated with pydantic.Field of type int, float, int or object type, or DSRecord"
+            return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or one of the given object types in \"--- Objects ---\", or complex type list as typing."
         return f"Syntax Error \"{e.msg}\" in line {e.lineno}, at offset {e.offset}: {e.text.rstrip() if e.text else None}"
     except Exception as e:
         logger.exception(e)
@@ -584,17 +599,19 @@ The structure must fulfill following requirements:
             elif "attr='append', ctx=Load())," in exc_msg:
                 return f"Error - Do not use function calls append() and extend() for DSList."
             elif "Only returning names or tuple of names is supported." in exc_msg:
-                return f"Error - Functions support returning names or tuple of names only. Either do not call return or only return names or tuple of names, no integer values or dummies. Also is the number of output parameters correct?"
+                return f"Error - Functions support returning names or tuple of names only. Either do not call return at all, or only return names or tuple of names. Do not use \"\\n return\\n\""
             elif "tuple[" in exc_msg:
-                return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or object type, or complex type list as typing.Annotated of typing.Annotated with pydantic.Field of type int, float, int or object type, or DSRecord"
+                return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or one of the given object types in \"--- Objects ---\", or complex type list as typing.Annotated of typing."
             elif "incompatible types" in exc_msg:
                 return f"For assert expressions, do not extract calculations or single object-fields. Inline them!"
-            elif "\\/" in exc_msg:
-                return "Incorrect types used in one of the or-expressions in the code beneath \"# --- Incorrect Code ---\". Check and correct the or-expressions, only boolean can be used with and-/or-expressions."
-            elif "/\\" in exc_msg:
-                return "Incorrect types used in one of the and-expressions in the code beneath \"# --- Incorrect Code ---\". Check and correct the and-expressions, only boolean can be used with and-/or-expressions."
             elif "ValueError: Variable" in exc_msg and "has incompatible types in if-else branches:" in exc_msg:
                 return "Do not extract assert-expression into temporary variables, but inline the expression within assert directly."
+            elif "ListComp" in exc_msg:
+                return "Do not use list comprehension."
+            elif "Unsupported statement: Break()" in exc_msg:
+                return "Do not use break statement."
+            elif "undefined identifier `None" in exc_msg:
+                return "Do not use None."
             return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
 
         return str(e)
@@ -614,7 +631,7 @@ def check_executability_for_polish(raw_code : str, model: PolishModel):
     # Safety check: check that there are no non-constants in range
     m = re.search(r"range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\)", raw_code)
     if m:
-        return f"Error - range() must contain constant variable or integer values only: {m.group(0)}"
+        return f"Error - range incorrectly used. Correct use is range(<val_1>,<val_2>) where val_1 and val_2 must be a variable or a integer value: {m.group(0)}"
 
     # Execute code block of partial/full formulation
     variable_block = initial_clean_up(raw_code)
@@ -669,13 +686,13 @@ def check_executability_for_polish(raw_code : str, model: PolishModel):
             elif "Only returning names or tuple of names is supported." in exc_msg:
                 return f"Error - Functions support returning names or tuple of names only. Either do not call return or only return names or tuple of names, no integer values or dummies. Also is the number of output parameters correct?"
             elif "tuple[" in exc_msg:
-                return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or object type, or complex type list as typing.Annotated of typing.Annotated with pydantic.Field of type int, float, int or object type, or DSRecord"
+                return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or one of the given object types in \"--- Objects ---\", or complex type list as typing."
             elif "incompatible types" in exc_msg:
                 return f"For assert expressions, do not extract calculations or single object-fields. Inline them!"
             elif "\\/" in exc_msg:
-                return "Incorrect types used in one of the or-expressions in the code beneath \"# --- Incorrect code ---\". Check and correct the or-expressions, only boolean can be used with and-/or-expressions."
+                return "Incompatible types used in one of the or-expressions in the code beneath \"# --- Incorrect code ---\". Check and correct all or-expressions, only boolean can be used with or-expressions."
             elif "/\\" in exc_msg:
-                return "Incorrect types used in one of the and-expressions in the code beneath \"# --- Incorrect code ---\". Check and correct the and-expressions, only boolean can be used with and-/or-expressions."
+                return "Incompatible types used in one of the and-expressions in the code beneath \"# --- Incorrect code ---\". Check and correct all and-expressions, only boolean can be used with and-expressions."
             elif "ValueError: Variable" in exc_msg and "has incompatible types in if-else branches:" in exc_msg:
                 return "Do not extract assert-expression into temporary variables, but inline the expression within assert directly."
             return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
@@ -699,11 +716,13 @@ def check_solver_executability(model: str, node):
     elif solution is None:
         print("Solver failed: Invalid encoding yielded invalid solution.")
         return f"Semantic Error, correct the semantics."
-    elif "unknown" in str(solution).lower():
+    elif "unknown" == str(solution).lower():
+        return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all. Define more variable bounds."
+    elif constants.SOLVER == "gecode" and "unknown" in str(solution).lower(): # comment in if solver is gecode
         if node.level == 3:
             return None
         else:
-            return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all."
+            return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all. Define more variable bounds."
     elif "unsatisfiable" in str(solution).lower():
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable."
@@ -719,6 +738,10 @@ def check_solver_executability(model: str, node):
             node.solve_time = solve_time
             node.solution_model = solution
             print("Solver succeeded, but no _objective is available.")
+        if "unknown" in str(solution).lower():
+            node.is_optimal = False
+        else:
+            node.is_optimal = True
         return None
 
 def check_solver_executability_for_plain_model(model: str):
@@ -732,8 +755,8 @@ def check_solver_executability_for_plain_model(model: str):
     elif solution is None:
         print("Solver failed: Invalid encoding yielded invalid solution.")
         return f"Semantic Error, correct the semantics.", None, None
-    elif "unknown" in str(solution).lower():
-        return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all.", None, None
+    #elif "unknown" in str(solution).lower():
+    #    return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all.", None, None
     elif "unsatisfiable" in str(solution).lower():
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable.", None, None

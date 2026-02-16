@@ -94,7 +94,7 @@ class TreeBase:
                                                                 response,
                                                                 llm=self.llm,
                                                                 full_problem_description=self.problem_description)
-            successfully_added = constants_variables_node.set_constants(response)
+            successfully_added = constants_variables_node.set_constants(response, self.problem_description[0])
             i += 1
         # send_feedback(constants_variables_node)
         # print(f"*** Response, constants: {response}\n")
@@ -219,6 +219,7 @@ Semantic validation: {validation_res}
             if self.best_child is None:
                 self.best_child = constraints_node
             elif (constraints_node.state == State.CORRECT and
+                constraints_node.n_failed_generations == 0 and
                 constraints_node.validated and
                 (constraints_node.objective_val < self.best_child.objective_val or
                  constraints_node.objective_val == self.best_child.objective_val and constraints_node.solve_time < self.best_child.solve_time)):
@@ -253,5 +254,6 @@ Semantic validation: {validation_res}
 
         # Syntactic feedback to LLM
         if (i == len(self.problem_description) - 1 and
+            constraints_node.n_failed_generations == 0 and
             constraints_node.state == State.CORRECT): send_feedback(constraints_node, llm=self.llm)
         return constraints_node

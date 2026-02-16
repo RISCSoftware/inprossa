@@ -32,6 +32,8 @@ def _extract_assignment_and_position(solver_solution: dict):
                         else:
                             raise ValueError(
                                 "Unreadable format of x_y_positions[\"position\"], no x or y position found.")
+                else:
+                    raise AssertionError("x_y_positions has invalid keys.")
         else:
             raise ValueError("Unreadable format of x_y_positions of solver solution for validation.")
     for i, box_assigment in enumerate(box_assigments[0]):
@@ -43,7 +45,7 @@ def _extract_assignment_and_position(solver_solution: dict):
                     solution[i].update({"box_id": box_assigment[key]})
                 elif "item" in key:
                     solution[i].update({"item_id": box_assigment[key]})
-                elif "x" not in solution[0]:
+                elif "x" not in solution[i] or "y" not in solution[i]:
                     if "x" in key:
                         solution[i].update({"x": box_assigment[key]})
                     elif "y" in key:
@@ -73,7 +75,7 @@ def _extract_assignment_and_position(solver_solution: dict):
         for i, box_assigment in enumerate(box_assigments[0]):
             if isinstance(box_assigment, dict):
                 for key in box_assigment.keys():
-                    if "x" in key:
+                    if "x" in key and "box" not in key:
                         solution[i].update({"x": box_assigment[key]})
                     elif "y" in key:
                         solution[i].update({"y": box_assigment[key]})
@@ -121,8 +123,8 @@ def validate_solution(solver_solution : dict, task : dict):
             item = given_items[i]
 
         # Validate items do not exceed box boundaries
-        assert item_placement["x"] + item["width"] <= box_width, f"Item placement {item_placement["x"] + item["width"]} exceeds box width {box_width}"
-        assert item_placement["y"] + item["height"] <= box_height, f"Item placement {item_placement["y"] + item["height"]} exceeds box height {box_height}"
+        assert item_placement["x"] + item["width"] <= box_width, f"Placement of Item {i} at {item_placement["x"] + item["width"]} exceeds box width {box_width}"
+        assert item_placement["y"] + item["height"] <= box_height, f"Placement of Item {i} at {item_placement["y"] + item["height"]} exceeds box height {box_height}"
         if "item_id" in item_placement:
             assert item_placement["item_id"] >= 0, f"Invalid value for item_id: {item_placement["item_id"]}"
             assert item_placement["item_id"] <= len(given_items), f"Invalid value for item_id: {item_placement["item_id"]}"
