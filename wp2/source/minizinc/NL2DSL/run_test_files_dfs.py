@@ -9,21 +9,7 @@ result = {}
 #    key=lambda name: int(name.rsplit("_", 1)[-1].split(".")[0])
 #)
 for filename in os.listdir(directory):
-    if (not filename.endswith(".json")): #or
-        #( "01_020_05" in filename or
-        #"02_020_07" in filename or
-        #"02_020_10" in filename or
-        #"03_020_05" in filename or
-        #"03_020_10" in filename or
-        #"04_020_08" in filename or
-        #"05_020_08" in filename
-        #"09_020_02" in filename or
-        #"09_020_05" in filename or
-        #"09_020_07" in filename or
-        #"10_020_02" in filename or
-        #"10_020_04" in filename or
-        #"10_020_09" in filename
-        #)):
+    if (not filename.endswith(".json")):
         continue
     filepath = os.path.join(directory, filename)
     print(f"""----------------------------------------------------------------------------
