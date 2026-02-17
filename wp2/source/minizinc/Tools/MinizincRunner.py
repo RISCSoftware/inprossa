@@ -15,7 +15,7 @@ import minizinc
 
 
 class MiniZincRunner:
-    def __init__(self, solver_name="chuffed", timelimit: float = 1):
+    def __init__(self, solver_name="gecode", timelimit: float = 1):
         self.solver = minizinc.Solver.lookup(solver_name)
         self.timelimit = timelimit
 

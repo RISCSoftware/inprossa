@@ -5,10 +5,10 @@ from BinPackingValidator import validate_solution
 from Translator_.Objects.MiniZincTranslator import MiniZincTranslator
 from solver import MiniZincSolver
 
-directory = "../../problem_descriptions/testset_paper_2D-BPP/"
+directory = "../../problem_descriptions/testset_paper_2D-BPP_CLASS/"
 result = {}
 for filename in os.listdir(directory):
-    if filename.endswith(".json") and "_n30." in filename: #
+    if (filename.endswith(".json")): # and "02_020_10" in filename
         filepath = os.path.join(directory, filename)
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -97,43 +97,50 @@ minimize(nr_boxes)
 """.format(len(items), box_width, box_height, json.dumps(items))
         code = """
 NITEMS : int = {}
+BOX_WIDTH : int = {}
+BOX_HEIGHT : int = {}
 Item = DSRecord({{
-    \"width\" : DSInt(lb=0),
-    \"height\" : DSInt(lb=0)
+    \"width\" : DSInt(lb=1),
+    \"height\" : DSInt(lb=1)
 }})
 BoxAssignment = DSRecord({{
     \"x\" : DSInt(lb=0),
     \"y\" : DSInt(lb=0),
-    \"box_id\" : DSInt(1, NITEMS)
+    \"box_id\" : DSInt(1,NITEMS)
 }})
 
-BOX_WIDTH : int = {}
-BOX_HEIGHT : int = {}
 ITEMS: DSList(NITEMS, Item) = {}
 item_box_assignments: DSList(NITEMS, BoxAssignment)
 x_y_positions: DSList(NITEMS, BoxAssignment)
-nr_used_boxes : DSInt(1, NITEMS)
+nr_used_boxes : DSInt(1,NITEMS)
 
 for i in range(1, NITEMS + 1):
+    #assignment_i : BoxAssignment = item_box_assignments[i]
+    #item_i : Item = ITEMS[i]
     assert 0 <= item_box_assignments[i].x
     assert 0 <= item_box_assignments[i].y
     assert item_box_assignments[i].y + ITEMS[i].height <= BOX_HEIGHT
     assert item_box_assignments[i].x + ITEMS[i].width <= BOX_WIDTH
     assert 0 < item_box_assignments[i].box_id
-    assert item_box_assignments[i].box_id <= nr_used_boxes
 
     for j in range(i + 1, NITEMS + 1):
-        assignment_i : BoxAssignment = item_box_assignments[i]
-        assignment_j : BoxAssignment = item_box_assignments[j]
-        assert assignment_i.box_id != assignment_j.box_id or \\
-            assignment_i.x >= assignment_j.x + ITEMS[j].width or \\
-            assignment_j.x >= assignment_i.x + ITEMS[i].width or \\
-            assignment_i.y >= assignment_j.y + ITEMS[j].height or \\
-            assignment_j.y >= assignment_i.y + ITEMS[i].height
-
-for i in range(1, NITEMS):
-    if item_box_assignments[i].box_id > nr_used_boxes:
-        nr_used_boxes = item_box_assignments[i].box_id
+        #assignment_j : BoxAssignment = item_box_assignments[j]
+        #item_j : Item = ITEMS[j]
+        assert (
+            (item_box_assignments[i].box_id != item_box_assignments[j].box_id) or
+            (item_box_assignments[i].x + ITEMS[i].width <= item_box_assignments[j].x) or
+            (item_box_assignments[j].x + ITEMS[j].width <= item_box_assignments[i].x) or
+            (item_box_assignments[i].y + ITEMS[i].height <= item_box_assignments[j].y) or
+            (item_box_assignments[j].y + ITEMS[j].height <= item_box_assignments[i].y)
+        )
+#max = nr_used_boxes*BOX_WIDTH*BOX_HEIGHT
+#for i in range(1, NITEMS + 1):
+#    max = max - ITEMS[i].width * ITEMS[i].height
+max = 0
+for i in range(1, NITEMS + 1):
+    if item_box_assignments[i].box_id > max:
+        max = item_box_assignments[i].box_id
+nr_used_boxes = max
 minimize(nr_used_boxes)
 x_y_positions = item_box_assignments
         """.format(len(items), box_width, box_height, json.dumps(items))
@@ -143,7 +150,7 @@ x_y_positions = item_box_assignments
         #print(model)
         solver = MiniZincSolver()
         solution = solver.solve_with_command_line_minizinc(model, last_in_progress=True)
-        print(f"{filename}: {solution}")
+        print(f"{filename}")
 
         try:
             validate_solution(solution[0], {"input": data})

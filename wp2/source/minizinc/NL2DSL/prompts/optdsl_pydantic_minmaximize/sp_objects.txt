@@ -5,7 +5,7 @@ Following requirements must be fulfilled:
     2. If tuples will be required in the future, create object types instead.
     3. If a parameter has a complex object-like structure create a fitting object types for it.
     4. If a output or result has a complex object-like structure create a fitting object types for it.
-    5. The members of an object must be of a DS-type (e.g. Annotated[<type>, Field(<optional_properties>)]). Set lower (ge) as low as possible and upper bound (le) as high as possible for DSInt. See EBNF grammar of OptDSL in the system prompt.
+    5. The members of an object must be of a DS-type (e.g. Annotated[<type>, Field(<optional_properties>)]). Set lower (ge) as low as possible and upper bound (le) as high as possible for DSInt.
     6. Do not define constants.
     7. Do not define instances.
     8. Do not define any decision variables or variables.
@@ -13,6 +13,7 @@ Following requirements must be fulfilled:
     10. Do not define functions.
     11. Use float instead of str.
     12. Do not return json.
+    13. Define for every variable with a complex structure exactly one type that represents it's description, nothing else.
     13. You are strongly encouraged to use types. The number of object types must be minimal and optimal.
     14. Do not use functions or variables from any other packages and do not import any, except for pydantic and typing.
     15. Use the description of OptDSL in the system prompt.

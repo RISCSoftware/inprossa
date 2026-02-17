@@ -198,6 +198,11 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                 execution_error = check_executability(node, raw_definitions)
             # Handle execution error
             if execution_error is not None:
+                if "type error" in execution_error and "\\/" in execution_error:
+                    execution_error = "Incompatible types used in one of the or-expressions in the code beneath \"# --- Incorrect Code ---\". Check and correct the or-expressions, only boolean can be used with or-expressions."
+                elif "type error" in execution_error and "/\\" in execution_error:
+                    execution_error = "Incompatible types used in one of the and-expressions in the code beneath \"# --- Incorrect Code ---\". Check and correct the and-expressions, only boolean can be used with and-expressions."
+
                 if DEBUG_MODE_ON: print(
                     f"Checking node created for level {node.level} not executable: {execution_error}\n")
                 if ("NTD" in raw_definitions or
@@ -222,10 +227,10 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                                f"The section above contains a syntax error: {execution_error}" +
                                "Given this error message, improve the mentioned lines of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not return \nNTD\n."
                                """Return your answer in the format
-                               ´´´python
-                               # --- Incorrect Code ---
-                               <corrected code>
-                               ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
+´´´python
+# --- Incorrect Code ---
+<corrected code>
+´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
                                """,
                         max_tokens=(1000 if node.level == 4 else 800)
                     ))
@@ -240,11 +245,13 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                                f"The section above contains a semantic error: {execution_error}" +
                                "Given this error message, improve the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else." +
                                f"The semantics of the section \"# --- Incorrect Code ---\" must be in line with the following description:\n{raw_definitions if subproblem_description is None else subproblem_description}" +
-                               """Return your answer in the format
-                               ´´´python
-                               # --- Incorrect Code ---
-                               <corrected code>
-                               ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
+                               """
+Define more bounds for variables. Reduce the number of temporary variables.
+Return your answer in the format
+´´´python
+# --- Incorrect Code ---
+<corrected code>
+´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
                                """,
                         max_tokens=(1000 if node.level == 4 else 800)
                     ))
@@ -306,13 +313,13 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, llm, full_pr
                                (f"from z3 import * \n" if not USE_OPTDSL else "") +
                                f"{node.get_partial_formulation_up_until_now()}\n"
                                f"\n# --- Incorrect Code --- \n{raw_definitions}´´´\n\n" +
-                               f"The section above contains an error: {execution_error}" +
-                               "Given this error message, improve the mentioned lines of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not return NTD."
+                               f"The code snipped above contains the following error: \"{execution_error}\"" +
+                               "Improve the mentioned lines of the section \"# --- Incorrect Code ---\" - code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not return NTD."
                                "Return your answer in the format\n" +
                                "´´´python\n" +
                                "# --- Incorrect Code ---\n" +
                                "<corrected code>\n" +
-                               "\n´´´, where <corrected code> all lines underneath \"# --- Incorrect Code ---\" with the corrections.",
+                               "\n´´´, where <corrected code> are all lines underneath \"# --- Incorrect Code ---\" including the corrections.",
                         max_tokens=(1500 if node.level >= 4 else 800)
                     ))
             else:

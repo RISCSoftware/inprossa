@@ -61,7 +61,9 @@ class InstanceProgress:
             run = self._data[solver]
             times = run["times"]
             objs = run["objectives"]
-            proof_time = run["end_time"] if run["status"] == "OPTIMAL SOLUTION" else None
+            print(times)
+            proof_time = run["total_time"] if str(run["status"]) == "OPTIMAL_SOLUTION" else None
+            print("proof_time", proof_time)
             color = palette[i % len(palette)] if palette else None
 
             if not times:
@@ -74,7 +76,7 @@ class InstanceProgress:
             if proof_time is not None:
                 # keep points with t <= proof_time
                 k = 0
-                while k < len(plot_times) and plot_times[k] <= proof_time:
+                while k < len(plot_times): # and plot_times[k] <= proof_time:
                     k += 1
                 plot_times = plot_times[:k]
                 plot_objs = plot_objs[:k]

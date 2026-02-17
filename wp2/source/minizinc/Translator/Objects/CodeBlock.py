@@ -161,10 +161,14 @@ class CodeBlock:
         while obj_name not in self.variable_table and obj_name not in self.constant_table:
             old_obj_name = obj_name
             if isinstance(my_lhs, ast.Attribute):
-                assigned_chain.insert(0, ("dict", ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.attr)))
+                attribute = ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.attr)
+                assigned_chain.insert(0, ("dict", attribute))
                 my_lhs = my_lhs.value
             elif isinstance(my_lhs, ast.Subscript):
-                assigned_chain.insert(0, ("list", str(ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.slice))))
+                subscript = ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.slice)
+                subscript_1_based = str(int(subscript) + 1)
+                # CHANGE (+1) if we want 0-based indexing
+                assigned_chain.insert(0, ("list", subscript))
                 my_lhs = my_lhs.value
             
             if hasattr(my_lhs, "id"):

@@ -1,0 +1,46 @@
+{
+    "BOX_HEIGHT": 13,
+    "BOX_WIDTH": 13,
+    "ITEMS": [
+        {
+            "width": 9,
+            "height": 1
+        },
+        {
+            "width": 12,
+            "height": 4
+        },
+        {
+            "width": 6,
+            "height": 1
+        },
+        {
+            "width": 9,
+            "height": 4
+        },
+        {
+            "width": 6,
+            "height": 12
+        },
+        {
+            "width": 13,
+            "height": 7
+        },
+        {
+            "width": 12,
+            "height": 10
+        },
+        {
+            "width": 11,
+            "height": 3
+        },
+        {
+            "width": 9,
+            "height": 11
+        },
+        {
+            "width": 8,
+            "height": 12
+        }
+    ]
+}

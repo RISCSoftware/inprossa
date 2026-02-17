@@ -1,5 +1,6 @@
 import copy
 import json
+import random
 
 from input_reader import InputReader
 general_item_spec = {
@@ -38,17 +39,17 @@ general_item_spec = {
       }
     }
 
-width = 16
-height = 11
-nr_items = 30
-target_path = "problem_descriptions/testset_paper_2D-BPP/"
-general_item_spec["objects"]["Item"][0]["maximum"] = width
-general_item_spec["objects"]["Item"][1]["maximum"] = height
-general_item_spec["input_variables"]["BOX_WIDTH"]["value"] = width
-general_item_spec["input_variables"]["BOX_HEIGHT"]["value"] = height
-general_item_spec["input_variables"]["ITEMS"]["type"]["length"] = nr_items
+nr_items = 10
 
-for i in range(1,100):
+for i in range(1,21):
+    width = random.randint(5,25)
+    height = random.randint(5,20)
+    target_path = "problem_descriptions/testset_paper_2D-BPP_test/"
+    general_item_spec["objects"]["Item"][0]["maximum"] = width
+    general_item_spec["objects"]["Item"][1]["maximum"] = height
+    general_item_spec["input_variables"]["BOX_WIDTH"]["value"] = width
+    general_item_spec["input_variables"]["BOX_HEIGHT"]["value"] = height
+    general_item_spec["input_variables"]["ITEMS"]["type"]["length"] = nr_items
     general_item_spec["input_variables"]["ITEMS"]["value"] = "random"
     items = InputReader.generate_data(general_item_spec)
     with open(target_path + f"test_n{nr_items}_{i}" + ".json", "w") as f:

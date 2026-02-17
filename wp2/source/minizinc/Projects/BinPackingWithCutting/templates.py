@@ -53,6 +53,284 @@ total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
 minimize(total_cost)
 """
 
+dsl_template_2 = """
+BOX_CAPACITIES : DSList({n_items}, DSInt()) = {box_capacities}
+ITEM_LENGTHS : DSList({n_items}, DSInt()) = {item_lengths}
+MAX_ITEM_LENGTH : int = {max_item_length}
+
+NBOXES : int = {n_items}
+NITEMS : int = {n_items}
+
+Cut_item = DSInt(0, MAX_ITEM_LENGTH)
+
+assignments: DSList(NITEMS * 2, DSInt(1, NBOXES))
+cut_positions: DSList(NITEMS, Cut_item)
+cut_items: DSList(NITEMS * 2, Cut_item)
+
+def cutting_machine(
+    cut_positions: DSList(NITEMS, Cut_item)
+    ):
+    cutting_cost: DSInt(0, NITEMS) = 0
+    cut_items: DSList(NITEMS * 2, Cut_item)
+    for n_item in range(1, NITEMS + 1):
+        cut_items[2 * n_item] = ITEM_LENGTHS[n_item] - cut_positions[n_item]
+        cut_items[2 * n_item - 1] = cut_positions[n_item]
+        if cut_positions[n_item] != 0:
+            # A cut is made
+            cutting_cost = cutting_cost + 1
+
+    return cut_items, cutting_cost
+
+
+def not_exceed(
+    assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),
+    cut_items: DSList(NITEMS * 2, Cut_item)
+    ):
+    use_cost: DSInt(0, NITEMS * 3) = 0
+    cap: DSList(NBOXES, DSInt(0, sum(ITEM_LENGTHS)))
+    for i in range(1, NBOXES + 1):
+        cap[i] = 0
+        for j in range(1, NITEMS * 2 + 1):
+            if assignments[j] == i:
+                cap[i] = cap[i] + cut_items[j]
+
+        assert cap[i] <= BOX_CAPACITIES[i]
+        if cap[i] > 0:
+            use_cost = use_cost + 3
+    return use_cost
+
+cutting_cost : DSInt(0, NITEMS)
+cut_items, cutting_cost = cutting_machine(cut_positions)
+use_cost: DSInt(0, NITEMS * 3) = 0
+use_cost = not_exceed(assignments, cut_items)
+total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
+minimize(total_cost)
+"""
+
+dsl_template_3 = """
+BOX_CAPACITIES : DSList({n_items}, DSInt()) = {box_capacities}
+ITEM_LENGTHS : DSList({n_items}, DSInt()) = {item_lengths}
+MAX_ITEM_LENGTH : int = {max_item_length}
+
+NBOXES : int = {n_items}
+NITEMS : int = {n_items}
+
+Cut_item = DSInt(0, MAX_ITEM_LENGTH)
+
+assignments: DSList(NITEMS * 2, DSInt(1, NBOXES))
+cut_positions: DSList(NITEMS, Cut_item)
+cut_items: DSList(NITEMS * 2, Cut_item)
+
+# Symmetry break: anchor one variable to reduce equivalent box permutations
+assert assignments[1] == 1
+
+def cutting_machine(
+    cut_positions: DSList(NITEMS, Cut_item)
+    ):
+    cutting_cost: DSInt(0, NITEMS) = 0
+    cut_items: DSList(NITEMS * 2, Cut_item)
+    for n_item in range(1, NITEMS + 1):
+        cut_items[2 * n_item] = ITEM_LENGTHS[n_item] - cut_positions[n_item]
+        cut_items[2 * n_item - 1] = cut_positions[n_item]
+        if cut_positions[n_item] != 0:
+            # A cut is made
+            cutting_cost = cutting_cost + 1
+
+    return cut_items, cutting_cost
+
+
+def not_exceed(
+    assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),
+    cut_items: DSList(NITEMS * 2, Cut_item)
+    ):
+    use_cost: DSInt(0, NITEMS * 3) = 0
+    cap: DSList(NBOXES, DSInt(0, sum(ITEM_LENGTHS)))
+    for i in range(1, NBOXES + 1):
+        cap[i] = 0
+        for j in range(1, NITEMS * 2 + 1):
+            if assignments[j] == i:
+                cap[i] = cap[i] + cut_items[j]
+
+        assert cap[i] <= BOX_CAPACITIES[i]
+        if cap[i] > 0:
+            use_cost = use_cost + 3
+
+        # Symmetry break: boxes used must be a prefix 1..k (no gaps)
+        if i < NBOXES - 1:
+            if cap[i] == 0:
+                assert cap[i + 1] == 0
+    return use_cost
+
+cutting_cost : DSInt(0, NITEMS)
+cut_items, cutting_cost = cutting_machine(cut_positions)
+use_cost: DSInt(0, NITEMS * 3) = 0
+use_cost = not_exceed(assignments, cut_items)
+total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
+minimize(total_cost)
+"""
+
+# dsl_template_3 = """
+# BOX_CAPACITIES : DSList({n_items}, DSInt()) = {box_capacities}
+# ITEM_LENGTHS   : DSList({n_items}, DSInt()) = {item_lengths}
+
+# MAX_ITEM_LENGTH  : int = {max_item_length}
+
+# NBOXES : int = {n_items}
+# NITEMS : int = {n_items}
+
+# assignments  : DSList(NITEMS * 2, DSInt(1, NBOXES))
+# cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))
+
+
+# def cutting_machine(
+#     cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))
+#     ):
+#     cutting_cost: DSInt(0, NITEMS) = 0
+#     cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))
+
+#     for n_item in range(1, NITEMS + 1):
+
+#         # Tighten: cut position must be within item length
+#         assert cut_positions[n_item] <= ITEM_LENGTHS[n_item]
+
+#         # Only allow real cuts: 0 (no cut) OR 1..ITEM_LENGTHS[n]-1
+#         if cut_positions[n_item] != 0:
+#             assert cut_positions[n_item] <= ITEM_LENGTHS[n_item] - 1
+
+#         cut_items[2 * n_item]     = ITEM_LENGTHS[n_item] - cut_positions[n_item]
+#         cut_items[2 * n_item - 1] = cut_positions[n_item]
+
+#         if cut_positions[n_item] != 0:
+#             cutting_cost = cutting_cost + 1
+#         else:
+#             # When no cut: piece (2*n_item-1) is always 0-length.
+#             # Fix its assignment to kill symmetry.
+#             assert assignments[2 * n_item - 1] == 1
+
+#     return cut_items, cutting_cost
+
+
+# def not_exceed(
+#     assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),
+#     cut_items:   DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))
+#     ):
+#     use_cost: DSInt(0, NITEMS * 3) = 0
+#     cap: DSList(NBOXES, DSInt(0, sum(ITEM_LENGTHS)))
+
+#     for i in range(1, NBOXES + 1):
+#         cap[i] = 0
+#         for j in range(1, NITEMS * 2 + 1):
+#             if assignments[j] == i:
+#                 cap[i] = cap[i] + cut_items[j]
+
+#         assert cap[i] <= BOX_CAPACITIES[i]
+
+#         if cap[i] > 0:
+#             use_cost = use_cost + 3
+
+#         # Symmetry break: boxes used must be a prefix 1..k (no gaps)
+#         if i < NBOXES - 1:
+#             if cap[i] == 0:
+#                 assert cap[i + 1] == 0
+
+#     return use_cost
+
+
+# cutting_cost : DSInt(0, NITEMS)
+# cut_items, cutting_cost = cutting_machine(cut_positions)
+
+# use_cost: DSInt(0, NITEMS * 3) = 0
+# use_cost = not_exceed(assignments, cut_items)
+
+# total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
+# minimize(total_cost)
+# """
+# dsl_template_4 = """
+# BOX_CAPACITIES : DSList({n_items}, DSInt()) = {box_capacities}
+# ITEM_LENGTHS   : DSList({n_items}, DSInt()) = {item_lengths}
+
+# MAX_ITEM_LENGTH  : int = {max_item_length}
+# TOTAL_LENGTH     : int = sum(ITEM_LENGTHS)
+
+# NBOXES : int = {n_items}
+# NITEMS : int = {n_items}
+
+# assignments  : DSList(NITEMS * 2, DSInt(1, NBOXES))
+# cut_positions: DSList(NITEMS,     DSInt(0, MAX_ITEM_LENGTH))
+
+# # Symmetry break: anchor one variable to reduce equivalent box permutations
+# assert assignments[1] == 1
+
+
+# def cutting_machine(
+#     cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))
+#     ):
+#     cutting_cost: DSInt(0, NITEMS) = 0
+#     cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))
+
+#     for n_item in range(1, NITEMS + 1):
+
+#         # Tighten: cut position must be within item length
+#         assert cut_positions[n_item] <= ITEM_LENGTHS[n_item]
+
+#         # Only allow real cuts: 0 (no cut) OR 1..ITEM_LENGTHS[n]-1
+#         if cut_positions[n_item] != 0:
+#             assert cut_positions[n_item] <= ITEM_LENGTHS[n_item] - 1
+
+#         cut_items[2 * n_item]     = ITEM_LENGTHS[n_item] - cut_positions[n_item]
+#         cut_items[2 * n_item - 1] = cut_positions[n_item]
+
+#         if cut_positions[n_item] != 0:
+#             cutting_cost = cutting_cost + 1
+#         else:
+#             # When no cut: piece (2*n_item-1) is always 0-length.
+#             # Fix its assignment to kill symmetry.
+#             assert assignments[2 * n_item - 1] == 1
+
+#     return cut_items, cutting_cost
+
+
+# def not_exceed(
+#     assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),
+#     cut_items:   DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))
+#     ):
+#     use_cost: DSInt(0, NITEMS * 3) = 0
+#     cap: DSList(NBOXES, DSInt(0, TOTAL_LENGTH))
+
+#     for i in range(1, NBOXES + 1):
+#         cap[i] = 0
+#         for j in range(1, NITEMS * 2 + 1):
+#             if assignments[j] == i:
+#                 cap[i] = cap[i] + cut_items[j]
+
+#         assert cap[i] <= BOX_CAPACITIES[i]
+
+#         if cap[i] > 0:
+#             use_cost = use_cost + 3
+
+#         if i < NBOXES:
+#             # Symmetry break 1: boxes used are a prefix (no gaps)
+#             if cap[i] == 0:
+#                 assert cap[i + 1] == 0
+
+#             # Symmetry break 2 (all boxes identical): enforce non-increasing loads
+#             assert cap[i] >= cap[i + 1]
+
+#     assert sum(cap) == TOTAL_LENGTH
+#     return use_cost
+
+
+# cutting_cost : DSInt(0, NITEMS)
+# cut_items, cutting_cost = cutting_machine(cut_positions)
+
+# use_cost: DSInt(0, NITEMS * 3) = 0
+# use_cost = not_exceed(assignments, cut_items)
+
+# total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
+# minimize(total_cost)
+# """
+
+
 minizinc_template = """
 % FILLED CONSTANTS / DATA 
 int: NBOXES = {n_items};
@@ -118,8 +396,8 @@ int: NITEMS = {n_items};
 array[1..NBOXES] of int: BOX_CAPACITIES = {box_capacities};
 array[1..NITEMS] of int: ITEM_LENGTHS   = {item_lengths};
 
-int: MAX_ITEM_LENGTH = max(i in 1..NITEMS)(ITEM_LENGTHS[i]);
-int: TOTAL_LENGTH    = sum(i in 1..NITEMS)(ITEM_LENGTHS[i]);
+int: MAX_ITEM_LENGTH = max(ITEM_LENGTHS);
+int: TOTAL_LENGTH    = sum(ITEM_LENGTHS);
 
 % DECISION VARIABLES 
 array[1..NITEMS] of var 0..MAX_ITEM_LENGTH: cut_positions;
@@ -193,6 +471,24 @@ def fill_templates(n_items: int, box_capacities: list, item_lengths: list):
         item_lengths=item_lengths,
         max_item_length=max_item_length
     )
+    codes["dsl_code_2"] = dsl_template_2.format(
+        n_items=n_items,
+        box_capacities=box_capacities,
+        item_lengths=item_lengths,
+        max_item_length=max_item_length
+    )
+    codes["dsl_code_3"] = dsl_template_3.format(
+        n_items=n_items,
+        box_capacities=box_capacities,
+        item_lengths=item_lengths,
+        max_item_length=max_item_length,
+    )
+    # codes["dsl_code_4"] = dsl_template_4.format(
+    #     n_items=n_items,
+    #     box_capacities=box_capacities,
+    #     item_lengths=item_lengths,
+    #     max_item_length=max_item_length,
+    # )
     codes["minizinc_code"] = minizinc_template.format(
         n_items=n_items,
         box_capacities=box_capacities,
@@ -204,14 +500,18 @@ def fill_templates(n_items: int, box_capacities: list, item_lengths: list):
         item_lengths=item_lengths
     )
     return {
-        "dsl":      [codes["dsl_code"]],
-        "minizinc": [codes["minizinc_code"],
-                     codes["minizinc_code_2"]
-                    ]
+        "dsl":      [codes["dsl_code"],
+                     codes["dsl_code_2"],
+                     codes["dsl_code_3"],
+                    #  codes["dsl_code_4"]
+                    ],
+        # "minizinc": [codes["minizinc_code"],
+        #              codes["minizinc_code_2"]
+        #             ]
         }
 
 
-def create_bin_packing_codes(n_items: int = 6, box_capacity: int = 10, random_seed=0) -> str:
+def create_bin_packing_codes(n_items: int, box_capacity: int = 10, random_seed=0) -> str:
     random.seed(random_seed)
     # super-simple capacities and lengths; tweak as needed
     box_capacities = [box_capacity] * n_items

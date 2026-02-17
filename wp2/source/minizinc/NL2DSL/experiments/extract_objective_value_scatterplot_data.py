@@ -1,0 +1,127 @@
+import json
+import os
+import statistics
+
+import pandas as pd
+
+objective_val_results_filepath = "objective_values_n20.csv"
+objective_val_results_scatterplot_filepath = "objective_values_n20_scatterplot.csv"
+solve_time_results_filepath = "solvetimes_values_n20.csv"
+solve_time_results_scatterplot_filepath = "solvetimes_values_n20_scatterplot.csv"
+directory = "testset_paper_2D-BPP_CLASS_16.2"
+def extract_objective_value_scatterplot_data(dir: str, handcrafted_objective_val, include_label: bool = False):
+    handcrafted = []
+    tot = []
+    grouplabels = []
+
+    # Extract objective values from test results and merge them with respective handcrafted obj. val.
+    files = [file for file in os.listdir(dir) if file.endswith(".json")]
+    if len(handcrafted_objective_val) != len(files): raise ValueError("handcrafted_objective_val must have same length as files")
+    #files = sorted(
+    #    files,
+    #    key=lambda name: int(name.rsplit("_", 1)[-1].split(".")[0])
+    #)
+    for i, filename in enumerate(files):
+        if filename.endswith(".json"):
+            filepath = os.path.join(dir, filename)
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for model in data:
+                handcrafted.append(handcrafted_objective_val[i])
+                tot.append(model["objective_val"])
+                grouplabels.append(i)
+    df = pd.DataFrame({
+        'handcrafted': handcrafted,
+        'tot': tot,
+        'grouplabels': grouplabels
+    })
+    df.to_csv(objective_val_results_filepath, index=False)
+
+    # Count unique pairs
+    pair_counts = {}
+    if include_label:
+        for h, t, l in zip(handcrafted, tot, grouplabels):
+            pair = (h, t, l)
+            if pair in pair_counts:
+                pair_counts[pair] += 1
+            else:
+                pair_counts[pair] = 1
+        df = pd.DataFrame(
+            [(first, second, third, count) for (first, second, third), count in pair_counts.items()],
+            columns=['handcrafted', 'tot', 'grouplabels', 'count']
+        )
+    else:
+        for h, t in zip(handcrafted, tot):
+            pair = (h, t)
+            if pair in pair_counts:
+                pair_counts[pair] += 1
+            else:
+                pair_counts[pair] = 1
+        df = pd.DataFrame(
+            [(first, second, count) for (first, second), count in pair_counts.items()],
+            columns=['handcrafted', 'tot', 'count']
+        )
+    df.to_csv(objective_val_results_scatterplot_filepath, index=False)
+
+def extract_solve_time_scatterplot_data(dir: str, handcrafted_solvetime, include_label: bool = False):
+    handcrafted = []
+    tot = []
+    grouplabels = []
+
+    # Extract objective values from test results and merge them with respective handcrafted obj. val.
+    files = [file for file in os.listdir(dir) if file.endswith(".json")]
+    if len(handcrafted_solvetime) != len(files): raise ValueError("handcrafted_solve_times must have same length as files")
+    #files = sorted(
+    #    files,
+    #    key=lambda name: int(name.rsplit("_", 1)[-1].split(".")[0])
+    #)
+    for i, filename in enumerate(files):
+        if filename.endswith(".json"):
+            filepath = os.path.join(dir, filename)
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for model in data:
+                handcrafted.append(handcrafted_solvetime[i])
+                tot.append(round(model["solve_time"],1))
+                grouplabels.append(i)
+    df = pd.DataFrame({
+        'handcrafted': handcrafted,
+        'tot': tot,
+        'grouplabels': grouplabels
+    })
+    df.to_csv(solve_time_results_filepath, index=False)
+    print(f"mean: {statistics.median(tot)}")
+    print(f"xmin: {min(handcrafted)}")
+    print(f"xmax: {max(handcrafted)}")
+
+    # Count unique pairs
+    pair_counts = {}
+    if include_label:
+        for h, t, l in zip(handcrafted, tot, grouplabels):
+            pair = (h, t, l)
+            if pair in pair_counts:
+                pair_counts[pair] += 1
+            else:
+                pair_counts[pair] = 1
+        df = pd.DataFrame(
+            [(first, second, third, count) for (first, second, third), count in pair_counts.items()],
+            columns=['handcrafted', 'tot', 'grouplabels', 'count']
+        )
+    else:
+        for h, t in zip(handcrafted, tot):
+            pair = (h, t)
+            if pair in pair_counts:
+                pair_counts[pair] += 1
+            else:
+                pair_counts[pair] = 1
+        df = pd.DataFrame(
+            [(first, second, count) for (first, second), count in pair_counts.items()],
+            columns=['handcrafted', 'tot', 'count']
+        )
+    df.to_csv(solve_time_results_scatterplot_filepath, index=False)
+
+if __name__ == '__main__':
+    #extract_objective_value_scatterplot_data(directory,[4,2,4,4,3,4,3,4,4,5,6,5,4,4,5,4,2,4,6,4])
+    #extract_solve_time_scatterplot_data(directory, [0.023657, 0.893122, 0.12878, 0.168585, 0.889075, 3.96961, 2.08088, 2.08715, 31.1767, 0.336059, 19.3796, 5.26092, 11.0878, 1.23004, 0.97022, 1.8003, 0.009028, 0.483556, 17.8248, 0.569987])
+    # extract_objective_value_scatterplot_data(directory,[6,1,1,4,7,1,5,1,1,6,7,4,7,5,13,16,9,3,5,5], True)
+    extract_solve_time_scatterplot_data(directory, [0.074, 0.028, 0.04, 0.079, 0.041, 0.029, 0.051, 0.05, 0.045, 1.419, 14.992, 0.086, 0.798, 0.082, 16.78, 149.817, 0.129, 0.045, 0.08, 0.262])

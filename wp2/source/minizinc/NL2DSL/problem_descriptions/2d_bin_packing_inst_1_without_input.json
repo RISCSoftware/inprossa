@@ -8,13 +8,13 @@
       "suggested_shape": "integer"
     },
     {
-      "description": "Which item is assigned to which box.",
+      "description": "Which item is assigned to which box as a separate variable.",
       "is_objective": false,
       "mandatory_variable_name": "item_box_assignments",
       "suggested_shape": "array"
     },
     {
-      "description": "Position x and y of each item within box",
+      "description": "Position x and y of each item within box as a separate variable.",
       "is_objective": false,
       "mandatory_variable_name": "x_y_positions",
       "suggested_shape": "array"

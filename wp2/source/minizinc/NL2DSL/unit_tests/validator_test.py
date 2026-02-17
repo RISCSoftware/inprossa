@@ -528,6 +528,274 @@ class TestValidator(unittest.TestCase):
         except Exception as e:
             raise AssertionError(e)
 
+    def test_case4(self):
+        d2_bin_packing_formalized_problem_description_inst2 = [
+            # Input
+            """
+            ´´´ json
+            {
+                "BOX_HEIGHT": 300,
+                "BOX_WIDTH": 300,
+                "ITEMS": [
+                    {
+                        "width": 77,
+                        "height": 95
+                    },
+                    {
+                        "width": 53,
+                        "height": 50
+                    },
+                    {
+                        "width": 30,
+                        "height": 11
+                    },
+                    {
+                        "width": 95,
+                        "height": 100
+                    },
+                    {
+                        "width": 73,
+                        "height": 73
+                    },
+                    {
+                        "width": 18,
+                        "height": 19
+                    },
+                    {
+                        "width": 19,
+                        "height": 60
+                    },
+                    {
+                        "width": 99,
+                        "height": 52
+                    },
+                    {
+                        "width": 12,
+                        "height": 83
+                    },
+                    {
+                        "width": 49,
+                        "height": 76
+                    },
+                    {
+                        "width": 30,
+                        "height": 87
+                    },
+                    {
+                        "width": 13,
+                        "height": 3
+                    },
+                    {
+                        "width": 84,
+                        "height": 48
+                    },
+                    {
+                        "width": 68,
+                        "height": 77
+                    },
+                    {
+                        "width": 19,
+                        "height": 79
+                    },
+                    {
+                        "width": 26,
+                        "height": 76
+                    },
+                    {
+                        "width": 11,
+                        "height": 24
+                    },
+                    {
+                        "width": 31,
+                        "height": 11
+                    },
+                    {
+                        "width": 73,
+                        "height": 60
+                    },
+                    {
+                        "width": 60,
+                        "height": 26
+                    }
+                ]
+            }´´´
+            """,
+            # Output
+            """
+            ´´´json
+            [
+                {
+                    "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+                    "is_objective": true,
+                    "mandatory_variable_name": "nr_used_boxes",
+                    "suggested_shape": "integer"
+                },
+                {
+                    "description": "Which item is assigned to which box.",
+                    "is_objective": false,
+                    "mandatory_variable_name": "item_box_assignments",
+                    "suggested_shape": "array"
+                },
+                {
+                    "description": "Position x and y of each item within box",
+                    "is_objective": false,
+                    "mandatory_variable_name": "x_y_positions",
+                    "suggested_shape": "array"
+                }
+            ]
+            ´´´
+            """
+        ]
+
+        # Example of calling from another function:
+        task = {
+            "input": json.loads(
+                remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[0])),
+            "output": json.loads(
+                remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[1]))
+        }
+        # Validate solver solutions
+        try:
+            validate_solution(json.loads(
+                "{\"nr_used_boxes\": [1], \"item_box_assignments\": [[{\"box_id\": 1, \"x\": 95, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 172}, {\"box_id\": 1, \"x\": 259, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 73, \"y\": 200}, {\"box_id\": 1, \"x\": 71, \"y\": 273}, {\"box_id\": 1, \"x\": 259, \"y\": 11}, {\"box_id\": 1, \"x\": 0, \"y\": 100}, {\"box_id\": 1, \"x\": 202, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 222}, {\"box_id\": 1, \"x\": 172, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 297}, {\"box_id\": 1, \"x\": 0, \"y\": 152}, {\"box_id\": 1, \"x\": 99, \"y\": 95}, {\"box_id\": 1, \"x\": 214, \"y\": 0}, {\"box_id\": 1, \"x\": 233, \"y\": 0}, {\"box_id\": 1, \"x\": 60, \"y\": 260}, {\"box_id\": 1, \"x\": 0, \"y\": 286}, {\"box_id\": 1, \"x\": 0, \"y\": 200}, {\"box_id\": 1, \"x\": 0, \"y\": 260}]], \"x_y_positions\": [[{\"height\": 95, \"width\": 77}, {\"height\": 50, \"width\": 53}, {\"height\": 11, \"width\": 30}, {\"height\": 100, \"width\": 95}, {\"height\": 73, \"width\": 73}, {\"height\": 19, \"width\": 18}, {\"height\": 60, \"width\": 19}, {\"height\": 52, \"width\": 99}, {\"height\": 83, \"width\": 12}, {\"height\": 76, \"width\": 49}, {\"height\": 87, \"width\": 30}, {\"height\": 3, \"width\": 13}, {\"height\": 48, \"width\": 84}, {\"height\": 77, \"width\": 68}, {\"height\": 79, \"width\": 19}, {\"height\": 76, \"width\": 26}, {\"height\": 24, \"width\": 11}, {\"height\": 11, \"width\": 31}, {\"height\": 60, \"width\": 73}, {\"height\": 26, \"width\": 60}]], \"objective\": [1], \"box_id__calculate_objective__1\": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], \"item_box_assignments__calculate_objective__1\": [[{\"box_id\": 1, \"x\": 95, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 172}, {\"box_id\": 1, \"x\": 259, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 73, \"y\": 200}, {\"box_id\": 1, \"x\": 71, \"y\": 273}, {\"box_id\": 1, \"x\": 259, \"y\": 11}, {\"box_id\": 1, \"x\": 0, \"y\": 100}, {\"box_id\": 1, \"x\": 202, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 222}, {\"box_id\": 1, \"x\": 172, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 297}, {\"box_id\": 1, \"x\": 0, \"y\": 152}, {\"box_id\": 1, \"x\": 99, \"y\": 95}, {\"box_id\": 1, \"x\": 214, \"y\": 0}, {\"box_id\": 1, \"x\": 233, \"y\": 0}, {\"box_id\": 1, \"x\": 60, \"y\": 260}, {\"box_id\": 1, \"x\": 0, \"y\": 286}, {\"box_id\": 1, \"x\": 0, \"y\": 200}, {\"box_id\": 1, \"x\": 0, \"y\": 260}]], \"max_box_id__calculate_objective__1\": [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], \"item_box_assignments__items_fit_exactly_in_boxes__1\": [[{\"box_id\": 1, \"x\": 95, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 172}, {\"box_id\": 1, \"x\": 259, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 73, \"y\": 200}, {\"box_id\": 1, \"x\": 71, \"y\": 273}, {\"box_id\": 1, \"x\": 259, \"y\": 11}, {\"box_id\": 1, \"x\": 0, \"y\": 100}, {\"box_id\": 1, \"x\": 202, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 222}, {\"box_id\": 1, \"x\": 172, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 297}, {\"box_id\": 1, \"x\": 0, \"y\": 152}, {\"box_id\": 1, \"x\": 99, \"y\": 95}, {\"box_id\": 1, \"x\": 214, \"y\": 0}, {\"box_id\": 1, \"x\": 233, \"y\": 0}, {\"box_id\": 1, \"x\": 60, \"y\": 260}, {\"box_id\": 1, \"x\": 0, \"y\": 286}, {\"box_id\": 1, \"x\": 0, \"y\": 200}, {\"box_id\": 1, \"x\": 0, \"y\": 260}]], \"items__items_fit_exactly_in_boxes__1\": [[{\"height\": 95, \"width\": 77}, {\"height\": 50, \"width\": 53}, {\"height\": 11, \"width\": 30}, {\"height\": 100, \"width\": 95}, {\"height\": 73, \"width\": 73}, {\"height\": 19, \"width\": 18}, {\"height\": 60, \"width\": 19}, {\"height\": 52, \"width\": 99}, {\"height\": 83, \"width\": 12}, {\"height\": 76, \"width\": 49}, {\"height\": 87, \"width\": 30}, {\"height\": 3, \"width\": 13}, {\"height\": 48, \"width\": 84}, {\"height\": 77, \"width\": 68}, {\"height\": 79, \"width\": 19}, {\"height\": 76, \"width\": 26}, {\"height\": 24, \"width\": 11}, {\"height\": 11, \"width\": 31}, {\"height\": 60, \"width\": 73}, {\"height\": 26, \"width\": 60}]], \"x_y_positions__items_fit_exactly_in_boxes__1\": [[{\"height\": 95, \"width\": 77}, {\"height\": 50, \"width\": 53}, {\"height\": 11, \"width\": 30}, {\"height\": 100, \"width\": 95}, {\"height\": 73, \"width\": 73}, {\"height\": 19, \"width\": 18}, {\"height\": 60, \"width\": 19}, {\"height\": 52, \"width\": 99}, {\"height\": 83, \"width\": 12}, {\"height\": 76, \"width\": 49}, {\"height\": 87, \"width\": 30}, {\"height\": 3, \"width\": 13}, {\"height\": 48, \"width\": 84}, {\"height\": 77, \"width\": 68}, {\"height\": 79, \"width\": 19}, {\"height\": 76, \"width\": 26}, {\"height\": 24, \"width\": 11}, {\"height\": 11, \"width\": 31}, {\"height\": 60, \"width\": 73}, {\"height\": 26, \"width\": 60}]], \"item_box_assignments__no_overlap_constraints__1\": [[{\"box_id\": 1, \"x\": 95, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 172}, {\"box_id\": 1, \"x\": 259, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 73, \"y\": 200}, {\"box_id\": 1, \"x\": 71, \"y\": 273}, {\"box_id\": 1, \"x\": 259, \"y\": 11}, {\"box_id\": 1, \"x\": 0, \"y\": 100}, {\"box_id\": 1, \"x\": 202, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 222}, {\"box_id\": 1, \"x\": 172, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 297}, {\"box_id\": 1, \"x\": 0, \"y\": 152}, {\"box_id\": 1, \"x\": 99, \"y\": 95}, {\"box_id\": 1, \"x\": 214, \"y\": 0}, {\"box_id\": 1, \"x\": 233, \"y\": 0}, {\"box_id\": 1, \"x\": 60, \"y\": 260}, {\"box_id\": 1, \"x\": 0, \"y\": 286}, {\"box_id\": 1, \"x\": 0, \"y\": 200}, {\"box_id\": 1, \"x\": 0, \"y\": 260}]], \"x_y_positions__no_overlap_constraints__1\": [[{\"height\": 95, \"width\": 77}, {\"height\": 50, \"width\": 53}, {\"height\": 11, \"width\": 30}, {\"height\": 100, \"width\": 95}, {\"height\": 73, \"width\": 73}, {\"height\": 19, \"width\": 18}, {\"height\": 60, \"width\": 19}, {\"height\": 52, \"width\": 99}, {\"height\": 83, \"width\": 12}, {\"height\": 76, \"width\": 49}, {\"height\": 87, \"width\": 30}, {\"height\": 3, \"width\": 13}, {\"height\": 48, \"width\": 84}, {\"height\": 77, \"width\": 68}, {\"height\": 79, \"width\": 19}, {\"height\": 76, \"width\": 26}, {\"height\": 24, \"width\": 11}, {\"height\": 11, \"width\": 31}, {\"height\": 60, \"width\": 73}, {\"height\": 26, \"width\": 60}]], \"item_box_assignments__ensure_item_assignment_validity__1\": [[{\"box_id\": 1, \"x\": 95, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 172}, {\"box_id\": 1, \"x\": 259, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 73, \"y\": 200}, {\"box_id\": 1, \"x\": 71, \"y\": 273}, {\"box_id\": 1, \"x\": 259, \"y\": 11}, {\"box_id\": 1, \"x\": 0, \"y\": 100}, {\"box_id\": 1, \"x\": 202, \"y\": 0}, {\"box_id\": 1, \"x\": 146, \"y\": 222}, {\"box_id\": 1, \"x\": 172, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 297}, {\"box_id\": 1, \"x\": 0, \"y\": 152}, {\"box_id\": 1, \"x\": 99, \"y\": 95}, {\"box_id\": 1, \"x\": 214, \"y\": 0}, {\"box_id\": 1, \"x\": 233, \"y\": 0}, {\"box_id\": 1, \"x\": 60, \"y\": 260}, {\"box_id\": 1, \"x\": 0, \"y\": 286}, {\"box_id\": 1, \"x\": 0, \"y\": 200}, {\"box_id\": 1, \"x\": 0, \"y\": 260}]], \"nr_used_boxes__ensure_item_assignment_validity__1\": [1]}"),
+                task)
+        except Exception as e:
+            raise AssertionError(e)
+
+    def test_case4(self):
+        d2_bin_packing_formalized_problem_description_inst2 = [
+            # Input
+            """
+            ´´´ json
+            {
+                "BOX_HEIGHT": 10,
+                "BOX_WIDTH": 10,
+                "ITEMS": [
+                    {
+                        "width": 10,
+                        "height": 4
+                    },
+                    {
+                        "width": 2,
+                        "height": 10
+                    },
+                    {
+                        "width": 2,
+                        "height": 4
+                    },
+                    {
+                        "width": 10,
+                        "height": 10
+                    },
+                    {
+                        "width": 7,
+                        "height": 2
+                    },
+                    {
+                        "width": 9,
+                        "height": 10
+                    },
+                    {
+                        "width": 5,
+                        "height": 6
+                    },
+                    {
+                        "width": 7,
+                        "height": 5
+                    },
+                    {
+                        "width": 1,
+                        "height": 7
+                    },
+                    {
+                        "width": 5,
+                        "height": 3
+                    },
+                    {
+                        "width": 3,
+                        "height": 9
+                    },
+                    {
+                        "width": 9,
+                        "height": 4
+                    },
+                    {
+                        "width": 2,
+                        "height": 10
+                    },
+                    {
+                        "width": 4,
+                        "height": 3
+                    },
+                    {
+                        "width": 2,
+                        "height": 2
+                    },
+                    {
+                        "width": 4,
+                        "height": 9
+                    },
+                    {
+                        "width": 2,
+                        "height": 8
+                    },
+                    {
+                        "width": 1,
+                        "height": 1
+                    },
+                    {
+                        "width": 1,
+                        "height": 7
+                    },
+                    {
+                        "width": 4,
+                        "height": 4
+                    }
+                ]
+            }´´´
+            """,
+            # Output
+            """
+            ´´´json
+            [
+                {
+                    "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+                    "is_objective": true,
+                    "mandatory_variable_name": "nr_used_boxes",
+                    "suggested_shape": "integer"
+                },
+                {
+                    "description": "Which item is assigned to which box.",
+                    "is_objective": false,
+                    "mandatory_variable_name": "item_box_assignments",
+                    "suggested_shape": "array"
+                },
+                {
+                    "description": "Position x and y of each item within box",
+                    "is_objective": false,
+                    "mandatory_variable_name": "x_y_positions",
+                    "suggested_shape": "array"
+                }
+            ]
+            ´´´
+            """
+        ]
+
+        # Example of calling from another function:
+        task = {
+            "input": json.loads(
+                remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[0])),
+            "output": json.loads(
+                remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[1]))
+        }
+        # Validate solver solutions
+        try:
+            validate_solution(json.loads(
+                "{\"nr_used_boxes\": [6], \"item_box_assignments\": [[{\"box_id\": 6, \"x\": 0, \"y\": 6}, {\"box_id\": 1, \"x\": 8, \"y\": 0}, {\"box_id\": 6, \"x\": 1, \"y\": 2}, {\"box_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"x\": 2, \"y\": 8}, {\"box_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"x\": 1, \"y\": 1}, {\"box_id\": 6, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 1}, {\"box_id\": 4, \"x\": 1, \"y\": 5}, {\"box_id\": 1, \"x\": 5, \"y\": 0}, {\"box_id\": 4, \"x\": 1, \"y\": 0}, {\"box_id\": 1, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 2, \"y\": 7}, {\"box_id\": 6, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 6, \"y\": 1}, {\"box_id\": 1, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 8}, {\"box_id\": 4, \"x\": 0, \"y\": 3}, {\"box_id\": 4, \"x\": 6, \"y\": 4}]], \"x_y_positions\": [[{\"box_id\": 11, \"x\": 3, \"y\": 3}, {\"box_id\": 20, \"x\": 9, \"y\": 10}, {\"box_id\": 18, \"x\": 7, \"y\": 7}, {\"box_id\": 19, \"x\": 6, \"y\": 9}, {\"box_id\": 16, \"x\": 4, \"y\": 6}, {\"box_id\": 19, \"x\": 10, \"y\": 10}, {\"box_id\": 5, \"x\": 7, \"y\": 7}, {\"box_id\": 10, \"x\": 5, \"y\": 5}, {\"box_id\": 5, \"x\": 7, \"y\": 5}, {\"box_id\": 7, \"x\": 1, \"y\": 2}, {\"box_id\": 20, \"x\": 10, \"y\": 10}, {\"box_id\": 18, \"x\": 7, \"y\": 6}, {\"box_id\": 20, \"x\": 2, \"y\": 10}, {\"box_id\": 19, \"x\": 8, \"y\": 0}, {\"box_id\": 11, \"x\": 0, \"y\": 10}, {\"box_id\": 3, \"x\": 8, \"y\": 7}, {\"box_id\": 8, \"x\": 7, \"y\": 10}, {\"box_id\": 8, \"x\": 8, \"y\": 10}, {\"box_id\": 20, \"x\": 10, \"y\": 2}, {\"box_id\": 17, \"x\": 6, \"y\": 8}]], \"objective\": [6], \"assignments__calculate_objective__1\": [[{\"box_id\": 6, \"x\": 0, \"y\": 6}, {\"box_id\": 1, \"x\": 8, \"y\": 0}, {\"box_id\": 6, \"x\": 1, \"y\": 2}, {\"box_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"x\": 2, \"y\": 8}, {\"box_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"x\": 1, \"y\": 1}, {\"box_id\": 6, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 1}, {\"box_id\": 4, \"x\": 1, \"y\": 5}, {\"box_id\": 1, \"x\": 5, \"y\": 0}, {\"box_id\": 4, \"x\": 1, \"y\": 0}, {\"box_id\": 1, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 2, \"y\": 7}, {\"box_id\": 6, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 6, \"y\": 1}, {\"box_id\": 1, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 8}, {\"box_id\": 4, \"x\": 0, \"y\": 3}, {\"box_id\": 4, \"x\": 6, \"y\": 4}]], \"box_id__calculate_objective__1\": [6, 1, 6, 5, 4, 2, 3, 6, 3, 4, 1, 4, 1, 3, 6, 3, 1, 3, 4, 4], \"max_box_id__calculate_objective__1\": [0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6], \"assignments__items_fit_exactly_in_boxes__1\": [[{\"box_id\": 6, \"x\": 0, \"y\": 6}, {\"box_id\": 1, \"x\": 8, \"y\": 0}, {\"box_id\": 6, \"x\": 1, \"y\": 2}, {\"box_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"x\": 2, \"y\": 8}, {\"box_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"x\": 1, \"y\": 1}, {\"box_id\": 6, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 1}, {\"box_id\": 4, \"x\": 1, \"y\": 5}, {\"box_id\": 1, \"x\": 5, \"y\": 0}, {\"box_id\": 4, \"x\": 1, \"y\": 0}, {\"box_id\": 1, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 2, \"y\": 7}, {\"box_id\": 6, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 6, \"y\": 1}, {\"box_id\": 1, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 8}, {\"box_id\": 4, \"x\": 0, \"y\": 3}, {\"box_id\": 4, \"x\": 6, \"y\": 4}]], \"box_height__items_fit_exactly_in_boxes__1\": [10], \"box_width__items_fit_exactly_in_boxes__1\": [10], \"item_height__items_fit_exactly_in_boxes__1\": [4, 10, 4, 10, 2, 10, 6, 5, 7, 3, 9, 4, 10, 3, 2, 9, 8, 1, 7, 4], \"item_width__items_fit_exactly_in_boxes__1\": [10, 2, 2, 10, 7, 9, 5, 7, 1, 5, 3, 9, 2, 4, 2, 4, 2, 1, 1, 4], \"items__items_fit_exactly_in_boxes__1\": [[{\"height\": 4, \"width\": 10}, {\"height\": 10, \"width\": 2}, {\"height\": 4, \"width\": 2}, {\"height\": 10, \"width\": 10}, {\"height\": 2, \"width\": 7}, {\"height\": 10, \"width\": 9}, {\"height\": 6, \"width\": 5}, {\"height\": 5, \"width\": 7}, {\"height\": 7, \"width\": 1}, {\"height\": 3, \"width\": 5}, {\"height\": 9, \"width\": 3}, {\"height\": 4, \"width\": 9}, {\"height\": 10, \"width\": 2}, {\"height\": 3, \"width\": 4}, {\"height\": 2, \"width\": 2}, {\"height\": 9, \"width\": 4}, {\"height\": 8, \"width\": 2}, {\"height\": 1, \"width\": 1}, {\"height\": 7, \"width\": 1}, {\"height\": 4, \"width\": 4}]], \"pos_x__items_fit_exactly_in_boxes__1\": [0, 8, 1, 0, 2, 0, 1, 3, 0, 1, 5, 1, 1, 2, 1, 6, 3, 0, 0, 6], \"pos_y__items_fit_exactly_in_boxes__1\": [6, 0, 2, 0, 8, 0, 1, 1, 1, 5, 0, 0, 0, 7, 0, 1, 1, 8, 3, 4], \"assignments__no_overlap_between_items__1\": [[{\"box_id\": 6, \"x\": 0, \"y\": 6}, {\"box_id\": 1, \"x\": 8, \"y\": 0}, {\"box_id\": 6, \"x\": 1, \"y\": 2}, {\"box_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"x\": 2, \"y\": 8}, {\"box_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"x\": 1, \"y\": 1}, {\"box_id\": 6, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 1}, {\"box_id\": 4, \"x\": 1, \"y\": 5}, {\"box_id\": 1, \"x\": 5, \"y\": 0}, {\"box_id\": 4, \"x\": 1, \"y\": 0}, {\"box_id\": 1, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 2, \"y\": 7}, {\"box_id\": 6, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 6, \"y\": 1}, {\"box_id\": 1, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 8}, {\"box_id\": 4, \"x\": 0, \"y\": 3}, {\"box_id\": 4, \"x\": 6, \"y\": 4}]], \"items__no_overlap_between_items__1\": [[{\"height\": 4, \"width\": 10}, {\"height\": 10, \"width\": 2}, {\"height\": 4, \"width\": 2}, {\"height\": 10, \"width\": 10}, {\"height\": 2, \"width\": 7}, {\"height\": 10, \"width\": 9}, {\"height\": 6, \"width\": 5}, {\"height\": 5, \"width\": 7}, {\"height\": 7, \"width\": 1}, {\"height\": 3, \"width\": 5}, {\"height\": 9, \"width\": 3}, {\"height\": 4, \"width\": 9}, {\"height\": 10, \"width\": 2}, {\"height\": 3, \"width\": 4}, {\"height\": 2, \"width\": 2}, {\"height\": 9, \"width\": 4}, {\"height\": 8, \"width\": 2}, {\"height\": 1, \"width\": 1}, {\"height\": 7, \"width\": 1}, {\"height\": 4, \"width\": 4}]], \"assignments__each_item_in_exactly_one_box__1\": [[{\"box_id\": 6, \"x\": 0, \"y\": 6}, {\"box_id\": 1, \"x\": 8, \"y\": 0}, {\"box_id\": 6, \"x\": 1, \"y\": 2}, {\"box_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"x\": 2, \"y\": 8}, {\"box_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 3, \"x\": 1, \"y\": 1}, {\"box_id\": 6, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 1}, {\"box_id\": 4, \"x\": 1, \"y\": 5}, {\"box_id\": 1, \"x\": 5, \"y\": 0}, {\"box_id\": 4, \"x\": 1, \"y\": 0}, {\"box_id\": 1, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 2, \"y\": 7}, {\"box_id\": 6, \"x\": 1, \"y\": 0}, {\"box_id\": 3, \"x\": 6, \"y\": 1}, {\"box_id\": 1, \"x\": 3, \"y\": 1}, {\"box_id\": 3, \"x\": 0, \"y\": 8}, {\"box_id\": 4, \"x\": 0, \"y\": 3}, {\"box_id\": 4, \"x\": 6, \"y\": 4}]]}"),
+                task)
+        except Exception as e:
+            raise AssertionError(e)
+
     def test_fail_exceeds_box_boundaries(self):
         d2_bin_packing_formalized_problem_description_inst2 = [
             # Input
