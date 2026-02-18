@@ -166,7 +166,7 @@ class TreeNode:
         self.wins = 0.0
 
     def save_child_to_file(self, final_evaluation_result: str = None, problem_description: str = None, filename: str = f'optDSL_model_{datetime.now().strftime("%Y-%m-%d_%H")}.json'):
-        if final_evaluation_result is not None and "Successfully" in final_evaluation_result:
+        if self.state == State.CORRECT and final_evaluation_result is not None and "Successfully" in final_evaluation_result:
             self.validated = True
             if self.save_model and self.is_terminal and self.last_in_progress and problem_description is not None:
                 self.save_model_to_file(final_evaluation_result, problem_description, filename)
@@ -717,7 +717,7 @@ def check_solver_executability(model: str, node):
         print("Solver failed: Invalid encoding yielded invalid solution.")
         return f"Semantic Error, correct the semantics."
     elif "unknown" == str(solution).lower():
-        return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all. Define more variable bounds."
+        return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all. Define more variable bounds. Recheck the semantics."
     elif constants.SOLVER == "gecode" and "unknown" in str(solution).lower(): # comment in if solver is gecode
         if node.level == 3:
             return None

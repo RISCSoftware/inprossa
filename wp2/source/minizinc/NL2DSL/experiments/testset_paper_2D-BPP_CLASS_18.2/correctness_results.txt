@@ -1,0 +1,20 @@
+01_020_05.json: 0 syntactically invalid, 4 semantically invalid, 12 valid
+02_020_07.json: 1 syntactically invalid, 6 semantically invalid, 9 valid
+02_020_10.json:  syntactically invalid,  semantically invalid,  valid
+03_020_05.json:  syntactically invalid,  semantically invalid,  valid
+03_020_10.json:  syntactically invalid,  semantically invalid,  valid
+04_020_08.json:  syntactically invalid,  semantically invalid,  valid
+05_020_08.json:  syntactically invalid,  semantically invalid,  valid
+06_020_06.json:  syntactically invalid,  semantically invalid,  valid
+06_020_10.json:  syntactically invalid,  semantically invalid,  valid
+07_020_05.json:  syntactically invalid,  semantically invalid,  valid
+07_020_08.json:  syntactically invalid,  semantically invalid,  valid
+07_020_10.json:  syntactically invalid,  semantically invalid,  valid
+08_020_04.json:  syntactically invalid,  semantically invalid,  valid
+08_020_08.json:  syntactically invalid,  semantically invalid,  valid
+09_020_02.json:  syntactically invalid,  semantically invalid,  valid
+09_020_05.json:  syntactically invalid,  semantically invalid,  valid
+09_020_07.json:  syntactically invalid,  semantically invalid,  valid
+10_020_02.json:  syntactically invalid,  semantically invalid,  valid
+10_020_04.json:  syntactically invalid,  semantically invalid,  valid
+10_020_09.json:  syntactically invalid,  semantically invalid,  valid
