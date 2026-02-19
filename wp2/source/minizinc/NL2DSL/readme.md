@@ -6,9 +6,34 @@ The translation is done automatically using the natural-language processing capa
 We use an abstract structure called a tree of thoughts, to guide the LLM translation in multiple steps.
 
 ### Prerequisites
-Either an Amazon AWS Bedrock LLM or a locally running Vllm is required (respective clients in `NL2DSL/LLM_Client`). Please choose a LLM_Client in `NL2DSL/constants.py` (or create one yourself). In the event of using AWS Bedrock LLM models, create a file `.api_key` with your LLM API key.
+Either an Amazon AWS Bedrock LLM or a locally running Vllm is required (respective clients in `NL2DSL/LLM_Client`). Please choose a LLM_Client in `NL2DSL/constants.py` (or create one yourself). In the event of using AWS Bedrock LLM models, create a file `.api_key` with your LLM API key at repo root.
 
 A python environment in order to run the scripts.
+
+Get MiniZinc
+```bash
+wget https://github.com/MiniZinc/MiniZincIDE/releases/latest/download/MiniZincIDE-latest-bundle-linux-x86_64.tgz
+```
+```bash
+tar -xvf MiniZincIDE-<version>-bundle-linux-x86_64.tgz
+```
+Set path:
+temporary:
+```bash
+export PATH="/path/to/MiniZincIDE-<version>-bundle-linux-x86_64/bin:$PATH"
+```
+permanent:
+```bash
+echo 'export PATH="/path/to/MiniZincIDE-<version>-bundle-linux-x86_64/bin:$PATH"' >> ~/.bashrc
+```
+```bash
+source ~/.bashrc
+```
+
+Check if installation successful:
+```bash
+minizinc --version
+```
 
 ### Branch and Tree of Thoughts
 The problem of translating a semi-natural language optimization problem into multiple components:
