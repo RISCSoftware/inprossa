@@ -36,6 +36,9 @@ class MiniZincTranslator:
         # for node in tree.body:
         #     print(ast.dump(node, indent=4))
         for node in tree.body:
+            print("-" * 100)
+            print(ast.unparse(node))
+            print("-" * 100)
             # 0) Constants
             # if is an annassignment and lhs is uppercase
             if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id.isupper():
@@ -80,7 +83,7 @@ class MiniZincTranslator:
                    node.value.func.id == "maximize")):
                 self.objective = (node.value.func.id, ast.unparse(node.value.args[0]))
             else:
-                self.top_level_stmts.append(node)
+                self.top_level_stmts.append(node)  # global variable `objective = 0` is put here
         return self
 
     def compile(self):

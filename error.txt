@@ -1,0 +1,94 @@
+uv add "lightzero @ git+https://github.com/opendilab/LightZero.git@4640ee3adfad85e346f3409b628d2780cf3716d7" --group mcts
+Resolved 192 packages in 3.47s
+      Built inprossa @ file:///C:/Users/msteindl/repos/inprossa
+  × Failed to build `lightzero @ git+https://github.com/opendilab/LightZero.git@4640ee3adfad85e346f3409b628d2780cf3716d7`                                                                        
+  ├─▶ The build backend returned an error                                                                                                                                                        
+  ╰─▶ Call to `setuptools.build_meta:__legacy__.build_wheel` failed (exit code: 1)
+
+  ╰─▶ Call to `setuptools.build_meta:__legacy__.build_wheel` failed (exit code: 1)
+  ╰─▶ Call to `setuptools.build_meta:__legacy__.build_wheel` failed (exit code: 1)
+
+      [stdout]
+      gmz_tree.cpp
+      C:\Users\msteindl\AppData\Local\uv\cache\git-v0\checkouts\0b90d6e43a22b4a9\4640ee3\lzero\mcts\ctree\ctree_gumbel_muzero\lib\cnode.h(14): fatal error C1083: Cannot open include file:      
+      'sys/time.h': No such file or directory
+
+      [stderr]
+      C:\Users\msteindl\AppData\Local\uv\cache\builds-v0\.tmpanaJG6\Lib\site-packages\setuptools\_distutils\dist.py:287: UserWarning: Unknown distribution option: 'tests_require'
+        warnings.warn(msg)
+      C:\Users\msteindl\AppData\Local\uv\cache\builds-v0\.tmpanaJG6\Lib\site-packages\setuptools\dist.py:765: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+      !!
+
+              ********************************************************************************
+              Please consider removing the following classifiers in favor of a SPDX license expression:
+
+              License :: OSI Approved :: Apache Software License
+
+              See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+              ********************************************************************************
+
+      !!
+        self._finalize_license_expression()
+      error: command 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX86\\x64\\cl.exe' failed with exit code 2
+
+      hint: This usually indicates a problem with the package or the build environment.
+  help: If you want to add the package regardless of the failed resolution, provide the `--frozen` flag to skip locking and syncing.
+
+
+---
+
+User: What's the issue?
+
+uv add "lightzero @ git+https://github.com/opendilab/LightZero.git@4640ee3adfad85e346f3409b628d2780cf3716d7" --group mcts
+Resolved 192 packages in 3.47s
+      Built inprossa @ file:///C:/Users/msteindl/repos/inprossa
+  × Failed to build `lightzero @ git+https://github.com/opendilab/LightZero.git@4640ee3adfad85e346f3409b628d2780cf3716d7`                                                                        
+  ├─▶ The build backend returned an error                                                                                                                                                        
+  ╰─▶ Call to `setuptools.build_meta:__legacy__.build_wheel` failed (exit code: 1)
+
+  ╰─▶ Call to `setuptools.build_meta:__legacy__.build_wheel` failed (exit code: 1)
+  ╰─▶ Call to `setuptools.build_meta:__legacy__.build_wheel` failed (exit code: 1)
+
+      [stdout]
+      gmz_tree.cpp
+      C:\Users\msteindl\AppData\Local\uv\cache\git-v0\checkouts\0b90d6e43a22b4a9\4640ee3\lzero\mcts\ctree\ctree_gumbel_muzero\lib\cnode.h(14): fatal error C1083: Cannot open include file:      
+      'sys/time.h': No such file or directory
+
+      [stderr]
+      C:\Users\msteindl\AppData\Local\uv\cache\builds-v0\.tmpanaJG6\Lib\site-packages\setuptools\_distutils\dist.py:287: UserWarning: Unknown distribution option: 'tests_require'
+        warnings.warn(msg)
+      C:\Users\msteindl\AppData\Local\uv\cache\builds-v0\.tmpanaJG6\Lib\site-packages\setuptools\dist.py:765: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+      !!
+
+              ********************************************************************************
+              Please consider removing the following classifiers in favor of a SPDX license expression:
+
+              License :: OSI Approved :: Apache Software License
+
+              See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+              ********************************************************************************
+
+      !!
+        self._finalize_license_expression()
+      error: command 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX86\\x64\\cl.exe' failed with exit code 2
+
+      hint: This usually indicates a problem with the package or the build environment.
+  help: If you want to add the package regardless of the failed resolution, provide the `--frozen` flag to skip locking and syncing.
+  
+
+GitHub Copilot: The root cause is on this line:
+
+```
+'sys/time.h': No such file or directory
+```
+
+LightZero's C++ tree implementation (`ctree_gumbel_muzero`) includes `sys/time.h`, which is a POSIX/Unix header that **does not exist on Windows**. The package's C extensions are not Windows-compatible.
+
+Your options:
+
+1. **Use WSL** - Build and run inside a WSL2 Linux environment where `sys/time.h` is available.
+2. **Use Docker** - You already have a Dockerfile in the repo; build/run there.
+3. **Use a pre-built wheel** - Check if there are any Windows wheels published for LightZero (unlikely given this issue).
+4. **Patch the source** - Replace `sys/time.h` with a Windows-compatible shim (e.g., using `<windows.h>` + a custom `gettimeofday` implementation), but this requires modifying LightZero's C++ source before building.
+
+The simplest path is WSL or Docker, since LightZero is clearly developed for Linux-first environments.

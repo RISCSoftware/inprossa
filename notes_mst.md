@@ -1,0 +1,19 @@
+grep -rl "DSList" .
+wp2/source/minizinc/Translator/BinPacking/binpacking.dsl.py
+wp2/source/minizinc/Translator/BinPacking/prompts.txt
+wp2/source/minizinc/Translator/KnapSack/knapsack_var1.dsl.py
+wp2/source/minizinc/Translator/LanguageDescription.md
+wp2/source/minizinc/Translator/main.py
+wp2/source/minizinc/Translator/Objects/CodeBlock.py
+wp2/source/minizinc/Translator/Objects/Constant.py
+wp2/source/minizinc/Translator/Objects/DSTypes.py
+wp2/source/minizinc/Translator/test_unrolling_translation.py
+wp2/source/minizinc/Translator/WoodCuttingPipeline/check_machine.py
+wp2/source/minizinc/Translator/WoodCuttingPipeline/constants.py
+wp2/source/minizinc/Translator/WoodCuttingPipeline/cutting_machine.py
+wp2/source/minizinc/Translator/WoodCuttingPipeline/filtering_machine.py
+wp2/source/minizinc/Translator/WoodCuttingPipeline/given_objects.py
+wp2/source/minizinc/Translator/WoodCuttingPipeline/objects.py
+wp2/source/minizinc/Translator/WoodCuttingPipeline/pipeline.py
+wp2/source/minizinc/Translator/WoodCuttingPipeline/reordering_machine.py
+wp2/source/tree_search/binpacking.dsl.py

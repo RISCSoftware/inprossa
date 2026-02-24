@@ -1,0 +1,6 @@
+docker compose -f C:\Users\msteindl\repos\inprossa\.devcontainer\docker-compose.yml build  # OK
+docker compose -f C:\Users\msteindl\repos\inprossa\.devcontainer\docker-compose.yml up -d
+[+] up 1/1
+ ✔ Container inprossa-anonymous-devcontainer Recreated                                                                                                                      1.4s
+Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error running prestart hook #0: exit status 1, stdout: , stderr: Auto-detected mode as 'legacy'
+nvidia-container-cli: initialization error: WSL environment detected but no adapters were found

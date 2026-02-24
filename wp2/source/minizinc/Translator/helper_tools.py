@@ -108,7 +108,10 @@ class ExpressionRewriter:
             #     # First-time reference (e.g., used in an expression before assignment)
             #     self.new_evolving_variable(name)
 
-            return self.variable_table[name].versioned_name()
+            if name not in self.variable_table:
+                raise ValueError(f"Variable '{name}' not found in variable table.")
+
+            return self.variable_table[name].versioned_name()  # msteindl: `objective` is not in variable_table
 
         elif isinstance(expr, ast.Constant):
             # Handle literals: numbers, booleans

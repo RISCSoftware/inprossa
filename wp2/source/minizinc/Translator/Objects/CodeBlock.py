@@ -48,6 +48,9 @@ class CodeBlock:
     def execute_block(self, block, loop_scope):
         """Recursively execute a block of Python statements, updating symbolic state"""
         for stmt in block:
+            # print("-" * 100)
+            # print(ast.unparse(stmt))
+            # print("-" * 100)
             try:
                 # Handle assignment statements
                 if isinstance(stmt, ast.Assign):

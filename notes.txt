@@ -1,0 +1,51 @@
+# Problem Parameters
+NBOXES: int = 4
+NITEMS: int = 5
+
+BOX_CAPACITIES: DSList(NBOXES, DSInt()) = [5, 5, 5, 5]
+ITEM_WEIGHTS: DSList(NITEMS, DSInt()) = [4, 2, 5, 3, 1]
+
+# A '0' in assignments indicates the item is not yet placed in a box.
+assignments: DSList(NITEMS, DSInt(0, NBOXES))
+
+
+def is_valid(assignments: DSList(NITEMS, DSInt(0, NBOXES))) -> bool:
+    """
+    Checks if the current (possibly partial) assignment violates any constraints.
+    Returns True if valid, False if a capacity is exceeded.
+    """
+    cap: DSList(NBOXES, DSInt(0, sum(ITEM_WEIGHTS))) = [0] * NBOXES
+
+    for j in range(NITEMS):
+        box_id = assignments[j]
+        if box_id > 0:  # Only process assigned items
+            box_idx = box_id - 1  # Adjusting for 0-based indexing
+            cap[box_idx] += ITEM_WEIGHTS[j]
+
+            # IMMEDIATE PRUNING:
+            # If a single box exceeds capacity, the whole branch is invalid.
+            if cap[box_idx] > BOX_CAPACITIES[box_idx]:
+                return False
+    return True
+
+
+def is_partial(assignments: DSList(NITEMS, DSInt(0, NBOXES))) -> bool:
+    """
+    Returns True if there are still items left to assign (containing 0).
+    """
+    for j in range(NITEMS):
+        if assignments[j] == 0:
+            return True  # No two returns allowed
+    return False
+
+
+def get_objective(assignments: DSList(NITEMS, DSInt(0, NBOXES))) -> int:
+    """
+    Calculates the number of boxes used.
+    Only call this when is_valid == True and is_partial == False.
+    """
+    objective = 0
+    # Create a set of used box IDs (excluding the 'unassigned' 0)
+    used_boxes = set(box_id for box_id in assignments if box_id > 0)
+    objective = len(used_boxes)
+    return objective

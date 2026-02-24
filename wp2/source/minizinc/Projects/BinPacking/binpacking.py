@@ -11,6 +11,8 @@ NITEMS : int = 5
 assignments: DSList(NITEMS, DSInt(1, NBOXES))
 
 def not_exceed(assignments: DSList(NITEMS, DSInt(1, NBOXES))):
+    objective = 0
+    
     cap: DSList(NBOXES, DSInt(0, sum(ITEM_WEIGHTS)))
     for i in range(1, NBOXES + 1):
         cap[i] = 0
@@ -31,7 +33,6 @@ if __name__ == "__main__":
     print("\n")
     print(model)
     print("\n")
-
 
     runner = MiniZincRunner()
     result = runner.run(model)
