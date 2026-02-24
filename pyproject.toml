@@ -14,6 +14,9 @@ authors = [
 readme = "README.md"
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
+  "minizinc>=0.10.0",
+  "numpy>=2.4.2",
+  "pandas>=3.0.0",
   # "torch>=2.5.1,<2.6.0",
 ]
 
