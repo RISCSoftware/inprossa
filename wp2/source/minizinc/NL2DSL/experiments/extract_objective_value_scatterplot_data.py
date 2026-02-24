@@ -18,10 +18,6 @@ def extract_objective_value_scatterplot_data(directories: list[str], handcrafted
         # Extract objective values from test results and merge them with respective handcrafted obj. val.
         files = [file for file in os.listdir(dir) if file.endswith(".json")]
         if len(handcrafted_objective_val) != len(files): raise ValueError("handcrafted_objective_val must have same length as files")
-        #files = sorted(
-        #    files,
-        #    key=lambda name: int(name.rsplit("_", 1)[-1].split(".")[0])
-        #)
         for i, filename in enumerate(files):
             if filename.endswith(".json"):
                 filepath = os.path.join(dir, filename)
@@ -71,13 +67,9 @@ def extract_solve_time_scatterplot_data(directories: list[str], handcrafted_solv
 
     better_than_handcrafted = 0
     for dir in directories:
-        # Extract objective values from test results and merge them with respective handcrafted obj. val.
+        # Extract solve times from test results and merge them with respective handcrafted obj. val.
         files = [file for file in os.listdir(dir) if file.endswith(".json")]
         if len(handcrafted_solvetime) != len(files): raise ValueError("handcrafted_solve_times must have same length as files")
-        #files = sorted(
-        #    files,
-        #    key=lambda name: int(name.rsplit("_", 1)[-1].split(".")[0])
-        #)
         for i, filename in enumerate(files):
             if filename.endswith(".json"):
                 filepath = os.path.join(dir, filename)
@@ -95,9 +87,6 @@ def extract_solve_time_scatterplot_data(directories: list[str], handcrafted_solv
         'grouplabels': grouplabels
     })
     df.to_csv(solve_time_results_filepath, index=False)
-    print(f"mean: {statistics.median(tot)}")
-    print(f"xmin: {min(handcrafted)}")
-    print(f"xmax: {max(handcrafted)}")
 
     # Count unique pairs
     pair_counts = {}

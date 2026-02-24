@@ -32,6 +32,9 @@ class TreeBase:
         self.for_each_constraint_one_node = for_each_constraint_one_node
         self.semantic_feedback_enabled = semantic_feedback_enabled
         self.best_child : ConstraintsNode = None
+        self.nr_syntactically_invalid_leaves = 0
+        self.nr_semantactically_invalid_leaves = 0
+        self.nr_valid_leaves = 0
 
     def create_objects_node(self, parent: RootNode):
         # Query object types, data types
