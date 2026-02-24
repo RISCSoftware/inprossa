@@ -335,16 +335,16 @@ class VariablesConstantsNode(TreeNode):
                 return False
 
             # Safety check: All expected input variable names must be defined
-            if expected_input_variables is not None:
-                variable_names = [item["variable_name"] for item in filtered_constants_only]
-                if isinstance(expected_input_variables, str):
-                    expected_input_variables = json.loads(remove_programming_environment(expected_input_variables))
-                    expected_input_variables = [variable for variable in expected_input_variables]
-                for expected_variable in expected_input_variables:
-                    if expected_variable not in variable_names:
-                        if DEBUG_MODE_ON: print(
-                            f"Constant variable not defined: {expected_variable}")
-                        return False
+            #if expected_input_variables is not None:
+            #    variable_names = [item["variable_name"].lower() for item in filtered_constants_only]
+            #    if isinstance(expected_input_variables, str):
+            #        expected_input_variables = json.loads(remove_programming_environment(expected_input_variables))
+            #        expected_input_variables = [variable.lower() for variable in expected_input_variables]
+            #    for expected_variable in expected_input_variables:
+            #        if expected_variable not in variable_names:
+            #            if DEBUG_MODE_ON: print(
+            #                f"Constant variable not defined: {expected_variable}")
+            #            return False
 
             self.variables_and_constants.extend(filtered_constants_only)
             self.content += self.get_as_codeblock()
@@ -533,15 +533,27 @@ The structure must fulfill following requirements:
         # Result must not be empty
         if raw_code == "": return "Error - Invalid result: Result is empty."
 
-        # Safety check: check if calculated objective is assigned to a variable "objective" at some point
-        if node.level == 3 and "objective =" not in raw_code and "objective :" not in raw_code:
-            return "Add the assigment \"objective = <variable>\", replace <variable> with the decision variable that represents the objective."
+        # Safety check: check if calculate_objective function defined and calculated objective is assigned to a variable "objective" at some point
+        if node.level == 3:
+            if "def calculate_objective" not in raw_code:
+                return """The result does not contain 'calculate_objective'. Add a function calculate_objective that contains the calculation of the objective value.
+Return you answer in the following format:
+´´´python
+# --- Objective ---
+def calculate_objective (...):
+<solution>
+objective = calculate_objective(...)
+<decision_variable> = objective
+minimize(objective)
+´´´ replace <solution> with the code. <solution> must not be empty. And replace decision_variable with a given decision variable, which represents the objective"""
+            if "objective =" not in raw_code and "objective :" not in raw_code:
+                return "Add the assigment \"objective = <variable>\", replace <variable> with the decision variable that represents the objective."
 
         # Safety check: check that there are no non-constants in range
         m = re.search(r"(.*)(range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\))", raw_code)
         if m:
             if "#" not in m.group(1):
-                return f"Error - range incorrectly used. Use range(<val_1>,<val_2>) where val_1 and val_2 must be a variable or a integer value: {m.group(2)}"
+                return f"Error - range incorrectly used. Use range(<val_1>,<val_2>) where val_1 and val_2 must be a constant variable or a integer value: {m.group(2)}"
         variable_block += raw_code
     else:
         variable_block += raw_code
@@ -612,6 +624,8 @@ The structure must fulfill following requirements:
                 return "Do not use break statement."
             elif "undefined identifier `None" in exc_msg:
                 return "Do not use None."
+            elif "ValueError - Unsupported statement: Pass()" in exc_msg:
+                return "Constraints/Objective FormatError"
             return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
 
         return str(e)
@@ -631,7 +645,7 @@ def check_executability_for_polish(raw_code : str, model: PolishModel):
     # Safety check: check that there are no non-constants in range
     m = re.search(r"range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\)", raw_code)
     if m:
-        return f"Error - range incorrectly used. Correct use is range(<val_1>,<val_2>) where val_1 and val_2 must be a variable or a integer value: {m.group(0)}"
+        return f"Error - range incorrectly used. Correct use is range(<val_1>,<val_2>) where val_1 and val_2 must be a constant variable or a integer value: {m.group(0)}"
 
     # Execute code block of partial/full formulation
     variable_block = initial_clean_up(raw_code)

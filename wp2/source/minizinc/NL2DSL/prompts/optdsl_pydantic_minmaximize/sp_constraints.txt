@@ -25,7 +25,7 @@ Extend the given OptDSL python code snippet, with diverse, optimal and consisten
     14. Make sure the parameter list types in the function definition adhere to the EBNF grammar in the system prompt (e.g.  def some_func (constant: float, dec_var: Annotated[<type>, Field(<optional_properties>)]): ).
     15. Do not use the function len(), instead define the required array length manually with a hard coded correct number.
     16. Encode exactly the subproblem with sensible upper and lower bounds, nothing else. If you initialize a typing.Annotated with pydantic.Field of type int or float, then set it at least to lower bound and at most to upper bound.
-    17. At the end always set all fields of variables with the same redundant fields, equal. Define it once in the whole formulation.
+    17. At the end always set all fields of two different variables with the same redundant fields, equal. Define it once in the whole formulation.
     ´´´
     # Example for point 17.
     Car = DSRecord({

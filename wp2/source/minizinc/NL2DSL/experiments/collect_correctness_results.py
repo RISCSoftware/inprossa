@@ -37,10 +37,10 @@ def collect_correctness_results(directories: list[str]):
 
         print(f"{sample_name}: syn_invalid: {syn_invalid}, sem_invalid: {sem_invalid}, valid: {valid}, optimal: {optimal} = {syn_invalid + sem_invalid + valid + optimal}")
 
-    print(f"syn_invalid sum: {sum([average(results["syn_invalid"]) for results in collected_results.values()])}")
-    print(f"sem_invalid sum: {sum([average(results["sem_invalid"]) for results in collected_results.values()])}")
-    print(f"valid sum: {sum([average(results["valid"]) for results in collected_results.values()])}")
-    print(f"optimal sum: {sum([average(results["optimal"]) for results in collected_results.values()])}")
+    print(f"syn_invalid sum: {sum([sum(results["syn_invalid"]) for results in collected_results.values()])}")
+    print(f"sem_invalid sum: {sum([sum(results["sem_invalid"]) for results in collected_results.values()])}")
+    print(f"valid sum: {sum([sum(results["valid"]) for results in collected_results.values()])}")
+    print(f"optimal sum: {sum([sum(results["optimal"]) for results in collected_results.values()])}")
 
 def average(nums):
     return sum(nums) / len(nums) if nums else 0

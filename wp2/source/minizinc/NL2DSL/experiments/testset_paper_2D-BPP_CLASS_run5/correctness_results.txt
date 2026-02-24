@@ -2,7 +2,7 @@
 02_020_07.json: 1 syntactically invalid, 2 semantically invalid, 3 valid, 10 optimal
 02_020_10.json: 0 syntactically invalid, 3 semantically invalid, 3 valid, 10 optimal
 03_020_05.json: 10 syntactically invalid, 1 semantically invalid, 1 valid, 4 optimal
-03_020_10.json: 0 syntactically invalid, 1 semantically invalid, 0 valid, 15 optimal
+03_020_10.json: 0 syntactically invalid, 0 semantically invalid, 0 valid, 16 optimal
 04_020_08.json: 0 syntactically invalid, 1 semantically invalid, 1 valid, 14 optimal
 05_020_08.json: 4 syntactically invalid, 0 semantically invalid, 0 valid, 12 optimal
 06_020_06.json: 0 syntactically invalid, 0 semantically invalid, 2 valid, 14 optimal

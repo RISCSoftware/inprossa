@@ -69,6 +69,7 @@ def extract_solve_time_scatterplot_data(directories: list[str], handcrafted_solv
     tot = []
     grouplabels = []
 
+    better_than_handcrafted = 0
     for dir in directories:
         # Extract objective values from test results and merge them with respective handcrafted obj. val.
         files = [file for file in os.listdir(dir) if file.endswith(".json")]
@@ -86,6 +87,8 @@ def extract_solve_time_scatterplot_data(directories: list[str], handcrafted_solv
                     handcrafted.append(handcrafted_solvetime[i])
                     tot.append(round(model["solve_time"],8))
                     grouplabels.append(i)
+                    better_than_handcrafted += 1
+    print(f"better_than_handcrafted:{better_than_handcrafted}")
     df = pd.DataFrame({
         'handcrafted': handcrafted,
         'tot': tot,
@@ -124,5 +127,5 @@ def extract_solve_time_scatterplot_data(directories: list[str], handcrafted_solv
 
 if __name__ == '__main__':
     directories = ["testset_paper_2D-BPP_CLASS_run1", "testset_paper_2D-BPP_CLASS_run2", "testset_paper_2D-BPP_CLASS_run3", "testset_paper_2D-BPP_CLASS_run4", "testset_paper_2D-BPP_CLASS_run5"]
-    extract_objective_value_scatterplot_data(directories,[6,1,1,4,7,1,5,1,1,6,7,4,7,5,13,16,9,3,5,5], True)
-    # extract_solve_time_scatterplot_data(directories, [0.074, 0.028, 0.04, 0.079, 0.041, 0.029, 0.051, 0.05, 0.045, 1.419, 14.992, 0.086, 0.798, 0.082, 16.78, 149.817, 0.129, 0.045, 0.08, 0.262])
+    # extract_objective_value_scatterplot_data(directories,[6,1,1,4,7,1,5,1,1,6,7,4,7,5,13,16,9,3,5,5], True)
+    extract_solve_time_scatterplot_data(directories, [0.074, 0.028, 0.04, 0.079, 0.041, 0.029, 0.051, 0.05, 0.045, 1.419, 14.992, 0.086, 0.798, 0.082, 16.78, 149.817, 0.129, 0.045, 0.08, 0.262])
