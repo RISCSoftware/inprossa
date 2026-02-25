@@ -218,6 +218,10 @@ class TreeNode:
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(existing_data, f, indent=4)
 
+    def increment_n_failed_generations(self):
+        self.n_failed_generations += 1
+        self.state = State.FAILED
+
     def append_child(self, child):
         self.children.append(child)
 
@@ -237,8 +241,7 @@ class TreeNode:
 
         self.partial_formulation_up_until_now += "\n\n" + content
         if content.strip() == "":
-            self.state = State.FAILED
-            self.n_failed_generations += 1
+            self.increment_n_failed_generations()
         else:
             if self.state == State.UNINITIALIZED: self.state = State.CORRECT
         if self.save_nodes: self.save_child_to_file()
@@ -270,8 +273,7 @@ class RootNode(TreeNode):
     def set_content(self, content, failed: bool = False):
         # Check if at least one section header is present
         if "--- Objects ---".lower() not in content.lower() or "--- Decision variables ---".lower() not in content.lower() or "--- Constants and Decision Variables ---".lower() not in content.lower() or "--- Objective function ---".lower() not in content.lower() or "--- Constraints 1 ---".lower() not in content.lower():
-            self.state = State.FAILED
-            self.n_failed_generations += 1
+            self.increment_n_failed_generations()
             return False
 
         # Extract code according to section headers

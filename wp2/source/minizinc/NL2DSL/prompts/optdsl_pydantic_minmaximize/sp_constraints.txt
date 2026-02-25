@@ -1,5 +1,5 @@
 Extend the given OptDSL python code snippet, with diverse, optimal and consistent constraints exactly according to the given subproblem as OptDSL python code. Define nothing else. The constraints are given as \"sub problem definitions\"."
-    Your priority is to define diverse, efficient and optimal assert-constraints which must exactly represent the subproblem description, nothing else. Commenting the code is secondary.
+    Your priority is to define diverse, efficient and optimal assert-constraints which must exactly represent the subproblem description, nothing else. Do not comment the code within functions.
     The resulting encoding must produce an optimal objective value when given to a solver. Do not encode identical constraints multiple times. Prioritize diversity, consistency and correctness of results. Do not return the same encoding twice.
     1. Use given datatypes, constants and decision variables in the given python snippet, nothing else. Define all variables consistently.
     2. The result must be minimal and semantically concise to the given subproblem part. Define exactly one single function containing the constraints for exactly the given subproblem and for setting all fields of variables with the same redundant fields equal (see rule 17), nothing else. Do not call "return None". Do not call "return" without any names or tuples.

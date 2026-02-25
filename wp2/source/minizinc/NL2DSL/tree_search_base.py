@@ -33,7 +33,7 @@ class TreeBase:
         self.semantic_feedback_enabled = semantic_feedback_enabled
         self.best_child : ConstraintsNode = None
         self.nr_syntactically_invalid_leaves = 0
-        self.nr_semantactically_invalid_leaves = 0
+        self.nr_semantically_invalid_leaves = 0
         self.nr_valid_leaves = 0
 
     def create_objects_node(self, parent: RootNode):
@@ -70,11 +70,11 @@ class TreeBase:
         # send_feedback(datatypes_node)
         # print(f"*** Response, global problem/datatypes: {response}\n")
         if response == "":
-            datatypes_node.n_failed_generations += 1
-            datatypes_node.state = State.FAILED
+            datatypes_node.increment_n_failed_generations()
             print("Creating object types failed!")
         else:
             print(f"Creating object types succeeded: {response}")
+        if datatypes_node.state == State.FAILED: self.increment_nr_syntactically_invalid_leaves()
         return datatypes_node
 
     def create_constants_node(self, parent: ObjectsNode):
@@ -102,10 +102,11 @@ class TreeBase:
         # send_feedback(constants_variables_node)
         # print(f"*** Response, constants: {response}\n")
         if response == "" or i == LOOP_OF_DOOM_MAX_IT:
-            constants_variables_node.n_failed_generations += 1
+            constants_variables_node.increment_n_failed_generations()
             print("Creating constants failed!")
         else:
             print(f"Creating constants succeeded: {response}")
+        if constants_variables_node.state == State.FAILED: self.increment_nr_syntactically_invalid_leaves()
         return constants_variables_node
 
     def create_decision_variables(self, constants_variables_node: VariablesConstantsNode):
@@ -132,10 +133,11 @@ class TreeBase:
         # send_feedback(constants_variables_node)
         # print(f"*** Response (decision) variables: {response}\n")
         if response == "" or i == LOOP_OF_DOOM_MAX_IT:
-            constants_variables_node.n_failed_generations += 1
+            constants_variables_node.increment_n_failed_generations()
             print("Creating decision variables failed!")
         else:
             print(f"Creating decision variables succeeded: {response}")
+        if constants_variables_node.state == State.FAILED: self.increment_nr_syntactically_invalid_leaves()
         return constants_variables_node
 
     def create_objective_node(self, parent: VariablesConstantsNode):
@@ -152,9 +154,12 @@ class TreeBase:
         obj_function_node.set_content(remove_programming_environment(response))
         # print(f"*** Obj. function: {response}\n")
         if response == "":
+            obj_function_node.increment_n_failed_generations()
             print("Creating objective function failed!")
         else:
             print(f"Creating objective function succeeded: {response}")
+
+        if obj_function_node.state == State.FAILED: self.increment_nr_syntactically_invalid_leaves()
         send_feedback(obj_function_node, llm=self.llm)
         return obj_function_node
 
@@ -171,39 +176,42 @@ class TreeBase:
             for i in range(3, len(self.problem_description)):
                 constraints_node = self._generate_constraint_code(constraints_node, i)
 
-        # Create connection between objective and given objective decision variable
-        #objective_var_name = [variable["mandatory_variable_name"] for variable in json.loads(
-        #    remove_programming_environment(self.problem_description[1])) if
-        #                      variable["is_objective"]][0]
-        #constraints_node.set_content(f"\n{objective_var_name} = objective\n")
+        if constraints_node.n_failed_generations > 0:
+            self.increment_nr_syntactically_invalid_leaves()
+            validation_res = None
+        else:
+            # Validate minizinc solution
+            task = {}
+            if self.input_variable_spec:
+                vars = {}
+                for variable in self.input_variable_spec:
+                    vars.update({variable["variable_name"]: split_at_outer_equals(variable["initialization"])[1].split("N_", 1)[0].strip()})
+                task.update({"input": vars})
+            else:
+                task.update({"input": json.loads(remove_programming_environment(self.problem_description[0]))})
+            if self.output_variable_spec:
+                vars = {}
+                for variable in self.output_variable_spec:
+                    vars.update({variable["variable_name"]: variable["initialization"].split(":",1)[1].split("N_", 1)[0].strip()})
+                task.update({"output": vars})
+            else:
+                task.update({"output": json.loads(remove_programming_environment(self.problem_description[1]))})
 
-        # Validate minizinc solution
-        task = {}
-        if self.input_variable_spec:
-            vars = {}
-            for variable in self.input_variable_spec:
-                vars.update({variable["variable_name"]: split_at_outer_equals(variable["initialization"])[1].split("N_", 1)[0].strip()})
-            task.update({"input": vars})
-        else:
-            task.update({"input": json.loads(remove_programming_environment(self.problem_description[0]))})
-        if self.output_variable_spec:
-            vars = {}
-            for variable in self.output_variable_spec:
-                vars.update({variable["variable_name"]: variable["initialization"].split(":",1)[1].split("N_", 1)[0].strip()})
-            task.update({"output": vars})
-        else:
-            task.update({"output": json.loads(remove_programming_environment(self.problem_description[1]))})
+            try:
+                validate_solution(constraints_node.solution_model, task)
+            except AssertionError as e:
+                validation_res = f"Failed to validate solution: {e}"
+                constraints_node.state = State.FAILED
+                self.increment_nr_semntactically_invalid_leaves()
+            except Exception as e:
+                validation_res = f"Evaluation failed: {e}"
+                constraints_node.state = State.FAILED
+                self.increment_nr_semtactically_invalid_leaves()
+            else:
+                validation_res = f"Successfully validated solution."
+                self.increment_nr_valid_leaves()
 
-        try:
-            validate_solution(constraints_node.solution_model, task)
-        except AssertionError as e:
-            validation_res = f"Failed to validate solution: {e}"
-            constraints_node.state = State.FAILED
-        except Exception as e:
-            validation_res = f"Evaluation failed: {e}"
-            constraints_node.state = State.FAILED
-        else:
-            validation_res = f"Successfully validated solution."
+        # Save the model to file, if syntactically and semantically valid
         constraints_node.save_child_to_file(validation_res, problem_description=self.problem_description, filename=self.result_models_file)
 
         # Print full formulation
@@ -260,3 +268,12 @@ Semantic validation: {validation_res}
             constraints_node.n_failed_generations == 0 and
             constraints_node.state == State.CORRECT): send_feedback(constraints_node, llm=self.llm)
         return constraints_node
+
+    def increment_nr_syntactically_invalid_leaves(self):
+        self.nr_syntactically_invalid_leaves += 1
+
+    def increment_nr_semantically_invalid_leaves(self):
+        self.nr_semantically_invalid_leaves += 1
+
+    def increment_nr_valid_leaves(self):
+        self.nr_valid_leaves += 1
