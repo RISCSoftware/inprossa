@@ -112,7 +112,7 @@ d2_bin_packing_formalized_problem_description_inst2 = [
     This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
-        - the assigment of each item into a box 
+        - the assigment of each item into a box
         - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.
     """,
     # Subproblem description - part 1
@@ -153,7 +153,7 @@ new_constants = """
     """
 
 if __name__ == "__main__":
-    llm = constants.LLM
+    llm = constants.get_LLM_client()
     #tree = DfsTree(llm, problem_description=d2_bin_packing_formalized_problem_description_inst2)
     #tree.create_full_tree_with_dfs()
 

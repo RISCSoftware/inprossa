@@ -1,3 +1,4 @@
+import os
 import datetime
 import json
 import re
@@ -45,8 +46,8 @@ class ModelReuser():
                                                                              model,
                                                                              new_instance)
             updated_models.append(model)
-        updated_models_filename = f'optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json'
-        with open(updated_models_filename, "w", encoding="utf-8") as f:
+        updated_models_filename = f'optDSL_models_reused_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json'
+        with open(os.path.join(os.path.dirname(os.path.dirname(models_file_path)), updated_models_filename), "w", encoding="utf-8") as f:
             json.dump(updated_models, f, indent=4)
         return updated_models_filename
 

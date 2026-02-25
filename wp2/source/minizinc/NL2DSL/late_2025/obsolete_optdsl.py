@@ -296,9 +296,9 @@ Prompt:
     ]
 }
 ´´´
-This problem involves a collection of items, where each have a value and a weight. We have a scissor with value 15 
-and weight 12, a book with value 50 and weight 70, a laptop with value 80 and weight 100, a phone with value 80 
-and weight 20, a ruler with value 20 and weight 12, a pen with value 25 and weight 5. One or more items are chosen 
+This problem involves a collection of items, where each have a value and a weight. We have a scissor with value 15
+and weight 12, a book with value 50 and weight 70, a laptop with value 80 and weight 100, a phone with value 80
+and weight 20, a ruler with value 20 and weight 12, a pen with value 25 and weight 5. One or more items are chosen
 and put into a schoolbag. The goal is to decide which items are chosen that a maximal accumulated value is achieved.
 Sub problem definition - items that go in the bag:
 In the bag only go items from the given collection, such that the cumulative weight of all chosen items must never exceed the maximum allowed weight of 110.
@@ -407,7 +407,7 @@ global_problem_system_prompt = ["""
     Create constants from the given parameters and pack them into a Json:
     1. Names for constants are in capital letters only.
     2. Use the given object types! Apply them correctly. Do not use Python Class Constructors! When initializing a variable with an object type, see Initialization of DSRecord - Option 1 and Initialization of DSRecord - Option 2 for reference.
-    3. If there are one or more constants in the \"sub problem definitions\" that are not defined yet, then define them. 
+    3. If there are one or more constants in the \"sub problem definitions\" that are not defined yet, then define them.
     4. The collection of the resulting constants must be complete and represent all described CONSTANTS.
     5. Above each constant put a python comment with a description of that constant.
     6. There must be one or more CONSTANTS.
@@ -417,7 +417,7 @@ global_problem_system_prompt = ["""
     10. Do not define decision variables.
     11. The result must not contain any of the given object types.
     12. The result must be a Json.
-    
+
     Return you answer in the following format:
     [{
          "description":<description>,
@@ -434,8 +434,8 @@ global_problem_system_prompt = ["""
     """Identify all auxiliary variables and decision variables as OptDSL code. Expected outputs or results are decision variables.
     The result must fulfill following rules:
     1. Utilize the given object types! Apply them correctly! Do not use Python Class Constructors! When initializing a variable with an object type, see Initialization of DSRecord - Option 1 and Initialization of DSRecord - Option 2 for reference.
-    2. If in the \"sub problem definition\" there can one or more decision variables be found that are not defined yet, then define them. 
-    3. Do not define multiple semantically identical instances of the same variable. 
+    2. If in the \"sub problem definition\" there can one or more decision variables be found that are not defined yet, then define them.
+    3. Do not define multiple semantically identical instances of the same variable.
     4. All variables and all decision variables must be defined.
     5. Above each variable put a python comment with a description of that variable.
     6. There must be one or more decision variables.
@@ -444,7 +444,7 @@ global_problem_system_prompt = ["""
     9. Do not return any CONSTANTS.
     10. The resulting code must be minimal but most of all, semantically correct in respect to the description.
     11. The result must not be "NTD".
-    
+
     Return you answer in the following format:
     [{
          "description":<description>,
@@ -547,11 +547,11 @@ d2_bin_packing_formalized_problem_description = ["""
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
         - number of actually used boxes
-        - the assigment of each item into a box and 
+        - the assigment of each item into a box and
         - the position (x and y) of each item within its assigned box.
     """,
     """Sub problem definition - items that go in the bin:
-    Taking the given items that are put into a box must fit exactly inside a box. 
+    Taking the given items that are put into a box must fit exactly inside a box.
     They must not stick out of the box and must not overlap.
     One item can be exactly in one box.
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
@@ -620,12 +620,12 @@ d2_bin_packing_formalized_problem_description = [
     This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
-        - the assigment of each item into a box and 
+        - the assigment of each item into a box and
         - the position (x and y) of each item within its assigned box.
     """,
     # Subproblem description
     """Sub problem definition - items that go in the bin:
-    Taking the given items that are put into a box must fit exactly inside a box. 
+    Taking the given items that are put into a box must fit exactly inside a box.
     They must not stick out of the box and must not overlap.
     One item can be exactly in one box.
     The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
@@ -634,7 +634,7 @@ d2_bin_packing_formalized_problem_description = [
 
 
 if __name__ == "__main__":
-    llm = CONSTANTS.LLM
+    llm = constants.get_LLM_client()
 
     ### Query object types, data types ######################################################################
     execution_message = None

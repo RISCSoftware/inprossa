@@ -19,7 +19,7 @@ class AlgoPolish:
                 models = json.load(f)
         self.models: list[PolishModel] = []
         self.elites: list[PolishModel] = []
-        self.llm = constants.LLM
+        self.llm = constants.get_LLM_client()
         assert models is not None, "Either file_path or models must be given."
         # Convert from OptDSL to pydantic for Mutation by LLM
         for i, model in enumerate(models):

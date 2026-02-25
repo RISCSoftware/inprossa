@@ -16,16 +16,16 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                     prompt="""Incorrect result format, it must be:
 ´´´python
 # --- Objects ---
-<solution> 
+<solution>
 
 # --- Constants ---
-<solution> 
+<solution>
 
 # --- Decision Variables ---
-<solution> 
+<solution>
 
 # --- Constraints ---
-<solution> 
+<solution>
 ´´´ where <solution> is a placeholder for the code. """ +
                            f"""Extend the following python code, include it, but you are strictly forbidden from modify it. Just add the missing sections:
                             ´´´python\n{node.get_partial_formulation_up_until_now()}´´´\n""" +
@@ -66,7 +66,7 @@ def enter_variable_definitions_feedback_loop(node, raw_definitions, subproblem_d
                                 if CONSTANTS.DEBUG_MODE_ON: print(f"Error: function parameters must not have type DSList. But must be of a declared type.")
                                 raw_definitions = remove_programming_environment(llm.send_prompt(
                                     system_prompt=get_system_prompt("format_all_sp") + "\n" + get_icl(),
-                                    prompt=f"""´´´from z3 import * 
+                                    prompt=f"""´´´from z3 import *
                                                 {node.get_partial_formulation_up_until_now()}
                                                 # --- Decision Variables ---
                                                 {raw_definitions["decision variables"]}
@@ -477,27 +477,27 @@ def get_system_prompt(key: str):
             "optdsl_format_all_sp": """
 You are an optimization problem formulation expert that encodes specific parts of the problem from below into OptDSL.
 1.The result must be code only.
-2.No explanations. 
-3.Python comments are allowed. 
-4. Avoid lengthy comments, keep it short. 
-5.The result must contain correct definitions only. 
+2.No explanations.
+3.Python comments are allowed.
+4. Avoid lengthy comments, keep it short.
+5.The result must contain correct definitions only.
 6.Return you answer in the following format:
 ´´´python
 # --- Objects ---
-<solution> 
+<solution>
 
 # --- Constants ---
-<solution> 
+<solution>
 
 # --- Decision Variables ---
-<solution> 
+<solution>
 
 # --- Constraints ---
-<solution> 
+<solution>
 ´´´ where <solution> is a placeholder for the code. Use in-context-learning examples, do not take its variables directly but learn.
 7.Return \"NTD\", if there is empty output.
 8. Do not hallucinate.
-9. Do not exceed the max_tokens. 
+9. Do not exceed the max_tokens.
 10. Never let leave placeholder for the user to fill out, everything must be strictly defined by you.
             """,
             "optdsl_sp": "You are an optimization problem formulation expert that encodes specific parts of the problem from below into OptDSL. 1.The result must be code only. \n2.No explanations. \n3.Python comments are allowed. \n4.Avoid lengthy comments, keep it short. \n5.The result must contain correct definitions only. Use in-context-learning examples, do not take its variables directly but learn. \n6.Return \"NTD\", if there is empty output. \n7. Do not hallucinate. \n8. Do not exceed the max_tokens. 9. Never let leave placeholder for the user to fill out, everything must be strictly defined by you.",
@@ -537,30 +537,30 @@ You are an optimization problem formulation expert that encodes specific parts o
             "z3py_format_all_sp": """
         You are an optimization problem formulation expert that encodes specific parts of the problem from below into z3 python.
         1. The result must be code only.
-        2. No explanations. 
-        3. Python comments are allowed. 
-        4. Avoid lengthy comments, keep it short. 
-        5. The result must contain correct definitions only. 
+        2. No explanations.
+        3. Python comments are allowed.
+        4. Avoid lengthy comments, keep it short.
+        5. The result must contain correct definitions only.
         6. Return you answer in the following format:
         ´´´python
         # --- Objects ---
-        <solution> 
+        <solution>
 
         # --- Constants ---
-        <solution> 
+        <solution>
 
         # --- Decision Variables ---
         <solution>
-        
+
         # --- Objective ---
-        <solution> 
+        <solution>
 
         # --- Constraints ---
-        <solution> 
+        <solution>
         ´´´ where <solution> is a placeholder for the code.
         7. Return \"NTD\", if there is empty output.
         8. Do not hallucinate.
-        9. Do not exceed the max_tokens. 
+        9. Do not exceed the max_tokens.
         10. Never let leave placeholder for the user to fill out, everything must be strictly defined by you.""",
             "z3py_sp": "You are an optimization problem formulation expert that encodes specific parts of the problem from below into z3 python. 1.The result must be python code only. \n2.No explanations. \n3.Python comments are allowed. \n4.Avoid lengthy comments, keep it short. \n5.The result must contain correct definitions only. \n6. Remember that constraint must be added to a s = Optimize(). Use given datatypes, IntVal, StringVal etc. \nUse IntVal, StringVal etc. Use in-context-learning examples, do not take its variables directly but learn. \n7.Return \"NTD\", if there is empty output. \n9. Do not hallucinate. \n10. Do not exceed the max_tokens. 11. Never let leave placeholder for the user to fill out, everything must be strictly defined by you. Avoid redundancies.",
             "z3py_json_sp": "You are an optimization problem formulation expert that encodes specific parts of the problem from below into z3 python. 1.The result must be a json that partly contains code. \n2.No explanations. \n3.Avoid lengthy comments, keep it short. \n5.The result must contain correct definitions only. \n6. Remember that each constraint must be added to a s = Optimize().  Use given datatypes, IntVal, StringVal etc. Use in-context-learning examples. \n10. Do not exceed the max_tokens. 11. Never let leave placeholder for the user to fill out, everything must be strictly defined by you. Avoid redundancies.",
@@ -665,7 +665,7 @@ d2_bin_packing_formalized_problem_description = [
     This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
     We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
     The result and expected output is:
-        - the assigment of each item into a box and 
+        - the assigment of each item into a box and
         - the position (x and y) of each item within its assigned box.
     """,
     # Subproblem description - part 1
@@ -762,5 +762,5 @@ def build_up_formulation_iteratively(llm):
     if constants.DEBUG_MODE_ON: print(f"Full formulation:\n{constraints_node.get_partial_formulation_up_until_now()}")
 
 if __name__ == "__main__":
-    llm = constants.LLM
+    llm = constants.get_LLM_client()
     build_up_formulation_iteratively(llm)

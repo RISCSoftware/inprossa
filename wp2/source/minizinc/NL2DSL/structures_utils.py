@@ -7,11 +7,8 @@ import re
 import sys
 import traceback
 from enum import Enum
-
-from sentence_transformers import util
-
 import constants
-from sentence_transformers import *
+
 
 from BinPackingValidator import check_satisfiability_given
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
@@ -24,6 +21,12 @@ logger = logging.getLogger(__name__)
 
 USE_OPTDSL = constants.USE_OPTDSL
 CHOSEN_LANGUAGE = constants.CHOSEN_LANGUAGE
+model = None
+
+def use_heavy_module_sentence_transformers():
+    from sentence_transformers import SentenceTransformer
+    global model
+    model = SentenceTransformer("all-MiniLM-L6-v2")
 
 class State(Enum):
     UNINITIALIZED = -1
@@ -32,7 +35,7 @@ class State(Enum):
 
 class Type(Enum):
     UNMODIFIED = "unmodified"
-    MUTETED = "muted"
+    MUTED = "muted"
     MERGED = "merged"
 
 class PolishModel:
@@ -269,6 +272,7 @@ class TreeNode:
 class RootNode(TreeNode):
     def __init__(self, name = "", parent = None, save_nodes: bool = False, save_model:bool = False):
         super().__init__(name, parent, save_nodes=save_nodes, save_model=save_model)
+        use_heavy_module_sentence_transformers()
 
     def set_content(self, content, failed: bool = False):
         # Check if at least one section header is present
@@ -1056,8 +1060,9 @@ def find_function_names(code_str):
     names = re.findall(pattern, code_str, flags=re.MULTILINE)
     return names
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+
 def remove_duplicate_variables(variable_definitions, threshold: float):
+    from sentence_transformers import util
     filtered_out_duplicates = []
     for i in range(len(variable_definitions)):
         found_duplicate = False

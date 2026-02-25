@@ -398,12 +398,13 @@ class InputReader:
     def generate_value(type: str, value, lower_bound, upper_bound, input_objects: dict):
         match type:
             case "int" | "integer":
-                lower_bound = lower_bound if lower_bound is not None else 1
-                upper_bound = upper_bound if upper_bound is not None else RANDOM_SEED
                 if value is not None and value != "random":
                     value = int(value)
-                    assert lower_bound <= value <= upper_bound, f"Given value violates specified lower or upper bound: {value}"
+                    if lower_bound is not None and upper_bound is not None:
+                        assert lower_bound <= value <= upper_bound, f"Given value violates specified lower or upper bound: {value}"
                 else:
+                    lower_bound = lower_bound if lower_bound is not None else 1
+                    upper_bound = upper_bound if upper_bound is not None else RANDOM_SEED
                     value = random.randint(lower_bound, upper_bound)
             case "float":
                 lower_bound = lower_bound if lower_bound is not None else -RANDOM_SEED

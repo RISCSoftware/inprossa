@@ -54,7 +54,12 @@ Create {len(cur_node.get_correct_children())}. node at level {cur_node.level+1}
 
     def create_full_tree_with_dfs(self):
         self.dfs(self.root)
-        print(f"""*-*-*-*-*-*-*-*-Best Child*-*-*-*-*-*-*-*-*-*
+        print(f"""
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+Nr. syntactically invalid formulations: {self.nr_syntactically_invalid_leaves}
+Nr. sematically invalid formulations: {self.nr_semantically_invalid_leaves}
+Nr. valid formulations: {self.nr_valid_leaves}
+*-*-*-*-*-*-*-*-Best Child*-*-*-*-*-*-*-*-*-*
 Objective val: {self.best_child.objective_val}
 Solve time: {self.best_child.solve_time}
 Encoding: {initial_clean_up(self.best_child.partial_formulation_up_until_now)}
@@ -193,7 +198,7 @@ def main():
     args = parser.parse_args()
     args.for_each_constraint_one_node = constants.CONSTRAINT_NODES if not args.for_each_constraint_one_node else args.for_each_constraint_one_node
 
-    llm = constants.LLM
+    llm = constants.get_LLM_client()
 
     objects = None
     intput_variable_spec = None
