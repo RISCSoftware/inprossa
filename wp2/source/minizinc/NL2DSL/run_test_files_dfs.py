@@ -85,6 +85,32 @@ def bot_without_semantic_feedback_20_bot_runs():
             finally:
                 proc.terminate()
 
+def CLASS_tot_with_semantic_feedback():
+    directory = "problem_descriptions/testset_paper_2D-BPP_CLASS/"
+    filename = os.listdir(directory)[0]
+    filepath = os.path.join(directory, filename)
+    print(f"""----------------------------------------------------------------------------
+        Starting run for {filename}: """)
+    proc = subprocess.Popen([sys.executable,
+                             "tree_search_dfs.py",
+                             "--problem_instance",
+                             filepath,
+                             "--problem_description",
+                             "problem_descriptions/2d_bin_packing_inst_1_without_inoutput.json",
+                             "-m",
+                             "fixed_objects_fixed_inoutput_values"])
+    try:
+        proc.wait()  # wait up to 90 minutes
+    except subprocess.TimeoutExpired:
+        print("Timeout — killing process")
+        proc.kill()
+        proc.wait()  # ensure it’s dead
+    except KeyboardInterrupt as e:
+        # do nothing
+        m = 1
+    finally:
+        proc.terminate()
+
 if __name__ == '__main__':
     # paper_20_CLASS_tot_runs()
     bot_without_semantic_feedback_20_bot_runs()
