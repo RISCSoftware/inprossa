@@ -1,7 +1,8 @@
 import random
 
-
-dsl_template = """
+dsl_codes = dict()
+minizinc_codes = dict()
+dsl_codes["dsl_template_int"] = """
 BOX_CAPACITIES : DSList({n_items}, DSInt()) = {box_capacities}
 ITEM_LENGTHS : DSList({n_items}, DSInt()) = {item_lengths}
 MAX_ITEM_LENGTH : int = {max_item_length}
@@ -53,7 +54,60 @@ total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
 minimize(total_cost)
 """
 
-dsl_template_2 = """
+
+dsl_codes["dsl_template_float"] = """
+BOX_CAPACITIES : DSList({n_items}, DSInt()) = {box_capacities}
+ITEM_LENGTHS : DSList({n_items}, DSInt()) = {item_lengths}
+MAX_ITEM_LENGTH : int = {max_item_length}
+
+NBOXES : int = {n_items}
+NITEMS : int = {n_items}
+
+assignments: DSList(NITEMS * 2, DSInt(1, NBOXES))
+cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))
+cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))
+
+def cutting_machine(
+    cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))
+    ):
+    cutting_cost: DSInt(0, NITEMS) = 0
+    cut_items: DSList(NITEMS * 2, DSFloat(0, MAX_ITEM_LENGTH))
+    for n_item in range(1, NITEMS + 1):
+        cut_items[2 * n_item] = ITEM_LENGTHS[n_item] - cut_positions[n_item]
+        cut_items[2 * n_item - 1] = cut_positions[n_item]
+        if cut_positions[n_item] != 0:
+            # A cut is made
+            cutting_cost = cutting_cost + 1
+
+    return cut_items, cutting_cost
+
+
+def not_exceed(
+    assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),
+    cut_items: DSList(NITEMS * 2, DSFloat(0, MAX_ITEM_LENGTH))
+    ):
+    use_cost: DSInt(0, NITEMS * 3) = 0
+    cap: DSList(NBOXES, DSFloat(0, sum(ITEM_LENGTHS)))
+    for i in range(1, NBOXES + 1):
+        cap[i] = 0
+        for j in range(1, NITEMS * 2 + 1):
+            if assignments[j] == i:
+                cap[i] = cap[i] + cut_items[j]
+
+        assert cap[i] <= BOX_CAPACITIES[i]
+        if cap[i] > 0:
+            use_cost = use_cost + 3
+    return use_cost
+
+cutting_cost : DSInt(0, NITEMS)
+cut_items, cutting_cost = cutting_machine(cut_positions)
+use_cost: DSInt(0, NITEMS * 3) = 0
+use_cost = not_exceed(assignments, cut_items)
+total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
+minimize(total_cost)
+"""
+
+dsl_codes["dsl_template_2"] = """
 BOX_CAPACITIES : DSList({n_items}, DSInt()) = {box_capacities}
 ITEM_LENGTHS : DSList({n_items}, DSInt()) = {item_lengths}
 MAX_ITEM_LENGTH : int = {max_item_length}
@@ -107,7 +161,7 @@ total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
 minimize(total_cost)
 """
 
-dsl_template_3 = """
+dsl_codes["dsl_template_3"] = """
 BOX_CAPACITIES : DSList({n_items}, DSInt()) = {box_capacities}
 ITEM_LENGTHS : DSList({n_items}, DSInt()) = {item_lengths}
 MAX_ITEM_LENGTH : int = {max_item_length}
@@ -330,8 +384,9 @@ minimize(total_cost)
 # minimize(total_cost)
 # """
 
+minizinc_codes = dict()
 
-minizinc_template = """
+minizinc_codes["minizinc_template"] = """
 % FILLED CONSTANTS / DATA 
 int: NBOXES = {n_items};
 int: NITEMS = {n_items};
@@ -389,7 +444,7 @@ var 0..MAX_TOTAL_COST: total_cost = cutting_cost + use_cost;
 
 solve minimize total_cost;
 """
-minizinc_template_2 = """
+minizinc_codes["minizinc_template_2"] = """
 int: NBOXES = {n_items};
 int: NITEMS = {n_items};
 
@@ -465,49 +520,27 @@ def fill_templates(n_items: int, box_capacities: list, item_lengths: list):
     codes = dict()
     max_item_length = max(item_lengths)
 
-    codes["dsl_code"] = dsl_template.format(
-        n_items=n_items,
-        box_capacities=box_capacities,
-        item_lengths=item_lengths,
-        max_item_length=max_item_length
-    )
-    codes["dsl_code_2"] = dsl_template_2.format(
-        n_items=n_items,
-        box_capacities=box_capacities,
-        item_lengths=item_lengths,
-        max_item_length=max_item_length
-    )
-    codes["dsl_code_3"] = dsl_template_3.format(
-        n_items=n_items,
-        box_capacities=box_capacities,
-        item_lengths=item_lengths,
-        max_item_length=max_item_length,
-    )
-    # codes["dsl_code_4"] = dsl_template_4.format(
-    #     n_items=n_items,
-    #     box_capacities=box_capacities,
-    #     item_lengths=item_lengths,
-    #     max_item_length=max_item_length,
-    # )
-    codes["minizinc_code"] = minizinc_template.format(
-        n_items=n_items,
-        box_capacities=box_capacities,
-        item_lengths=item_lengths
-    )
-    codes["minizinc_code_2"] = minizinc_template_2.format(
-        n_items=n_items,
-        box_capacities=box_capacities,
-        item_lengths=item_lengths
-    )
+    if len(dsl_codes) > 0:
+        for key in dsl_codes:
+            dsl_codes[key] = dsl_codes[key].format(
+                n_items=n_items,
+                box_capacities=box_capacities,
+                item_lengths=item_lengths,
+                max_item_length=max_item_length
+            )
+    if len(minizinc_codes) > 0:
+        for key in minizinc_codes:
+            minizinc_codes[key] = minizinc_codes[key].format(
+                n_items=n_items,
+                box_capacities=box_capacities,
+                item_lengths=item_lengths,
+                max_item_length=max_item_length
+            )
     return {
-        "dsl":      [codes["dsl_code"],
-                     codes["dsl_code_2"],
-                     codes["dsl_code_3"],
-                    #  codes["dsl_code_4"]
+        "dsl":      [dsl_codes[key] for key in dsl_codes
                     ],
-        # "minizinc": [codes["minizinc_code"],
-        #              codes["minizinc_code_2"]
-        #             ]
+        "minizinc": [minizinc_codes[key] for key in minizinc_codes
+                    ]
         }
 
 

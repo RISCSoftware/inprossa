@@ -166,7 +166,6 @@ class CodeBlock:
                 my_lhs = my_lhs.value
             elif isinstance(my_lhs, ast.Subscript):
                 subscript = ExpressionRewriter(loop_scope, code_block=self).rewrite_expr(my_lhs.slice)
-                subscript_1_based = str(int(subscript) + 1)
                 # CHANGE (+1) if we want 0-based indexing
                 assigned_chain.insert(0, ("list", subscript))
                 my_lhs = my_lhs.value

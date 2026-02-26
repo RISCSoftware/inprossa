@@ -2,7 +2,7 @@ code_reordering_machine = f"""
 def reordering_piece_machine(list_to_reorder: DSList(N_PIECES, Piece),
                              swapping_decisions: DSList(N_PIECES - 1, bool),
                              ) -> DSList(N_PIECES, Piece):
-
+    aux_piece : Piece
     new_list : DSList(N_PIECES, Piece) = list_to_reorder
     for i in range(N_PIECES - 1): # Number of swapping decisions
         if swapping_decisions[i]:
@@ -17,6 +17,7 @@ def reordering_piece_machine(list_to_reorder: DSList(N_PIECES, Piece),
 def reordering_board_machine(list_to_reorder: DSList(N_BOARDS, Board),
                              swapping_decisions: DSList(N_BOARDS - 1, bool),
                              ) -> DSList(N_BOARDS, Board):
+    aux_board : Board
     new_list : DSList(N_BOARDS, Board) = list_to_reorder
     for i in range(N_BOARDS - 1): # Number of swapping decisions
         if swapping_decisions[i]:

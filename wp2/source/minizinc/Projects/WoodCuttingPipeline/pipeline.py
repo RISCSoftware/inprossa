@@ -6,23 +6,24 @@ initial_boards: DSList(N_BOARDS, Board) = GIVEN_INITIAL_BOARDS
 
 # Swapping boards
 
-swapping_decisions_boards: DSList(N_BOARDS - 1, bool)
-swapped_boards: DSList(N_BOARDS, Board)
-swapped_boards = reordering_board_machine(initial_boards, swapping_decisions_boards)
+# swapping_decisions_boards: DSList(N_BOARDS - 1, bool)
+# swapped_boards: DSList(N_BOARDS, Board)
+# swapped_boards = reordering_board_machine(initial_boards, swapping_decisions_boards)
 
 
 # Cutting boards
 
 cuts_list_list: DSList(N_BOARDS, CutList)
 pieces : DSList(N_PIECES, Piece)
-pieces = cutting_machine(swapped_boards, cuts_list_list)
+pieces = cutting_machine(initial_boards, cuts_list_list)
 
 
 # Filtering pieces
 
 keep_decisions: DSList(N_PIECES, bool)
 filtered_pieces: DSList(N_PIECES, Piece)
-filtered_pieces = filtering_machine(pieces, keep_decisions)
+waste: int
+filtered_pieces, waste = filtering_machine(pieces, keep_decisions)
 
 # Reordering pieces
 
@@ -33,5 +34,8 @@ reordered_pieces = reordering_piece_machine(filtered_pieces, swapping_decisions)
 
 # Checking pieces
 
+# pieces : DSList(N_PIECES, Piece) = GIVEN_PIECES
 checking_machine(reordered_pieces)
+
+minimize(waste)
 """

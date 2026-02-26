@@ -15,7 +15,7 @@ import minizinc
 
 
 class MiniZincRunner:
-    def __init__(self, solver_name="gecode", timelimit: float = 1):
+    def __init__(self, solver_name="gecode", timelimit: float = 100):
         self.solver = minizinc.Solver.lookup(solver_name)
         self.timelimit = timelimit
 
@@ -33,6 +33,7 @@ class MiniZincRunner:
                 history["times"].append(time_so_far)
                 history["objectives"].append(res.objective)
                 best_solution = {name: getattr(res.solution, name) for name in dir(res.solution) if not name.startswith("__")}
+        print("Final result:", final_result)
         result = {
             "best_solution": best_solution,
             "statistics": final_result.statistics,
@@ -55,8 +56,6 @@ class MiniZincRunner:
         time_limit = timedelta(seconds=float(self.timelimit))
         result = asyncio.run(self._collect_history_async(instance, time_limit))
         return result
-
-
 
     
 def total_time(statistics):

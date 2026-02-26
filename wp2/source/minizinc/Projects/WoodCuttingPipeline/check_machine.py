@@ -1,6 +1,6 @@
 
 code_check_machine = """
-def checking_machine(pieces: DSList(MAX_PIECES_PER_BEAM, elem_type = Piece)):
+def checking_machine(pieces: DSList(N_PIECES, elem_type = Piece)):
     depth = 0
     length = 0
     n_length = 0

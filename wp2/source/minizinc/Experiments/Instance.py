@@ -22,6 +22,12 @@ class InstanceProgress:
     def get_timings(self, solver: str) -> list[float]:
         return self._data[solver]["total_time"]
 
+    def get_all_timings(self) -> list[float]:
+        all_times = dict()
+        for solver, solver_data in self._data.items():
+            all_times[solver] = solver_data["total_time"]
+        return all_times
+
     def plot(
         self,
         print_figures: bool = False,

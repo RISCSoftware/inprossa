@@ -220,6 +220,40 @@ constraint (not (x[1] > 0)) -> x[2] = (x[1] - 1);
 solve satisfy;"""
     },
     {
+        "name": "test_new_var_in_if",
+        "code": """
+x = 0
+if x > 0:
+    a : int = x + 1
+else:
+    x = x - 1
+""",
+        "expected_translation": """array[1..2] of var int: x;
+array[1..1] of var int: a;
+constraint x[1] = 0;
+constraint (x[1] > 0) -> a[1] = (x[1] + 1);
+constraint (x[1] > 0) -> x[2] = x[1];
+constraint (not (x[1] > 0)) -> x[2] = (x[1] - 1);
+solve satisfy;"""
+    },
+    {
+        "name": "test_new_var_in_else",
+        "code": """
+x = 0
+if x > 0:
+    x = x + 1
+else:
+    a : int = x - 1
+""",
+        "expected_translation": """array[1..2] of var int: x;
+array[1..1] of var int: a;
+constraint x[1] = 0;
+constraint (x[1] > 0) -> x[2] = (x[1] + 1);
+constraint (not (x[1] > 0)) -> a[1] = (x[1] - 1);
+constraint (not (x[1] > 0)) -> x[2] = x[1];
+solve satisfy;"""
+    },
+    {
         "name": "test_nested_ifs",
         "code": """
 x = 0

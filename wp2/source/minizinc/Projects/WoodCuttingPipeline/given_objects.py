@@ -10,7 +10,7 @@ GIVEN_INITIAL_BOARDS : DSList(N_BOARDS, Board) = [
             Interval(18,20)
           ]
     ),
-    Board(length=15,
+    Board(length=25,
           bad_intervals=[
           Interval(10,14),
           Interval(18,20)
@@ -31,4 +31,8 @@ GIVEN_INITIAL_BOARDS : DSList(N_BOARDS, Board) = [
     #       ]
     # )
 ]
+# GIVEN_PIECES : DSList(N_PIECES, Piece) = [
+#     Piece(length=5, quality=1),
+#     Piece(length=10, quality=1),
+# ]
 """
