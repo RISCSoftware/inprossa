@@ -91,7 +91,7 @@ x_y_positions = item_box_assignments
                 solve_times.append(-1)
             else:
                 validation_res = f"Successfully validated solution."
-                objective_values.append(solution["nr_used_boxes"][0])
+                objective_values.append(solution["nr_used_boxes"][len(solution["nr_used_boxes"])-1])
                 solve_times.append(solve_time)
             print(validation_res)
     print(f"""

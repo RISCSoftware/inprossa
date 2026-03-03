@@ -202,11 +202,11 @@ class TreeBase:
             except AssertionError as e:
                 validation_res = f"Failed to validate solution: {e}"
                 constraints_node.state = State.FAILED
-                self.increment_nr_semntactically_invalid_leaves()
+                self.increment_nr_semantically_invalid_leaves()
             except Exception as e:
                 validation_res = f"Evaluation failed: {e}"
                 constraints_node.state = State.FAILED
-                self.increment_nr_semtactically_invalid_leaves()
+                self.increment_nr_semantically_invalid_leaves()
             else:
                 validation_res = f"Successfully validated solution."
                 self.increment_nr_valid_leaves()

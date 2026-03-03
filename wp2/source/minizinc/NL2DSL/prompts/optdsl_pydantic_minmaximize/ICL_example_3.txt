@@ -119,7 +119,7 @@ In-context learning full translation example for OptDSL - START
 Prompt:
 ´´´ json
 {
-    "input" = {
+    "input": {
         "MAX_ALLOWED_WEIGHT": 110,
         "ITEMS": [
             {

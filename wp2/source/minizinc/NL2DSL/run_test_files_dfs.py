@@ -21,7 +21,7 @@ def move_all_model_files_into_folder(destination_folder: str):
 
 def paper_20_CLASS_tot_runs():
     directory = "problem_descriptions/testset_paper_2D-BPP_CLASS/"
-    formatted = datetime.now().strftime("%Y-%m-%d_%H:%M")
+    formatted = datetime.now().strftime("%Y-%m-%d_%H-%M")
     #files = sorted(
     #    os.listdir(directory),
     #    key=lambda name: int(name.rsplit("_", 1)[-1].split(".")[0])
@@ -146,6 +146,6 @@ def reuse_model(reusable_model_file_path: str, files: list[str], directory: str)
             proc.terminate()
 
 if __name__ == '__main__':
-    # paper_20_CLASS_tot_runs()
+    paper_20_CLASS_tot_runs()
     # bot_without_semantic_feedback_20_bot_runs()
-    CLASS_tot_with_semantic_feedback()
+    # CLASS_tot_with_semantic_feedback()
