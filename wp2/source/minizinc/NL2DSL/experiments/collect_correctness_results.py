@@ -5,10 +5,13 @@ import re
 def collect_correctness_results(directories: list[str]):
     collected_results = {}
     for directory in directories:
-        for filename in os.listdir(directory):
-            if (filename != "correctness_results.txt"):
-                continue
-            filepath = os.path.join(directory, filename)
+        files = [
+            os.path.join(root, file)
+            for root, dirs, files in os.walk(directory)
+            for file in files
+            if file.endswith("correctness_results.txt")
+        ]
+        for filepath in files:
             with open(filepath, "r", encoding="utf-8") as f:
                 text = f.read()
             results = []
@@ -30,10 +33,10 @@ def collect_correctness_results(directories: list[str]):
                                        "optimal": [nums[3]]}})
 
     for sample_name, results in collected_results.items():
-        syn_invalid = average(results["syn_invalid"])
-        sem_invalid = average(results["sem_invalid"])
-        valid = average(results["valid"])
-        optimal = average(results["optimal"])
+        syn_invalid = sum(results["syn_invalid"])
+        sem_invalid = sum(results["sem_invalid"])
+        valid = sum(results["valid"])
+        optimal = sum(results["optimal"])
 
         print(f"{sample_name}: syn_invalid: {syn_invalid}, sem_invalid: {sem_invalid}, valid: {valid}, optimal: {optimal} = {syn_invalid + sem_invalid + valid + optimal}")
 
@@ -46,4 +49,5 @@ def average(nums):
     return sum(nums) / len(nums) if nums else 0
 
 if __name__ == '__main__':
-    collect_correctness_results(["testset_paper_2D-BPP_CLASS_run1", "testset_paper_2D-BPP_CLASS_run2", "testset_paper_2D-BPP_CLASS_run3", "testset_paper_2D-BPP_CLASS_run4", "testset_paper_2D-BPP_CLASS_run5"])
+    #collect_correctness_results(["testset_paper_2D-BPP_CLASS_run1", "testset_paper_2D-BPP_CLASS_run2", "testset_paper_2D-BPP_CLASS_run3", "testset_paper_2D-BPP_CLASS_run4", "testset_paper_2D-BPP_CLASS_run5"])
+    collect_correctness_results(["testset_paper_2D-BPP_CLASS"])
