@@ -4,15 +4,18 @@ import os
 import pandas as pd
 from handcrafted_2d_bin_packing import apply_handcrafted
 
-objective_val_results_filepath = "objective_values_n20.csv"
+scatterplot_folder_path = "scatterplot_data_handcrafted_vs_ToT"
+#objective_val_results_filepath = "objective_values_n20.csv"
 objective_val_results_scatterplot_filepath = "objective_values_n20_scatterplot.csv"
-solve_time_results_filepath = "solvetimes_values_n20.csv"
+#solve_time_results_filepath = "solvetimes_values_n20.csv"
 solve_time_results_scatterplot_filepath = "solvetimes_values_n20_scatterplot.csv"
 directory = "testset_paper_2D-BPP_CLASS_run1"
 def extract_objective_value_scatterplot_data(directory: str, handcrafted_objective_val, include_label: bool = False):
     handcrafted = []
     tot = []
     grouplabels = []
+
+    os.makedirs("scatterplot_data_handcrafted_vs_ToT", exist_ok=True)
 
     directories = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isdir(os.path.join(directory, f))]
     for dir in directories:
@@ -31,7 +34,7 @@ def extract_objective_value_scatterplot_data(directory: str, handcrafted_objecti
         'tot': tot,
         'grouplabels': grouplabels
     })
-    df.to_csv(objective_val_results_filepath, index=False)
+    #df.to_csv(scatterplot_folder_path + "/" + objective_val_results_filepath, index=False)
 
     # Count unique pairs
     pair_counts = {}
@@ -57,7 +60,7 @@ def extract_objective_value_scatterplot_data(directory: str, handcrafted_objecti
             [(first, second, count) for (first, second), count in pair_counts.items()],
             columns=['handcrafted', 'tot', 'count']
         )
-    df.to_csv(objective_val_results_scatterplot_filepath, index=False)
+    df.to_csv(scatterplot_folder_path + "/" + objective_val_results_scatterplot_filepath, index=False)
 
 def extract_solve_time_scatterplot_data(directory: str, handcrafted_solvetime: list, handcrafted_objective_val: list, include_label: bool = False):
     handcrafted = []
@@ -68,6 +71,9 @@ def extract_solve_time_scatterplot_data(directory: str, handcrafted_solvetime: l
     better_than_handcrafted_solvetime = 0
     directories = [os.path.join(directory, f) for f in os.listdir(directory) if
                    os.path.isdir(os.path.join(directory, f))]
+
+    os.makedirs("scatterplot_data_handcrafted_vs_ToT", exist_ok=True)
+
     for dir in directories:
         # Extract solve times from test results and merge them with respective handcrafted obj. val.
         files = [file for file in os.listdir(dir) if file.endswith(".json")]
@@ -95,7 +101,7 @@ def extract_solve_time_scatterplot_data(directory: str, handcrafted_solvetime: l
         'tot': tot,
         'grouplabels': grouplabels
     })
-    df.to_csv(solve_time_results_filepath, index=False)
+    #df.to_csv(scatterplot_folder_path + "/" + solve_time_results_filepath, index=False)
 
     # Count unique pairs
     pair_counts = {}
@@ -121,7 +127,7 @@ def extract_solve_time_scatterplot_data(directory: str, handcrafted_solvetime: l
             [(first, second, count) for (first, second), count in pair_counts.items()],
             columns=['handcrafted', 'tot', 'count']
         )
-    df.to_csv(solve_time_results_scatterplot_filepath, index=False)
+    df.to_csv(scatterplot_folder_path + "/" + solve_time_results_scatterplot_filepath, index=False)
 
 if __name__ == '__main__':
     directories = "testset_paper_2D-BPP_CLASS"

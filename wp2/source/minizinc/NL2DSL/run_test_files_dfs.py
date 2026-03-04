@@ -52,7 +52,8 @@ def paper_20_CLASS_tot_runs():
                 m = 1
             finally:
                 proc.terminate()
-        move_all_model_files_into_folder(f"experiment_{formatted}/20_inst_2D-BPP_CLASS_run{i}/")
+        move_all_model_files_into_folder(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_run{i}/")
+        return f"experiment_{formatted}"
 
 def bot_without_semantic_feedback_20_bot_runs():
     directory = "problem_descriptions/"
