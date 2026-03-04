@@ -77,6 +77,8 @@ def extract_solve_time_scatterplot_data(directory: str, handcrafted_solvetime: l
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for model in data:
+                if model["solve_time"] is None or model["solve_time"] >= 151:
+                    continue
                 if model["solve_time"] < 0.008:
                     m = 1
                 if model["solve_time"] < 149.2 and model["objective_val"] > handcrafted_objective_val[i]:
@@ -128,8 +130,17 @@ if __name__ == '__main__':
 
     # paper testset and result extraction
     # extract_objective_value_scatterplot_data(directories,[6,1,1,4,7,1,5,1,1,6,7,4,7,5,13,16,9,3,5,5], True)
+    #extract_solve_time_scatterplot_data(directories,
+    #                                    [0.064, 0.018, 0.016, 0.031, 0.023, 0.017, 0.026, 0.025, 0.032, 1.162, 11.495, 0.047, 0.272, 0.077, 8.645, 149.883, 0.087, 0.019, 0.039, 0.09],
+    #                                    [6,1,1,4,7,1,5,1,1,6,7,4,7,5,13,16,9,3,5,5])
+
+    # random seed 0
     extract_solve_time_scatterplot_data(directories,
-                                        [0.064, 0.018, 0.016, 0.031, 0.023, 0.017, 0.026, 0.025, 0.032, 1.162, 11.495, 0.047, 0.272, 0.077, 8.645, 149.883, 0.087, 0.019, 0.039, 0.09],
-                                        [6,1,1,4,7,1,5,1,1,6,7,4,7,5,13,16,9,3,5,5])
+                                        [0.238, 0.105, 0.11299999999999999, 0.155, 0.111, 0.124, 0.136, 0.14200000000000002, 0.163, 1.98, 16.258999999999997, 0.192, 0.446, 0.163, 12.372, 149.821, 0.21300000000000002, 0.13, 0.194, 0.313],
+                                        [6, 1, 1, 4, 7, 1, 5, 1, 1, 6, 7, 4, 7, 5, 13, 16, 9, 3, 5, 5])
+
+    #extract_solve_time_scatterplot_data(directories,
+    #                                    [0.253, 0.2, 5.317, 0.20400000000000001, 0.249, 0.167, 0.274, 0.285, 0.97, 1.3290000000000002, 23.299999999999997, 0.269, 1.082, 0.581, 11.807, 150.05299999999997, 0.325, 0.20400000000000001, 0.22499999999999998, 0.919],
+    #                                    [6, 1, 1, 4, 7, 1, 5, 1, 1, 6, 7, 4, 7, 5, 13, 16, 9, 3, 5, 5])
 
     # fixed-shapes testset and result extraction

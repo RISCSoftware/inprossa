@@ -57,6 +57,7 @@ class MiniZincSolver:
                                      "--statistics",
                                      "--output-mode", "item",
                                      "--time-limit", "5000",
+                         "--random-seed", "0",
                                      "temp.mzn"],
                         text=True,
                         stdout = subprocess.PIPE, stderr = subprocess.PIPE
@@ -68,6 +69,7 @@ class MiniZincSolver:
                          "--statistics",
                          "--output-mode", "item",
                          "--time-limit", "150000",
+                         "--random-seed", "0",
                          "temp.mzn"],
                         text=True,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -93,6 +95,12 @@ class MiniZincSolver:
                 m = re.search(r"solveTime\s*=\s*([0-9]*\.?[0-9,e,-]+)", solver_output)
                 if m:
                     solve_time = float(m.group(1))
+                m = re.search(r"initTime\s*=\s*([0-9]*\.?[0-9,e,-]+)", solver_output)
+                if m:
+                    solve_time += float(m.group(1))
+                m = re.search(r"optTime\s*=\s*([0-9]*\.?[0-9,e,-]+)", solver_output)
+                if m:
+                    solve_time += float(m.group(1))
                 filtered_result = "\n".join(line for line in solver_output.splitlines() if ("%" not in line
                                                                                               and "---" not in line
                                                                                               and "===" not in line))
