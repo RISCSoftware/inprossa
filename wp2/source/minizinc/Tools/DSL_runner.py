@@ -1,61 +1,6 @@
-import io
-from contextlib import redirect_stdout
-
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from Tools.MinizincRunner import MiniZincRunner
 
-
-dsl_code = f"""
-BOX_CAPACITIES : DSList(10, DSInt()) = [5,5,5,5, 5,5,5,5, 5,5]
-ITEM_LENGTHS : DSList(12, DSInt()) = [2,3,4,5,4,3,2,1,5,4,3,2]
-MAX_ITEM_LENGTH : int = 5
-
-NBOXES : int = 10
-NITEMS : int = 12
- 
-assignments: DSList(NITEMS * 2, DSInt(1, NBOXES))
-cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))
-cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))
-
-def cutting_machine(
-    cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))
-    ):
-    cutting_cost: DSInt(0, NITEMS) = 0
-    cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))
-    for n_item in range(1, NITEMS + 1):
-        cut_items[2 * n_item] = ITEM_LENGTHS[n_item] - cut_positions[n_item]
-        cut_items[2 * n_item - 1] = cut_positions[n_item]
-        if cut_positions[n_item] != 0:
-            # A cut is made
-            cutting_cost = cutting_cost + 1
-
-    return cut_items, cutting_cost
-
-
-def not_exceed(
-    assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),
-    cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))
-    ):
-    use_cost: DSInt(0, NITEMS * 3) = 0
-    cap: DSList(NBOXES, DSInt(0, sum(ITEM_LENGTHS)))
-    for i in range(1, NBOXES + 1):
-        cap[i] = 0
-        for j in range(1, NITEMS * 2 + 1):
-            if assignments[j] == i:
-                cap[i] = cap[i] + cut_items[j]
-
-        assert cap[i] <= BOX_CAPACITIES[i]
-        if cap[i] > 0:
-            use_cost = use_cost + 3
-    return use_cost
-
-cutting_cost : DSInt(0, NITEMS)
-cut_items, cutting_cost = cutting_machine(cut_positions)
-use_cost: DSInt(0, NITEMS * 3) = 0
-use_cost = not_exceed(assignments, cut_items)
-total_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost
-minimize(total_cost)
-"""
 
 class DSLRunner:
     def __init__(self,
@@ -76,7 +21,54 @@ class DSLRunner:
             )
         result = runner.run(model)
         return result
-    
+
+dsl_code = f"""
+LAYER_LENGTH : DSInt() = 17
+N_BOARDS : int = 5
+ORIGINAL_BOARDS : DSList(N_BOARDS, DSInt()) = [12, 15, 13, 10, 15]
+MAX_BOARD_LENGTH : int = 15
+MAX_N_LAYERS : int = N_BOARDS * 2
+
+def cutting_stage(
+    cut_positions: DSList(N_BOARDS, DSInt(0, MAX_BOARD_LENGTH))
+    ):
+    cutting_cost: DSInt(0, N_BOARDS) = 0
+    cut_boards: DSList(N_BOARDS * 2, DSInt(0, MAX_BOARD_LENGTH))
+    for n_board in range(1, N_BOARDS + 1):
+        cut_boards[2 * n_board] = ORIGINAL_BOARDS[n_board] - cut_positions[n_board]
+        cut_boards[2 * n_board - 1] = cut_positions[n_board]
+        if cut_positions[n_board] != 0:
+            cutting_cost = cutting_cost + 1
+    return cut_boards, cutting_cost
+
+def packing_stage(
+    assignments: DSList(N_BOARDS * 2, DSInt(1, MAX_N_LAYERS)),
+    cut_boards: DSList(N_BOARDS * 2, DSInt(0, MAX_BOARD_LENGTH))
+    ):
+    use_cost: DSInt(0, N_BOARDS * 6) = 0
+    used_length: DSList(MAX_N_LAYERS, DSInt(0, sum(ORIGINAL_BOARDS)))
+    for n_layer in range(1, MAX_N_LAYERS + 1):
+        used_length[n_layer] = 0
+        for n_board in range(1, N_BOARDS * 2 + 1):
+            if assignments[n_board] == n_layer:
+                used_length[n_layer] = used_length[n_layer] + cut_boards[n_board]
+        assert used_length[n_layer] <= LAYER_LENGTH
+        if used_length[n_layer] > 0:
+            use_cost = use_cost + 3
+    return use_cost
+
+cut_positions: DSList(N_BOARDS, DSInt(0, MAX_BOARD_LENGTH))
+cut_boards: DSList(N_BOARDS * 2, DSInt(0, MAX_BOARD_LENGTH))
+cutting_cost : DSInt(0, N_BOARDS)
+cut_boards, cutting_cost = cutting_stage(cut_positions)
+
+assignments: DSList(N_BOARDS * 2, DSInt(1, MAX_N_LAYERS)) 
+use_cost: DSInt(0, N_BOARDS * 6) = 0
+use_cost = packing_stage(assignments, cut_boards)
+total_cost: DSInt(0, N_BOARDS * 7) = cutting_cost + use_cost
+
+minimize(total_cost)
+"""
 
 if __name__ == "__main__":
     dsl_runner = DSLRunner(dsl_code)
