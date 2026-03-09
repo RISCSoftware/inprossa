@@ -1,0 +1,1 @@
+The installed `lzero 0.2.0` has an internal mismatch: `muzero_model_mlp.py` passes `observation_shape=` but `RepresentationNetworkMLP` was updated to expect `observation_dim=`. Patching the installed file: 

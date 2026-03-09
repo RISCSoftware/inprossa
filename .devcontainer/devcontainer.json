@@ -15,12 +15,12 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                // add extensions for vscode here, you can copy the id from the extension page
-                // "ms-toolsai.jupyter",
-                // "ms-toolsai.vscode-jupyter-powertoys",
                 "ms-azuretools.vscode-docker",
                 "ms-python.python",
-                "ms-python.debugpy"
+                "ms-python.debugpy",
+                "tamasfe.even-better-toml",
+                "mhutchie.git-graph",
+                "ms-python.black-formatter"
             ],
             "settings": {
                 "terminal.integrated.shell.linux": "/bin/bash",

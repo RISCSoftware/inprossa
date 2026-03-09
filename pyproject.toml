@@ -1,3 +1,9 @@
+# uv sync --all-extras
+# python -c "import lzero; print(lzero.__version__)"
+# uv pip show lightzero
+# ll /opt/venv/lib/python3.11/site-packages/lzero/
+# python -c "import ding"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -14,11 +20,17 @@ authors = [
 readme = "README.md"
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
-  # "torch>=2.5.1,<2.6.0",
-  # "minizinc>=0.10.0",
-  "numpy>=2.4.2",
-  "pandas>=3.0.1",
-  "polars>=1.38.1",
+  "itsdangerous<2.0",
+  "jinja2<3.0",
+  "lightzero[mcts]",
+  # "numpy>=2.4.2",
+  # "pandas>=3.0.1",
+  # "polars>=1.38.1",
+]
+
+[project.optional-dependencies]
+mcts = [
+    "lightzero>=0.1.0",
 ]
 
 [project.urls]
@@ -34,18 +46,19 @@ explicit = true
 
 [[tool.uv.index]]
 # The cuda version specified here must match the one of `FROM_IMAGE` specified in `.devcontainer/docker-compose.yml`.
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
 explicit = true
 
 [tool.uv.sources]
 # The cuda version specified here must match the one of `FROM_IMAGE` specified in `.devcontainer/docker-compose.yml`.
 torch = [
-  {index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'"},
+  {index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'"},
 ]
 torchvision = [
-  {index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'"},
+  {index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'"},
 ]
+lightzero = { git = "https://github.com/opendilab/LightZero.git", rev = "30abd5a775b32a0c7c6371488f4b330491218537"}
 
 [tool.hatch.build.targets.sdist]
 include = ["inprossa"]
@@ -63,13 +76,12 @@ dev = [
   "pytest-clarity>=1.0.1",
   "pytest-cov>=4.1.0",
   "pytest-xdist>=3.3.1",
-  "mkdocs>=1.4.3",
-  "mkdocs-material>=9.1.15",
-  "mkdocstrings[python]>=0.22.0",
+#   "mkdocs>=1.4.3",
+#   "mkdocs-material>=9.1.15",
+#   "mkdocstrings[python]>=0.22.0",
   "setuptools",
   "pip>=25.0.1",
 ]
-
 [tool.poe.tasks]
 # https://github.com/nat-n/poethepoet
 _format = "black ."

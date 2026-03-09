@@ -26,8 +26,8 @@ LABEL maintainer="Michael Bögl <michael.boegl@risc-software.at>, Markus Steindl
 # ca-certificates=1.18.0 \
 # && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# uv version: 0.6.12
-COPY --from=ghcr.io/astral-sh/uv@sha256:515b886e8eb99bcf9278776d8ea41eb4553a794195ef5803aa7ca6258653100d /uv /uvx /bin/
+# uv version 0.10.2
+COPY --from=ghcr.io/astral-sh/uv@sha256:94a23af2d50e97b87b522d3cea24aaf8a1faedec1344c952767434f69585cbf9 /uv /uvx /bin/
 
 # Setup directory structure
 # https://github.com/GoogleContainerTools/kaniko/issues/1508
@@ -39,6 +39,11 @@ RUN rm -rf /workspace
 # prepare workspace and dependencies
 WORKDIR /workspace
 COPY pyproject.toml *.lock README* ./
+
+# git is required to fetch git-based dependencies during uv sync
+RUN apt-get update && apt-get install -yq \
+    git \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ensure Python uses this virtual environment
 ENV VIRTUAL_ENV=$VENV_PATH \
@@ -75,6 +80,7 @@ ARG DEBIAN_FRONTEND
 
 RUN apt-get update && apt-get install -yq \
     git \
+    build-essential \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # install development dependencies

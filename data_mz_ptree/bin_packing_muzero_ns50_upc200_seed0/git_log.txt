@@ -1,0 +1,98 @@
+d25d801
+
+commit d25d801213ce29381f76c5873ee0a062aa80c70a
+Author: Markus Steindl <ma.steindl@gmail.com>
+Date:   Tue Feb 24 13:51:10 2026 +0100
+
+    wip
+
+ error.txt                                          |   94 ++
+ error2.txt                                         |    6 +
+ notes.txt                                          |   51 +
+ notes2.md                                          |    8 +
+ notes_mst.md                                       |   19 +
+ notes_mst_mcts.md                                  |    6 +
+ pyproject.toml                                     |   11 +-
+ uv.lock                                            | 1065 ++++++++++++++++++++
+ .../minizinc/Projects/BinPacking/binpacking.py     |    3 +-
+ .../minizinc/Translator/BinPacking/prompts.md      |   42 +
+ .../minizinc/Translator/Objects/CodeBlock.py       |    3 +
+ .../Translator/Objects/MiniZincTranslator.py       |    5 +-
+ wp2/source/minizinc/Translator/helper_tools.py     |    5 +-
+ wp2/source/minizinc/out.txt                        |  123 +++
+ wp2/source/minizinc_playground.py                  |   11 +
+ wp2/source/minizinc_program.txt                    |  105 ++
+ 16 files changed, 1549 insertions(+), 8 deletions(-)
+
+commit e1264fd2559e8977cf29ba4ca63bbdb175c2284e
+Merge: a062914 e91531b
+Author: Michael Boegl <michael.boegl@risc-software.at>
+Date:   Wed Feb 11 13:35:10 2026 +0100
+
+    Merge branch 'main' of https://github.com/RISCSoftware/inprossa
+
+commit a062914bd3e878a56a24de58b143662d5fb01dc2
+Author: Michael Boegl <michael.boegl@risc-software.at>
+Date:   Wed Feb 11 13:34:36 2026 +0100
+
+    Add report template from ecall website
+
+ wp6/final_report/Beschreibung-58139847-2026-02-11.docx | Bin 0 -> 21114 bytes
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+commit e91531b8c6745e85eb452018e04285742253bd84
+Author: Tereso del Río <teresdra@gmail.com>
+Date:   Wed Feb 11 13:30:07 2026 +0100
+
+    Need to adjust times to have nice figures
+
+ .../improvements_plots/compare_10_chuffed.png      | Bin 85001 -> 80533 bytes
+ .../improvements_plots/compare_1_chuffed.png       | Bin 85048 -> 79655 bytes
+ .../improvements_plots/compare_2_chuffed.png       | Bin 85787 -> 79201 bytes
+ .../improvements_plots/compare_3_chuffed.png       | Bin 85618 -> 82045 bytes
+ .../improvements_plots/compare_4_chuffed.png       | Bin 82878 -> 79255 bytes
+ .../improvements_plots/compare_5_chuffed.png       | Bin 84674 -> 77882 bytes
+ .../improvements_plots/compare_6_chuffed.png       | Bin 82516 -> 81163 bytes
+ .../improvements_plots/compare_7_chuffed.png       | Bin 82928 -> 76998 bytes
+ .../improvements_plots/compare_8_chuffed.png       | Bin 82169 -> 78986 bytes
+ .../improvements_plots/compare_9_chuffed.png       | Bin 80154 -> 79884 bytes
+ wp2/source/minizinc/Experiments/Instance.py        |   6 +-
+ wp2/source/minizinc/Experiments/create_figures.py  |  49 ++--
+ .../Projects/BinPackingWithCutting/experiments.py  |   8 +-
+ .../Projects/BinPackingWithCutting/templates.py    | 314 ++++++++++++++++++++-
+ wp2/source/minizinc/Tools/MinizincRunner.py        |   2 +-
+ .../minizinc/Translator/Objects/CodeBlock.py       |   8 +-
+ wp2/source/minizinc/Translator/Objects/DSTypes.py  |   2 +-
+ 17 files changed, 350 insertions(+), 39 deletions(-)
+
+commit b359d5c5e97eba519c4901723d2901356ad1897e
+Author: Tereso del Río <teresdra@gmail.com>
+Date:   Mon Feb 9 15:16:50 2026 +0100
+
+    Modifying repo to use pytest
+
+ .../improvements_plots/compare_1_chuffed.png       | Bin 83733 -> 85048 bytes
+ .../improvements_plots/compare_2_chuffed.png       | Bin 83907 -> 85787 bytes
+ .../improvements_plots/compare_3_chuffed.png       | Bin 84778 -> 85618 bytes
+ wp2/source/minizinc/FirstProject/README.md         |   5 --
+ .../minizinc/FirstProject/checking_machine.mzn     |  66 ---------------------
+ wp2/source/minizinc/FirstProject/data.dzn          |  18 ------
+ wp2/source/minizinc/FirstProject/main.mzn          |  18 ------
+ .../FirstProject/predicates_checking_machine.mzn   |   7 ---
+ .../minizinc/Projects/BinPacking/__init__.py       |   0
+ .../{binpacking.dsl.py => binpacking.py}           |  18 +++---
+ .../minizinc/Projects/BinPacking/llm_model.py      |  18 +++---
+ .../Projects/BinPackingWithCutting/__init__.py     |   0
+ wp2/source/minizinc/Projects/KnapSack/__init__.py  |   0
+ .../minizinc/Projects/KnapSack/knapsack_problem.py |  21 ++++---
+ .../{knapsack_var1.dsl.py => knapsack_var1.py}     |   0
+ .../minizinc/Projects/WoodCuttingPipeline/main.py  |  40 ++++++-------
+ wp2/source/minizinc/Tools/MinizincRunner.py        |   6 +-
+ wp2/source/minizinc/Tools/__init__.py              |   0
+ .../minizinc/Translator/Objects/CodeBlock.py       |   2 +-
+ wp2/source/minizinc/Translator/Objects/Constant.py |   2 +-
+ wp2/source/minizinc/Translator/Objects/DSTypes.py  |   2 +-
+ .../Translator/{Tools.py => helper_tools.py}       |   0
+ wp2/source/minizinc/Translator/main.py             |  11 ++--
+ .../Translator/test_unrolling_translation.py       |  61 +++++--------------
+ 24 files changed, 77 insertions(+), 218 deletions(-)

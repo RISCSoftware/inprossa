@@ -20,7 +20,7 @@ services:
       # set args for build process
       args:
         # see Dockerfile for a full list of options
-        FROM_IMAGE: "nvidia/cuda:12.4.1-runtime-ubuntu22.04"
+        FROM_IMAGE: "nvidia/cuda:12.9.1-runtime-ubuntu24.04"
         VENV_PATH: "/opt/venv"
         PYTHON_VERSION: "3.11"
     
