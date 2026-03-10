@@ -51,7 +51,7 @@ maximize(accumulated_value)
 """
 
 
-from Translator.Objects.MiniZincTranslator import MiniZincTranslator
+from src.optdsl.translator.Objects.MiniZincTranslator import MiniZincTranslator
 
 if __name__ == "__main__":
     translator = MiniZincTranslator(dsl_code)
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     print("\n")
     print(model)
     print("\n")
-    from Tools.MinizincRunner import MiniZincRunner
+    from src.optdsl.solver.Minizinc_solver import MiniZincRunner
     runner = MiniZincRunner()
     result = runner.run(model)
     print(result)

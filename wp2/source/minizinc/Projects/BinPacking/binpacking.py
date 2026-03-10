@@ -1,5 +1,5 @@
-from Translator.Objects.MiniZincTranslator import MiniZincTranslator
-from Tools.MinizincRunner import MiniZincRunner
+from src.optdsl.translator.Objects.MiniZincTranslator import MiniZincTranslator
+from src.optdsl.solver.Minizinc_solver import MiniZincRunner
 
 code = """
 BOX_CAPACITIES : DSList(4, DSInt()) = [5, 5, 5, 5]

@@ -1,4 +1,3 @@
-
 import csv
 from pathlib import Path
 
@@ -53,7 +52,7 @@ def instances_to_csv(instances, file: str, *, filename: str = "all_timings.csv")
             writer.writerow(row)
 
     return outpath
-
+6
 
 from Projects.BinPackingWithCutting.templates import create_bin_packing_codes
 from Experiments.create_figures import improvement_and_scatter_plots

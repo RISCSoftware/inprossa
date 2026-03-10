@@ -1,4 +1,4 @@
-from Translator.Objects.DSTypes import DSInt, compute_type
+from src.optdsl.translator.Objects.DSTypes import DSInt, compute_type
 
 
 class Variable:

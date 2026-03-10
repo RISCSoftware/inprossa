@@ -517,7 +517,6 @@ solve minimize total_cost;
 """
 
 def fill_templates(n_items: int, box_capacities: list, item_lengths: list):
-    codes = dict()
     max_item_length = max(item_lengths)
 
     if len(dsl_codes) > 0:

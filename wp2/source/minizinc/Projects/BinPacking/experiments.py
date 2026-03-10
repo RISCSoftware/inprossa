@@ -33,8 +33,8 @@ not_exceed(assignments)
 
 
 import time
-from Translator.Objects.MiniZincTranslator import MiniZincTranslator
-from Tools.MinizincRunner import MiniZincRunner
+from src.optdsl.translator.Objects.MiniZincTranslator import MiniZincTranslator
+from src.optdsl.solver.Minizinc_solver import MiniZincRunner
 
 def measure_solve_time(n_items_list, repeats=10):
     runner = MiniZincRunner()

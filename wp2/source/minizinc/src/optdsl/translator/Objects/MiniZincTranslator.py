@@ -1,7 +1,7 @@
 import ast
-from Translator.Objects.Predicate import Predicate
-from Translator.Objects.CodeBlock import CodeBlock
-from Translator.Objects.DSTypes import DSType
+from src.optdsl.translator.Objects.Predicate import Predicate
+from src.optdsl.translator.Objects.CodeBlock import CodeBlock
+from src.optdsl.translator.Objects.DSTypes import DSType
 
 
 class MiniZincTranslator:

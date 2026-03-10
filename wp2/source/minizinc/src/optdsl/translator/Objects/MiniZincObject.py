@@ -1,5 +1,5 @@
 import ast
-from Translator.Objects.Predicate import Predicate
+from src.optdsl.translator.Objects.Predicate import Predicate
 
 
 class MiniZincObject:

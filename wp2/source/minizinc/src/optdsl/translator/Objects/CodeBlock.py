@@ -1,11 +1,11 @@
 import ast
 from collections import defaultdict
-from Translator.Objects.Constraint import Constraint
-from Translator.Objects.DSTypes import DSInt, DSList, compute_type
-from Translator.Objects.Variable import Variable
+from src.optdsl.translator.Objects.Constraint import Constraint
+from src.optdsl.translator.Objects.DSTypes import DSInt, DSList, compute_type
+from src.optdsl.translator.Objects.Variable import Variable
 from itertools import product
-from Translator.Objects.Constant import Constant, ast_to_object
-from Translator.helper_tools import ExpressionRewriter
+from src.optdsl.translator.Objects.Constant import Constant, ast_to_object
+from src.optdsl.translator.helper_tools import ExpressionRewriter
 import copy
 class CodeBlock:
     """

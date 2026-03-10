@@ -1,7 +1,7 @@
 import ast
 from typing import Union
-from Translator.Objects.DSTypes import DSList, DSRecord
-from Translator.helper_tools import ast_to_object, ExpressionRewriter
+from src.optdsl.translator.Objects.DSTypes import DSList, DSRecord
+from src.optdsl.translator.helper_tools import ast_to_object, ExpressionRewriter
 
 class Constant:
     def __init__(self,

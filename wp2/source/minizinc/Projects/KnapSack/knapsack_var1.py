@@ -1,4 +1,4 @@
-from Translator.Objects.MiniZincTranslator import MiniZincTranslator
+from src.optdsl.translator.Objects.MiniZincTranslator import MiniZincTranslator
 
 code = """
 Item = DSRecord({

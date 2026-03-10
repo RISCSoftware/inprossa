@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from Experiments.Instance import InstanceProgress
-from Translator.Objects.MiniZincTranslator import MiniZincTranslator
-from Tools.MinizincRunner import MiniZincRunner
+from src.optdsl.translator.Objects.MiniZincTranslator import MiniZincTranslator
+from src.optdsl.solver.Minizinc_solver import MiniZincRunner
 
 
 def improvement_and_scatter_plots(

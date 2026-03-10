@@ -1,7 +1,6 @@
 """Contains tests for the unrolling translation module."""
 
-import unittest
-from Translator.Objects.MiniZincTranslator import MiniZincTranslator
+from src.optdsl.translator.Objects.MiniZincTranslator import MiniZincTranslator
 
 translation_tests = [
     {
@@ -848,7 +847,7 @@ solve minimize a[1];"""
 # ]
 
 import pytest
-from Tools.MinizincRunner import MiniZincRunner
+from src.optdsl.solver.Minizinc_solver import MiniZincRunner
 
 @pytest.mark.parametrize(
     "case",
