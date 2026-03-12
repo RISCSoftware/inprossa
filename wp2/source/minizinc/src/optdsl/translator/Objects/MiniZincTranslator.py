@@ -36,20 +36,15 @@ class MiniZincTranslator:
         # for node in tree.body:
         #     print(ast.dump(node, indent=4))
         for node in tree.body:
-            # 0) Constants
+            # 0) Collect Global Constants
             # if is an annassignment and lhs is uppercase
+            # For now the constant should be defined in annassignment
             if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id.isupper():
                 const_name = node.target.id
                  # Evaluate type
                 code_block = CodeBlock(constant_table=self.constants, predicates=self.predicates, types=self.types)
                 code_block.run([node], loop_scope={})
                 self.constants[const_name] = code_block.constant_table[const_name]
-            # For now the constant should be defined in annassignment
-            # # if is an assignment and lhs is uppercase
-            # elif isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) and node.targets[0].id.isupper():
-            #     const_name = node.targets[0].id
-            #     # Evaluate type
-            #     self.constants[const_name].add_value(ast.unparse(node.value))
 
             # 1) type definitions -> MiniZinc type definitions
             if (isinstance(node, ast.Assign) and
@@ -61,13 +56,7 @@ class MiniZincTranslator:
                 mz_type = DSType(node.value, type_name, known_types=self.types, constant_table=self.constants).return_type()
                 self.types[type_name] = mz_type
 
-            # This can be implemented later to create a DSRecord
-            # # 2) class definitions -> MiniZincObject
-            # elif isinstance(node, ast.ClassDef):
-            #     mz_obj = MiniZincObject(node, predicates_registry=self.predicates)
-            #     self.objects[mz_obj.name] = mz_obj
-
-            # 3) function definitions -> Predicates
+            # 2) function definitions -> Predicates
             elif isinstance(node, ast.FunctionDef):
                 # to ast visualisation
                 pred = Predicate(node,
@@ -75,6 +64,8 @@ class MiniZincTranslator:
                                  constant_table=self.constants,
                                  types=self.types)
                 self.predicates[pred.name] = pred
+            
+            # 3) Set objective (minimize/maximize) 
             elif (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and
                   (node.value.func.id == "minimize" or
                    node.value.func.id == "maximize")):
