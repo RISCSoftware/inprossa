@@ -1,7 +1,7 @@
 """Visualization helpers for bin packing solutions."""
 
-import matplotlib.pyplot as plt
 import matplotlib.axes
+import matplotlib.pyplot as plt
 import numpy as np
 
 _ALT = ["#4C72B0", "#DD8452"]  # alternating item colors within a bin

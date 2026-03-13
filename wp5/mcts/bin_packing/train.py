@@ -33,22 +33,11 @@ import jax.numpy as jnp
 import mctx
 import optax
 import pandas as pd
+import wandb
 from omegaconf import OmegaConf
 from pydantic import BaseModel
 
-import wandb
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-os.environ["JAX_TRACEBACK_FILTERING"] = "off"
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-
-# Ensure mcts/ and mcts/bin_packing/ are importable regardless of cwd
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-
-
-from env import (
+from mcts.bin_packing.env import (
     DEFAULT_MAX_ITEM_SIZE,
     DEFAULT_MAX_ITEMS,
     DEFAULT_MIN_ITEM_SIZE,
@@ -56,7 +45,12 @@ from env import (
     init,
     step_env,
 )
-from net import BinPackingNet, to_tokens
+from mcts.bin_packing.net import TOKEN_DIM, BinPackingNet, make_attention_mask, to_tokens
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
+os.environ["JAX_TRACEBACK_FILTERING"] = "off"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+
 
 devices = jax.local_devices()
 num_devices = len(devices)
@@ -144,7 +138,8 @@ def recurrent_fn(params, rng_key: jnp.ndarray, action: jnp.ndarray, state: BinPa
 
     next_state = jax.vmap(_step)(state, action)
     tokens = jax.vmap(_to_tokens)(next_state.observation)  # (batch, SEQ_LEN, d)
-    value, bin_logits = net.apply(params, tokens)
+    mask = jax.vmap(make_attention_mask)(next_state.observation)  # (batch, SEQ_LEN, SEQ_LEN)
+    value, bin_logits = net.apply(params, tokens, mask)
 
     # Slice bin logits to action space [1 .. max_items] and mask illegal actions
     logits = bin_logits[:, 1 : config.max_items + 1]  # (batch, max_items)
@@ -192,7 +187,8 @@ def selfplay(params, rng_key: jnp.ndarray) -> SelfplayOutput:
 
         # Evaluate the current state
         tokens = jax.vmap(_to_tokens)(state.observation)  # (batch, SEQ_LEN, d)
-        value, all_logits = net.apply(params, tokens)
+        mask = jax.vmap(make_attention_mask)(state.observation)  # (batch, SEQ_LEN, SEQ_LEN)
+        value, all_logits = net.apply(params, tokens, mask)
         bin_logits = all_logits[:, 1 : config.max_items + 1]  # (batch, max_items)
         neg_inf = jnp.finfo(jnp.float32).min
         bin_logits = jnp.where(state.legal_action_mask, bin_logits, neg_inf)
@@ -285,7 +281,8 @@ def compute_loss_input(data: SelfplayOutput) -> Sample:
 
 def loss_fn(params, samples: Sample):
     tokens = jax.vmap(_to_tokens)(samples.observation)
-    value, bin_logits = net.apply(params, tokens)
+    mask = jax.vmap(make_attention_mask)(samples.observation)  # (batch, SEQ_LEN, SEQ_LEN)
+    value, bin_logits = net.apply(params, tokens, mask)
     logits = bin_logits[:, 1 : config.max_items + 1]  # (batch, max_items)
 
     policy_loss = optax.softmax_cross_entropy(logits, samples.policy_tgt)
@@ -325,7 +322,8 @@ def evaluate(rng_key: jnp.ndarray, params):
     def model_body(val):
         key, state = val
         tokens = jax.vmap(_to_tokens)(state.observation)
-        _, bin_logits = net.apply(params, tokens)
+        mask = jax.vmap(make_attention_mask)(state.observation)  # (batch, SEQ_LEN, SEQ_LEN)
+        _, bin_logits = net.apply(params, tokens, mask)
         logits = bin_logits[:, 1 : config.max_items + 1]
         logits = jnp.where(state.legal_action_mask, logits, neg_inf)
         actions = jnp.argmax(logits, axis=-1)
@@ -363,8 +361,9 @@ if __name__ == "__main__":
     wandb.init(project="bin-packing-az", config=config.model_dump())
 
     # Initialize model params (Flax — no mutable state)
-    dummy_tokens = jnp.zeros((2, SEQ_LEN, 6), dtype=jnp.float32)
-    params = net.init(jax.random.PRNGKey(config.seed), dummy_tokens)
+    dummy_tokens = jnp.zeros((2, SEQ_LEN, TOKEN_DIM), dtype=jnp.float32)
+    dummy_mask = jnp.ones((2, SEQ_LEN, SEQ_LEN), dtype=jnp.bool_)
+    params = net.init(jax.random.PRNGKey(config.seed), dummy_tokens, dummy_mask)
     opt_state = optimizer.init(params)
     # Replicate to all devices
     params, opt_state = jax.device_put_replicated((params, opt_state), devices)
@@ -463,3 +462,6 @@ if __name__ == "__main__":
                 "frames": frames,
             }
         )
+
+
+# WANDB_MODE=offline python mcts/bin_packing/train.py 2>&1 | tee out5.log
