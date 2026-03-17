@@ -30,13 +30,13 @@ def apply_handcrafted(directory: str, object_types_are_fixed: bool):
             code = """
 NITEMS : int = {}
 Item = DSRecord({{
-    \"width\" : DSInt(lb=1),
-    \"height\" : DSInt(lb=1)
+    \"width\" : DSInt(),
+    \"height\" : DSInt()
 }})
 BoxAssignment = DSRecord({{
-    \"x\" : DSInt(lb=0),
-    \"y\" : DSInt(lb=0),
-    \"box_id\" : DSInt(1, NITEMS)
+    \"x\" : DSInt(),
+    \"y\" : DSInt(),
+    \"box_id\" : DSInt()
 }})
 
 BOX_WIDTH : int = {}
@@ -44,27 +44,29 @@ BOX_HEIGHT : int = {}
 ITEMS: DSList(NITEMS, Item) = {}
 item_box_assignments: DSList(NITEMS, BoxAssignment)
 x_y_positions : DSList(NITEMS, BoxAssignment)
-nr_used_boxes : DSInt(1, NITEMS)
+nr_used_boxes : DSInt()
 
-for i in range(1, NITEMS + 1):
-    assignment_i : BoxAssignment = item_box_assignments[i]
-    #item_i : Item = ITEMS[i]
-    assert 0 <= assignment_i.x
-    assert 0 <= assignment_i.y
-    assert assignment_i.y + ITEMS[i].height <= BOX_HEIGHT
-    assert assignment_i.x + ITEMS[i].width <= BOX_WIDTH
-    assert 0 < assignment_i.box_id
+def apply_constraints(item_box_assignments: DSList(NITEMS, BoxAssignment), nr_used_boxes : DSInt(1, NITEMS)):
+    for i in range(1, NITEMS + 1):
+        assignment_i : BoxAssignment = item_box_assignments[i]
+        assert 0 <= assignment_i.x
+        assert 0 <= assignment_i.y
+        assert assignment_i.y + ITEMS[i].height <= BOX_HEIGHT
+        assert assignment_i.x + ITEMS[i].width <= BOX_WIDTH
+        assert 0 < assignment_i.box_id
+        assert assignment_i.box_id <= nr_used_boxes
 
-    for j in range(i + 1, NITEMS + 1):
-        assignment_j : BoxAssignment = item_box_assignments[j]
-        #item_j : Item = ITEMS[j]
-        assert (
-            (assignment_i.box_id != assignment_j.box_id) or
-            (assignment_i.x + ITEMS[i].width <= assignment_j.x) or
-            (assignment_j.x + ITEMS[j].width <= assignment_i.x) or
-            (assignment_i.y + ITEMS[i].height <= assignment_j.y) or
-            (assignment_j.y + ITEMS[j].height <= assignment_i.y)
-        )
+        for j in range(i + 1, NITEMS + 1):
+            assignment_j : BoxAssignment = item_box_assignments[j]
+            assert (
+                (assignment_i.box_id != assignment_j.box_id) or
+                (assignment_i.x + ITEMS[i].width <= assignment_j.x) or
+                (assignment_j.x + ITEMS[j].width <= assignment_i.x) or
+                (assignment_i.y + ITEMS[i].height <= assignment_j.y) or
+                (assignment_j.y + ITEMS[j].height <= assignment_i.y)
+            )
+apply_constraints(item_box_assignments, nr_used_boxes)
+
 for i in range(1, NITEMS + 1):
     if item_box_assignments[i].box_id > nr_used_boxes:
         nr_used_boxes = item_box_assignments[i].box_id
@@ -102,5 +104,5 @@ solve_times : {solve_times}
 """)
     return objective_values, solve_times
 
-# apply_handcrafted("problem_descriptions/testset_paper_2D-BPP_CLASS/", object_types_are_fixed=False)
-# apply_handcrafted("../problem_descriptions/testset_fixed_objects_2D-BPP_CLASS/", object_types_are_fixed=True)
+# apply_handcrafted("../problem_descriptions/testset_paper_2D-BPP_CLASS/", object_types_are_fixed=False)
+# apply_handcrafted("../problem_descriptions/testset_paper_2D-BPP_CLASS_fixed_objects/", object_types_are_fixed=True)

@@ -46,7 +46,7 @@ class ModelReuser():
                                                                              model,
                                                                              new_instance)
             updated_models.append(model)
-        updated_models_filename = f'optDSL_models_reused_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json'
+        updated_models_filename = f'optDSL_models_reused_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json' #
         with open(os.path.join(os.path.dirname(os.path.dirname(models_file_path)), updated_models_filename), "w", encoding="utf-8") as f:
             json.dump(updated_models, f, indent=4)
         return updated_models_filename
@@ -60,6 +60,10 @@ class ModelReuser():
 
     @staticmethod
     def _extract_new_instance_components(original_model, new_instance: dict):
+        objects = None
+        input_variables = None
+        output_variables = None
+
         # Query object types, data types
         if "objects" in new_instance:
             objects = InputReader.generate_objects_as_DSL_code(new_instance["objects"])
@@ -102,20 +106,36 @@ class ModelReuser():
         code = model["objective"] + model["constraints"]
         for code_def_part in code.split("def "):
             for match in re.findall(
-                r"([a-zA-Z_][a-zA-Z0-9_]*)\s*: +(DSInt\((?:.*?(?:\blb\s*=\s*)?)?(?:.*?(?:\bub\s*=\s*)?)?\)|DSFloat\((?:.*?(?:\blb\s*=\s*)?)?(?:.*?(?:\bub\s*=\s*)?)?\)|\s*DSList\s*\(\s*length\s*=\s*(\d+)\s*,\s*elem_type\s*=\s*([A-Za-z_][A-Za-z0-9_]*)(?:\(\))?\s*\))",
+                r"(?:([a-zA-Z_][a-zA-Z0-9_]*)\s*: +(DSInt\((?:.*?(?:\blb\s*=\s*)?)?(?:.*?(?:\bub\s*=\s*)?)?\)|DSFloat\((?:.*?(?:\blb\s*=\s*)?)?(?:.*?(?:\bub\s*=\s*)?)?\)|\s*DSList\s*\(\s*length\s*=\s*\d+\s*,\s*elem_type\s*=\s*(DSInt\((?:.*?(?:\blb\s*=\s*)?)?(?:.*?(?:\bub\s*=\s*)?)?\))(?:\(\))?\s*\)|\s*DSList\s*\(\s*length\s*=\s*\d+\s*,\s*elem_type\s*=\s*(DSFloat\((?:.*?(?:\blb\s*=\s*)?)?(?:.*?(?:\bub\s*=\s*)?)?\))(?:\(\))?\s*\)|\s*DSList\s*\(\s*length\s*=\s*\d+\s*,\s*elem_type\s*=\s*([A-Za-z_][A-Za-z0-9_]*)(?:\(\))?\s*\))(?:\s*,\s*)*)(?!\s*=)",
                 code_def_part):
                 result = next(
-                    (c for c in model["constants"] if match[0].lower() in c.get("variable_name").strip().lower()),
+                    (c for c in model["constants"] if match[0].lower() in c.get("variable_name").strip().lower() and
+                                   (not("DSInt" in match[1] and "DSInt" not in c.get("type")) and
+                                    not ("DSInt" not in match[1] and "DSInt" in c.get("type")) and
+                                    not ("DSFloat" in match[1] and "DSFloat" not in c.get("type")) and
+                                    not ("DSFloat" not in match[1] and "DSFloat" in c.get("type")) and
+                                    not ("DSList" in match[1] and "DSList" not in c.get("type")) and
+                                    not ("DSList" not in match[1] and "DSList" in c.get("type")))),
                     None)
                 if result is None:
-                    result = next((d for d in model["decision_variables"] if
-                                   match[0].lower() in d.get("variable_name").strip().lower()),
+                    result = next((c for c in model["decision_variables"] if
+                                   match[0].lower() in c.get("variable_name").strip().lower() and
+                                   (not("DSInt" in match[1] and "DSInt" not in c.get("type")) and
+                                    not ("DSInt" not in match[1] and "DSInt" in c.get("type")) and
+                                    not ("DSFloat" in match[1] and "DSFloat" not in c.get("type")) and
+                                    not ("DSFloat" not in match[1] and "DSFloat" in c.get("type")) and
+                                    not ("DSList" in match[1] and "DSList" not in c.get("type")) and
+                                    not ("DSList" not in match[1] and "DSList" in c.get("type")))),
                                   None)
+                if result is None:
+                    continue
                 n_placeholders = result["type"].split("\n")[0].count("{}")
                 inst = result["variable_instance"][:n_placeholders]
-                code = code.replace(f"{match[0]}: {match[1]}",
+                updated_code_def_part = code_def_part.replace(f"{match[0]}: {match[1]}",
                                     result["type"].split("\n")[0].format(*inst).replace(result["variable_name"],
                                                                                         match[0].strip()))
+                code = code.replace(code_def_part, updated_code_def_part)
+
         full_formulation = full_formulation + code
         model.update({"full_formulation": full_formulation})
         return model

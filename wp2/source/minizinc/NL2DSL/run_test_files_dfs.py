@@ -4,6 +4,8 @@ import sys
 from datetime import datetime
 
 import constants
+from experiments.handcrafted_2d_bin_packing import apply_handcrafted
+
 
 def move_all_model_files_into_folder(destination_folder: str):
     os.makedirs(destination_folder, exist_ok=True)
@@ -12,12 +14,19 @@ def move_all_model_files_into_folder(destination_folder: str):
         if filename.startswith("optDSL_models_") and filename.endswith(".json"):
             src = os.path.join(os.getcwd(), filename)
             dst = os.path.join(destination_folder, filename)
+            if os.name == "nt":
+                dst = dst.replace("/", "\\")
             os.rename(src, dst)
 
     # move log file
     src = os.path.join(os.getcwd(), "run_logs.log")
-    dst = os.path.join(destination_folder, "run_logs.log")
-    os.rename(src, dst)
+    dst = os.path.join(os.path.join(os.getcwd(), destination_folder), "run_logs.log")
+    if os.name == "nt":
+        dst = dst.replace("/", "\\")
+    try:
+        os.rename(src, dst)
+    except Exception:
+        print("logs file needs to be moved, if existent.")
 
 def paper_20_CLASS_tot_runs():
     directory = "problem_descriptions/testset_paper_2D-BPP_CLASS/"
@@ -87,37 +96,46 @@ def bot_without_semantic_feedback_20_bot_runs():
                 proc.terminate()
 
 def CLASS_tot_with_semantic_feedback():
-    directory = "problem_descriptions/testset_fixed_objects_2D-BPP_CLASS/"
-    formatted = datetime.now().strftime("%Y-%m-%d_%H:%M")
+    directory = "problem_descriptions/testset_paper_2D-BPP_CLASS_fixed_objects/"
+    formatted = datetime.now().strftime("%Y-%m-%d_%H-%M")
     files = os.listdir(directory)
     files.sort()
-    # filename = files[0]
-    # filepath = os.path.join(directory, filename)
-    # print(f"""----------------------------------------------------------------------------
-    #     Starting run for {filename}: """)
-    # proc = subprocess.Popen([sys.executable,
-    #                          "tree_search_dfs.py",
-    #                          "--problem_instance",
-    #                          filepath,
-    #                          "--problem_description",
-    #                          "problem_descriptions/2d_bin_packing_inst_1_without_inoutput.json",
-    #                          "-m",
-    #                          "fixed_objects_fixed_inoutput_values"])
-    # try:
-    #     proc.wait()  # wait up to 90 minutes
-    # except subprocess.TimeoutExpired:
-    #     print("Timeout — killing process")
-    #     proc.kill()
-    #     proc.wait()  # ensure it’s dead
-    # except KeyboardInterrupt as e:
-    #     # do nothing
-    #     m = 1
-    #     print("UI, keyboard interrupt")
-    # finally:
-    #     proc.terminate()
-    # move_all_model_files_into_folder(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_reusable_model/")
-    #reuse_model(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_reusable_model/", files, directory)
-    reuse_model(f"experiments/experiment_2026-02-25_09:01/20_inst_2D-BPP_CLASS_reusable_model/", files, directory)
+    filename = files[15]
+    filepath = os.path.join(directory, filename)
+    print(f"""----------------------------------------------------------------------------
+        Starting run for {filename}: """)
+
+    proc = subprocess.Popen([sys.executable,
+                             "tree_search_dfs.py",
+                             "--problem_instance",
+                             filepath,
+                             "--problem_description",
+                             "problem_descriptions/2d_bin_packing_inst_1_without_inoutput.json",
+                             "-m",
+                             "fixed_objects_fixed_inoutput_values"])
+    try:
+        proc.wait()  # wait up to 90 minutes
+    except subprocess.TimeoutExpired:
+        print("Timeout — killing process")
+        proc.kill()
+        proc.wait()  # ensure it’s dead
+    except KeyboardInterrupt as e:
+        # do nothing
+        m = 1
+        print("UI, keyboard interrupt")
+    finally:
+        proc.terminate()
+    os.makedirs(f"experiments/experiment_{formatted}", exist_ok=True)
+    move_all_model_files_into_folder(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_reusable_model")
+    reuse_model(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_reusable_model/", files, directory)
+    #reuse_model(f"experiments/experiment_2026-03-09_09-15/20_inst_2D-BPP_CLASS_reusable_model/", files, directory)
+
+    handcrafted_objective_values, handcrafted_solve_times = apply_handcrafted(
+        directory + "/", object_types_are_fixed=True)
+    with open(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_reusable_model/handcrafted_results.txt", "w", encoding="utf-8") as f:
+        f.write(f"{handcrafted_objective_values}\n{handcrafted_solve_times}")
+
+    return f"experiment_{formatted}"
 
 def reuse_model(reusable_model_file_path: str, files: list[str], directory: str):
     reusable_model_file= [file for file in os.listdir(reusable_model_file_path) if file.endswith(".json")][0]
@@ -147,6 +165,6 @@ def reuse_model(reusable_model_file_path: str, files: list[str], directory: str)
             proc.terminate()
 
 if __name__ == '__main__':
-    paper_20_CLASS_tot_runs()
+    # paper_20_CLASS_tot_runs()
     # bot_without_semantic_feedback_20_bot_runs()
-    # CLASS_tot_with_semantic_feedback()
+    CLASS_tot_with_semantic_feedback()

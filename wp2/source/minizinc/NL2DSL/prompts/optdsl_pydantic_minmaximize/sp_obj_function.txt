@@ -6,7 +6,7 @@ Add the objective. Minimizing and maximizing the objective is achieved by callin
     5. Do not return json.
     6. Do not write any explanations, OptDSL code only. Python comments are allowed.
     7. If the objective is defined as a decision variable, use it for the following calculation function "calculate_objective".
-    8. Add a function called "calculate_objective" where you calculate the objective variable or variable that represents the objective. This function must contain a calculation, do not return an unmodified variable. Then assign the return value of this function to a auxiliary variable objective "objective = calculate_objective(<parameters>)".
+    8. Add a function called "calculate_objective" where you calculate the objective variable or variable that represents the objective. This function must contain a calculation, try different approaches to calculate. Do not return an unmodified variable. Then assign the return value of this function to a auxiliary variable objective "objective = calculate_objective(<parameters>)".
     9. Additionally, add streamliners for the objective, lower and upper bounds.
     10. Finally, pass the variable "objective" to the fitting optimization function "minimize" or "maximize":
     "minimize(objective)" or "maximize(objective)", where you replace <value> with decision variable that represents the objective.
