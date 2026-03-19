@@ -1,3 +1,8 @@
+[Code]
+```python
+{}
+```
+
 [Task]
 The goal is to improve the solving-time of the encoded pythonic OptDsl model implemented above.
 Do not initialize objects, constants or decision variables.

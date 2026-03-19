@@ -1,0 +1,26 @@
+[Code]
+```python
+{}
+```
+
+[Object_approaches]
+{}
+
+[Task]
+Perform the following steps:
+1. Choose one description from [Object_approaches] that is different from the "# --- Objective ---" function in [Code]. Make sure this approach is also expressible in OptDSL. The chosen approach will be later used for step 3.
+2. Remove the code within "# --- Objective ---" section in [Code].
+3. Take the chosen description from step 1. and encode it as valid OptDSL formulation into section "# --- Objective ---" in [Code]. Update the assignment to "objective" variable accordingly.
+Apply the following rules:
+- Never return the same answer twice, deliver diverse code.
+- Do not use list comprehension or any list multiplication operator. Code like `[1] * 5` and `[True for _ in range(1, 5)]` are illegal.
+- Do not use floating-point division.
+- Try other approaches then.
+- Provide your answer as valid OptDSL code enclosed with python codeblock in the following format:
+```python
+# --- Objective ---
+<objective_function>
+```, replace <objective_function> with OptDSL code of the objective or leave empty, <constraints> with OptDSL code of the constraints of [Code]. You may merge objective function with constraints.
+
+[Problem]
+{}

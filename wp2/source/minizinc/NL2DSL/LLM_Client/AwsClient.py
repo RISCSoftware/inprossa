@@ -38,7 +38,8 @@ class AwsClient:
     def send_prompt(self,
             system_prompt: str = None,
             prompt: str = None,
-            max_tokens = 700) -> str:
+            max_tokens = 700,
+            temperature = None) -> str:
 
         response = ""
 
@@ -53,7 +54,7 @@ class AwsClient:
                                 "messages": [{"role": "user", "content": [{"text": prompt}]}],
                                 "inferenceConfig": {
                                     'maxTokens': max_tokens,
-                                    'temperature': self.temperature
+                                    'temperature': self.temperature if temperature is None else temperature
                                 }
                             })
                         )
@@ -65,7 +66,7 @@ class AwsClient:
                                 "messages": [{"role": "user", "content": [{"text": prompt}]}],
                                 "inferenceConfig": {
                                     'maxTokens': max_tokens,
-                                    'temperature': self.temperature}
+                                    'temperature':  self.temperature if temperature is None else temperature}
                             })
                         )
                 elif "anthropic" in self.model_id:
@@ -81,7 +82,7 @@ class AwsClient:
                                 "system": system_prompt,
                                 "messages": messages,
                                 "max_tokens": max_tokens,
-                                "temperature": self.temperature
+                                "temperature": self.temperature if temperature is None else temperature
                             })
                         )
                     else:
@@ -93,7 +94,7 @@ class AwsClient:
                                 "anthropic_version": "bedrock-2023-05-31",
                                 "messages": messages,
                                 "max_tokens": max_tokens,
-                                "temperature": self.temperature
+                                "temperature": self.temperature if temperature is None else temperature
                             })
                         )
                 elif "llama" in self.model_id:
@@ -116,7 +117,7 @@ class AwsClient:
                         body=json.dumps({
                             "prompt": formatted_prompt,
                             "max_gen_len": 512,
-                            "temperature": 0.5,
+                            "temperature": self.temperature if temperature is None else temperature,
                         })
                     )
                 else:
@@ -132,7 +133,7 @@ class AwsClient:
                         body=json.dumps({
                             "messages": messages,
                             "max_tokens": max_tokens,
-                            "temperature": self.temperature
+                            "temperature": self.temperature if temperature is None else temperature
                         })
                     )
 
@@ -148,7 +149,7 @@ class AwsClient:
                         messages=[{"role": "user", "content": [{"text": prompt}]}],
                         inferenceConfig={
                             'maxTokens': max_tokens,
-                            'temperature': self.temperature
+                            'temperature': self.temperature if temperature is None else temperature
                         }
                     )
                 else:
@@ -158,7 +159,7 @@ class AwsClient:
                         system=[{"text": system_prompt}],
                         inferenceConfig={
                             'maxTokens': max_tokens,
-                            'temperature': self.temperature
+                            'temperature': self.temperature if temperature is None else temperature
                         }
                     )
         except Exception as e:

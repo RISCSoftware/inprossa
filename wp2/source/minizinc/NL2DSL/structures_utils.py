@@ -35,7 +35,7 @@ class State(Enum):
 
 class Type(Enum):
     UNMODIFIED = "unmodified"
-    MUTED = "muted"
+    MUTATED = "muted"
     MERGED = "merged"
 
 class PolishModel:
@@ -565,6 +565,28 @@ minimize(objective)
         variable_block += raw_code
 
     # Execute code block of partial/full formulation
+    return execute_code_block(variable_block, node, include_solver_execution=(node.level >= 3))
+
+def check_executability_for_polish(raw_code : str, model: PolishModel):
+    if "Annotated[list[" in raw_code and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', raw_code):
+        return f"Error: {raw_code}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le). Demonstration example for a list of integers: Annotated[list[Annotated[int, Field(lb=-10,ub=10)]], Len(2,2)]"
+
+    # Safety check: no json has be returned instead of code
+    if is_valid_json(raw_code) or raw_code.startswith("{") or raw_code.startswith("["):
+        return f"Error: Result must not be json objects, valid {constants.CHOSEN_LANGUAGE} code."
+
+    # Result must not be empty
+    if raw_code == "": return "Error - Invalid result: Result is empty."
+
+    # Safety check: check that there are no non-constants in range
+    m = re.search(r"range\((?:\s*(?=[^,\(\)\[\]]+[a-z])[^,\(\)\[\]]+,\s*[^)]+|\s*[^,\(\)\[\]]+,\s*(?=[^) ]+[a-z])[^)]+)\):", raw_code)
+    if m:
+        return f"Error - range incorrectly used. Correct use is range(<val_1>,<val_2>) where val_1 and val_2 must be a constant variable or a integer value: {m.group(0)}"
+
+    # Execute code block of partial/full formulation
+    return execute_code_block(raw_code, model, include_solver_execution=True)
+
+def execute_code_block(variable_block: str, node, include_solver_execution: bool = False):
     variable_block = initial_clean_up(variable_block)
     try:
         if USE_OPTDSL:
@@ -573,7 +595,7 @@ minimize(objective)
             model = MiniZincTranslator(variable_block).unroll_translation()
             try:
                 # Semantic CHECK
-                if node.level >= 3: return check_solver_executability(model, node)
+                if include_solver_execution: return check_solver_executability(model, node)
             except Exception as e:
                 return str(e)
         else:
@@ -595,7 +617,7 @@ minimize(objective)
             m = re.search(r'File\s+"<string>",\s*line\s*(\d+)', m.group(1))
             line_no = int(m.group(1))
             lines = variable_block.splitlines()
-            line_with_error = lines[line_no-1]
+            line_with_error = lines[line_no - 1]
             return f"{error_message} in line {line_no}: {line_with_error}\n"
         # Filter error from optdsl-translator
         m = re.search(r"(?m)^(?P<type>[\w.]+(?:Error|Exception)):\s*(?P<msg>.*)$", stack_trace_str)
@@ -625,100 +647,17 @@ minimize(objective)
             elif "ValueError: Variable" in exc_msg and "has incompatible types in if-else branches:" in exc_msg:
                 return "Do not extract assert-expression into temporary variables, but inline the expression within assert directly."
             elif "ListComp" in exc_msg:
-                return "Do not use list comprehension."
+                return "Do not use list comprehension or any list multiplication operator. Do not use function calls append() and extend() for DSList."
             elif "Unsupported statement: Break()" in exc_msg:
                 return "Do not use break statement."
             elif "undefined identifier `None" in exc_msg:
                 return "Do not use None."
             elif "ValueError - Unsupported statement: Pass()" in exc_msg:
                 return "Constraints/Objective FormatError"
+            elif "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int":
+                return "Do not use list comprehension or any list multiplication operator. Do not use function calls append() and extend() for DSList."
             return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
-
         return str(e)
-    return None
-
-def check_executability_for_polish(raw_code : str, model: PolishModel):
-    if "Annotated[list[" in raw_code and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', raw_code):
-        return f"Error: {raw_code}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le). Demonstration example for a list of integers: Annotated[list[Annotated[int, Field(lb=-10,ub=10)]], Len(2,2)]"
-
-    # Safety check: no json has be returned instead of code
-    if is_valid_json(raw_code) or raw_code.startswith("{") or raw_code.startswith("["):
-        return f"Error: Result must not be json objects, valid {constants.CHOSEN_LANGUAGE} code."
-
-    # Result must not be empty
-    if raw_code == "": return "Error - Invalid result: Result is empty."
-
-    # Safety check: check that there are no non-constants in range
-    m = re.search(r"range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\)", raw_code)
-    if m:
-        return f"Error - range incorrectly used. Correct use is range(<val_1>,<val_2>) where val_1 and val_2 must be a constant variable or a integer value: {m.group(0)}"
-
-    # Execute code block of partial/full formulation
-    variable_block = initial_clean_up(raw_code)
-    try:
-        if USE_OPTDSL:
-            # Syntax CHECK
-            compile(variable_block, "<string>", "exec")
-            minizinc_model = MiniZincTranslator(variable_block).unroll_translation()
-            try:
-                # Semantic CHECK
-                return check_solver_executability(minizinc_model, model)
-            except Exception as e:
-                return str(e)
-        else:
-            exec(variable_block, {})
-    except SyntaxError as e:
-        return f"Syntax Error \"{e.msg}\" in line {e.lineno}, at offset {e.offset}: {e.text.rstrip() if e.text else None}"
-    except Exception as e:
-        logger.exception(e)
-        if "unexpected indent" in str(e):
-            return f"Constraints/Objective FormatError"
-        exc_type, exc_value, exc_tb = sys.exc_info()
-        stack_trace_str = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
-        # Filter error for z3
-        m = re.search(r'(?s).*?(File\s+"<string>",\s*line\s*\d+)(?!.*File\s+"<string>",\s*line\s*\d+)', stack_trace_str)
-        error_message = str(e)
-        if m:
-            m = re.search(r'File\s+"<string>",\s*line\s*(\d+)', m.group(1))
-            line_no = int(m.group(1))
-            lines = variable_block.splitlines()
-            line_with_error = lines[line_no-1]
-            return f"{error_message} in line {line_no}: {line_with_error}\n"
-        # Filter error from optdsl-translator
-        m = re.search(r"(?m)^(?P<type>[\w.]+(?:Error|Exception)):\s*(?P<msg>.*)$", stack_trace_str)
-        if m:
-            exc_type = m.group("type")
-            exc_msg = m.group("msg")
-            if exc_msg == 'Unknown type string: DSList':
-                return f"Error: Variable list object type definition must adhere to the EBNF\ngrammar <variable_name> : \"DSList\" \"(\" FunArgs([\"length\", \"elem_type\"]) \")\"."
-            elif exc_msg == 'Unknown type string: DSInt':
-                return f"Error: Variable object type definition must adhere to the EBNF\n<variable_name> : grammar \"DSInt\" \"(\" FunArgs([\"lb\", \"ub\"]) \")\"."
-            elif exc_msg == 'Unknown type string: DSFloat':
-                return f"Error: Variable object type definition must not have type DSFloat, but must adhere to the EBNF grammar \"DSFloat\" \"(\" FunArgs([\"lb\", \"ub\"]) \")\"."
-            elif exc_msg == 'Unknown type string: DSBool':
-                return f"Error: Variable object type definition must not have type DSBool, but must adhere to the EBNF grammar \"DSBool\" \"(\" \")\"."
-            elif exc_msg == 'Unknown type string: DSRecord':
-                return f"Error: Variable object type definition must not have type DSRecord, but must adhere to the EBNF grammar \"DSRecord\" \"(\" \"{{\" RecordField (\",\" RecordField)* \"}}\" \")\"."
-            elif exc_msg == "'int' object is not subscriptable":
-                return f"Error: Do not perform calculations within index brackets. Instead, calculate it as temporary variable and then use it for accessing the list index."
-            elif "attr='append', ctx=Load())," in exc_msg:
-                return f"Error - Do not use function calls append() and extend() for DSList."
-            elif "Only returning names or tuple of names is supported." in exc_msg:
-                return f"Error - Functions support returning names or tuple of names only. Either do not call return or only return names or tuple of names, no integer values or dummies. Also is the number of output parameters correct?"
-            elif "tuple[" in exc_msg:
-                return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or one of the given object types in \"--- Objects ---\", or complex type list as typing."
-            elif "incompatible types" in exc_msg:
-                return f"For assert expressions, do not extract calculations or single object-fields. Inline them!"
-            elif "\\/" in exc_msg:
-                return "Incompatible types used in one of the or-expressions in the code beneath \"# --- Incorrect code ---\". Check and correct all or-expressions, only boolean can be used with or-expressions."
-            elif "/\\" in exc_msg:
-                return "Incompatible types used in one of the and-expressions in the code beneath \"# --- Incorrect code ---\". Check and correct all and-expressions, only boolean can be used with and-expressions."
-            elif "ValueError: Variable" in exc_msg and "has incompatible types in if-else branches:" in exc_msg:
-                return "Do not extract assert-expression into temporary variables, but inline the expression within assert directly."
-            return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
-
-        return str(e)
-    return None
 
 def check_solver_executability(model: str, node):
     # Safety check: replace python True/False with lower case equivalent for OptDSL
@@ -972,7 +911,7 @@ def load_sp_file(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
 
-def load_algopolish_file(file_path) -> str:
+def load_algopolish_mutation_file(file_path) -> str:
     file_path = "prompts/algopolish/" + file_path
     with open(file_path, "r", encoding="utf-8") as f:
         return f.read()

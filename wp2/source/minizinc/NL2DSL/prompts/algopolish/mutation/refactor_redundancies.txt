@@ -1,3 +1,8 @@
+[Code]
+```python
+{}
+```
+
 [Task]
 The goal is to improve performance by radically removing redundancies within the encoded pythonic OptDsl model implemented above.
 Modify the code so that the redundancies in terms of variables and blocks, while preserving the encoded logic and constraints.

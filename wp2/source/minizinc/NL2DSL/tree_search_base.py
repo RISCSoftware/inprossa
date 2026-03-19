@@ -4,7 +4,7 @@ import json
 import constants
 from BinPackingValidator import validate_solution
 from prompt_generation_utils import create_and_send_prompt_for_strictly_iterative_approach, \
-    enter_variable_definitions_feedback_loop, LOOP_OF_DOOM_MAX_IT, send_feedback
+    enter_feedback_loop, LOOP_OF_DOOM_MAX_IT, send_feedback
 from structures_utils import RootNode, ObjectsNode, VariablesConstantsNode, \
     ObjectiveNode, ConstraintsNode, State, remove_programming_environment, initial_clean_up, \
     check_executability, split_at_outer_equals
@@ -54,10 +54,10 @@ class TreeBase:
         response = create_and_send_prompt_for_strictly_iterative_approach(datatypes_node,
                                                                           llm=self.llm,
                                                                           full_problem_description=self.problem_description)
-        response = enter_variable_definitions_feedback_loop(datatypes_node,
-                                                            response,
-                                                            llm=self.llm,
-                                                            full_problem_description=self.problem_description)
+        response = enter_feedback_loop(datatypes_node,
+                                       response,
+                                       llm=self.llm,
+                                       full_problem_description=self.problem_description)
         datatypes_node.set_llm_generated_objects(response)
         # Partially script generated
         if self.objects_spec:
@@ -93,10 +93,10 @@ class TreeBase:
             response = create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node,
                                                                        llm=self.llm,
                                                                        full_problem_description=self.problem_description)
-            response = enter_variable_definitions_feedback_loop(constants_variables_node,
-                                                                response,
-                                                                llm=self.llm,
-                                                                full_problem_description=self.problem_description)
+            response = enter_feedback_loop(constants_variables_node,
+                                           response,
+                                           llm=self.llm,
+                                           full_problem_description=self.problem_description)
             successfully_added = constants_variables_node.set_constants(response, self.problem_description[0])
             i += 1
         # send_feedback(constants_variables_node)
@@ -124,10 +124,10 @@ class TreeBase:
                 create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node,
                                                                        llm=self.llm,
                                                                        full_problem_description=self.problem_description))
-            response = enter_variable_definitions_feedback_loop(constants_variables_node,
-                                                                response,
-                                                                llm=self.llm,
-                                                                full_problem_description=self.problem_description)
+            response = enter_feedback_loop(constants_variables_node,
+                                           response,
+                                           llm=self.llm,
+                                           full_problem_description=self.problem_description)
             successfully_added = constants_variables_node.set_variables(response, self.problem_description[1])
             i += 1
         # send_feedback(constants_variables_node)
@@ -146,10 +146,10 @@ class TreeBase:
         response = create_and_send_prompt_for_strictly_iterative_approach(obj_function_node,
                                                                    llm=self.llm,
                                                                    full_problem_description=self.problem_description)
-        response = enter_variable_definitions_feedback_loop(obj_function_node,
-                                                            response,
-                                                            llm=self.llm,
-                                                            full_problem_description=self.problem_description)
+        response = enter_feedback_loop(obj_function_node,
+                                       response,
+                                       llm=self.llm,
+                                       full_problem_description=self.problem_description)
 
         obj_function_node.set_content(remove_programming_environment(response))
         # print(f"*** Obj. function: {response}\n")
@@ -252,10 +252,10 @@ Semantic validation: {validation_res}
                                                                           llm=self.llm,
                                                                           subproblem_description=
                                                                           self.problem_description[i])
-        response = enter_variable_definitions_feedback_loop(constraints_node,
-                                                            response,
-                                                            llm=self.llm,
-                                                            subproblem_description=self.problem_description[i])
+        response = enter_feedback_loop(constraints_node,
+                                       response,
+                                       llm=self.llm,
+                                       subproblem_description=self.problem_description[i])
         constraints_node.set_content(response)
         # print(f"*** Constraints: {response}\n")
         if response == "":
