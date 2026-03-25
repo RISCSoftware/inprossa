@@ -5,8 +5,6 @@ import ast
 from typing import Any, Dict
 #from minizinc import Model, Solver, Instance
 import threading
-import pymzn
-from pymzn import Status
 
 import constants
 from constants import DEBUG_MODE_ON
@@ -68,14 +66,14 @@ class MiniZincSolver:
                          "--solver", constants.SOLVER,
                          "--statistics",
                          "--output-mode", "item",
-                         "--time-limit", "150000",
+                         "--time-limit", str(constants.SOLVE_TIME_TIMEOUT),
                          "--random-seed", "0",
                          "temp.mzn"],
                         text=True,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
                 try:
-                    solver_output, errs = result.communicate(timeout=180)
+                    solver_output, errs = result.communicate(timeout=constants.SOLVE_TIME_TIMEOUT)
                 except subprocess.TimeoutExpired:
                     if DEBUG_MODE_ON: print("Minizinc failed the first time - lets try that again")
                     result.kill()  # or proc.terminate()
@@ -110,7 +108,7 @@ class MiniZincSolver:
                 else:
                     parsed_solution.update({"solver_result_is": "optimal"})
                 print("Solver Output:\n", parsed_solution)
-                print("Solve time (sec):\n", solve_time)
+                print("Solve time (sec): ", solve_time)
                 return parsed_solution, solve_time
             else:
                 print("Output:\n", solver_output)
@@ -156,7 +154,7 @@ class MiniZincSolver:
         except Exception as e:
             print(f"Solver failed: {e}")
             return None, None
-    '''
+
 
     def solve_with_pymnz(self, minizinc_code: str):
         solns = pymzn.minizinc(minizinc_code, output_mode="item", timeout=60)
@@ -175,3 +173,4 @@ class MiniZincSolver:
                 return "unsatisfiable or unknown", None
         else:
             return "Semantic error", None
+'''

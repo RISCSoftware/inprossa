@@ -33,7 +33,7 @@ class AwsClient:
         if constants.DEBUG_MODE_ON: print(f"Swaping from {self.model_id} to {model_id}.")
         self.model_id = model_id
         self.set_region_id()
-        return self.send_prompt(system_prompt=system_prompt, prompt=prompt, max_tokens=max_tokens)
+        #return self.send_prompt(system_prompt=system_prompt, prompt=prompt, max_tokens=max_tokens)
 
     def send_prompt(self,
             system_prompt: str = None,

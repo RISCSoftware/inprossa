@@ -8,19 +8,26 @@
 
 [Task]
 Perform the following steps:
-1. Choose one description from [Object_approaches] that is different from the "# --- Objective ---" function in [Code]. Make sure this approach is also expressible in OptDSL. The chosen approach will be later used for step 3.
+1. Choose one description from [Object_approaches] that is different from the function in "# --- Objective ---" in [Code]. Make sure this approach is also expressible in OptDSL and has not tried out yet. The chosen approach will be later used for step 3.
 2. Remove the code within "# --- Objective ---" section in [Code].
-3. Take the chosen description from step 1. and encode it as valid OptDSL formulation into section "# --- Objective ---" in [Code]. Update the assignment to "objective" variable accordingly.
-Apply the following rules:
+3. Take the chosen description from step 1. and encode it as efficient, valid OptDSL formulation into section "# --- Objective ---" in [Code]. Update the assignment to "objective" variable accordingly. Note in a comment the name of the chosen approach.
+Fulfill the following rules:
 - Never return the same answer twice, deliver diverse code.
 - Do not use list comprehension or any list multiplication operator. Code like `[1] * 5` and `[True for _ in range(1, 5)]` are illegal.
 - Do not use floating-point division.
-- Try other approaches then.
+- Use minimal necessary temporary variables.
+- Encode the function in the most efficient way and with minimal necessary number of lines.
+- Make sure there is a variable "objective". Constrain all given decision variables with asserts to assign them a value.
 - Provide your answer as valid OptDSL code enclosed with python codeblock in the following format:
 ```python
 # --- Objective ---
 <objective_function>
-```, replace <objective_function> with OptDSL code of the objective or leave empty, <constraints> with OptDSL code of the constraints of [Code]. You may merge objective function with constraints.
+objective = <objective_function>(...)
+<optimize>(objective)
+
+# --- Constraints ---
+<constraints>
+```, replace <objective_function> with OptDSL code of the objective function in a view lines, replace <optimize> with minimize or maximize, <constraints> with OptDSL code of the constraints of [Code]. Improve the constraints' efficiency. Merge objective function with constraints, if you want.
 
 [Problem]
 {}

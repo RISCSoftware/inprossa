@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from BinPackingValidator import validate_solution
 from input_reader import InputReader
-from structures_utils import initial_clean_up, check_solver_executability_for_plain_model, split_at_outer_equals
+from structures_utils import initial_clean_up, check_solver_executability_for_plain_model, split_at_outer_equals, State
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 
 
@@ -85,8 +85,8 @@ class ModelReuser():
         # Query object types, data types
         if "objects" in new_instance:
             model.update({"script_generated_objects": objects})
-        for object, initialization in model["script_generated_objects"].items():
-            full_formulation += initialization
+        for _, dsl_initialization in model["script_generated_objects"].items():
+            full_formulation += dsl_initialization
         if model["llm_generated_objects"] != "null":
             full_formulation += model["llm_generated_objects"] + "\n"
 
@@ -152,6 +152,7 @@ class ModelReuser():
         try:
             objective_val, solve_time, solution_model = check_solver_executability_for_plain_model(minizinc_model)
         except Exception as e:
+            model.update({"state": State.FAILED})
             print(str(e))
 
         model.update({"objective_val": objective_val})
@@ -173,11 +174,14 @@ class ModelReuser():
         except AssertionError as e:
             validation_res = f"Failed to validate solution: {e}"
             model.update({"validated": False})
+            model.update({"state": State.FAILED})
         except Exception as e:
             validation_res = f"Evaluation failed: {e}"
             model.update({"validated": False})
+            model.update({"state": State.FAILED})
         else:
             validation_res = f"Successfully validated solution."
             model.update({"validated": True})
+            model.update({"state": State.CORRECT})
         model.update({"final_evaluation_result": validation_res})
         return model

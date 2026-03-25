@@ -22,6 +22,7 @@ LLM = None
 # **************** CUSTOMIZABLE SETTINGS ******************
 
 DEBUG_MODE_ON = True
+SOLVE_TIME_TIMEOUT = 1000
 RANDOM_SEED = 20
 RANDOM_STRING_LENGTH = 10
 
@@ -33,6 +34,7 @@ SAVE_MODEL = True
 SOLVER = "chuffed"
 
 # AlgoPolish
+ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_2D-BPP_CLASS_XS"
 CODE_LENGTH_PENALTY = 0.25
 
 # LLM Client
@@ -45,5 +47,4 @@ def get_LLM_client():
         #     model_name="Qwen2.5-Coder-7B-Q8_0-GGUF"
         # )
         LLM = AwsClient(model_id="qwen.qwen3-coder-480b-a35b-v1:0")                 # does well syntax-wise for iterative build-up and all-at-once, timeout
-
     return LLM

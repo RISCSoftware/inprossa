@@ -100,7 +100,7 @@ def CLASS_tot_with_semantic_feedback():
     formatted = datetime.now().strftime("%Y-%m-%d_%H-%M")
     files = os.listdir(directory)
     files.sort()
-    filename = files[15]
+    filename = files[0]
     filepath = os.path.join(directory, filename)
     print(f"""----------------------------------------------------------------------------
         Starting run for {filename}: """)

@@ -1,16 +1,15 @@
 import copy
 import json
-import re
-
 import constants
+
 from BinPackingValidator import validate_solution
-from input_reader import InputReader
-from model_reuser import ModelReuser
 from prompt_generation_utils import send_prompt_with_system_prompt, send_polish_feedback, _get_system_prompt, _get_icl, \
     send_prompt_without_system_prompt
-from structures_utils import (initial_clean_up, PolishModel, check_executability_for_polish, \
-    split_at_outer_equals, Type, load_algopolish_mutation_file, decompose_full_polished_definition,
-                              check_functions_appear_twice)
+from structures_utils import (initial_clean_up, \
+                              split_at_outer_equals, Type, load_algopolish_mutation_file,
+                              decompose_full_polished_definition,
+                              check_functions_appear_twice, State)
+from structures_utils_PolishModel import PolishModel, check_executability_for_polish
 
 LOOP_OF_DOOM_UNSAT_MAX_IT = 2
 LOOP_OF_DOOM_MAX_IT = 4
@@ -20,7 +19,7 @@ FAILED_GENERATIONS = []  # problem desc. indices of failed generation steps
 
 class AlgoPolish:
     POLISHING_ITERATIONS = 2
-    POLISHING_MUTATION_TYPES = ["mutation/refactor_redo_objective_fun.txt", "mutation/refactor_experiment.txt", "mutation/refactor_redo_objective_fun.txt", "mutation/refactor_redundancies.txt"]
+    POLISHING_MUTATION_TYPES = ["mutation/refactor_experiment.txt", "mutation/refactor_redundancies.txt"]
 
     def __init__(self, file_path: str = None, models: list[dict] = None):
         if file_path is not None:
@@ -30,12 +29,13 @@ class AlgoPolish:
         self.elites: list[PolishModel] = []
         self.llm = constants.get_LLM_client()
         assert models is not None, "Either file_path or models must be given."
+
         # Convert from OptDSL to pydantic for Mutation by LLM
         for i, model in enumerate(models):
             model_to_be_polished = PolishModel(model)
             model_to_be_polished.objective = initial_clean_up(model_to_be_polished.objective, to_typing=True)
             model_to_be_polished.constraints = initial_clean_up(model_to_be_polished.constraints, to_typing=True)
-            model_to_be_polished.calculate_and_set_fitness()
+            model_to_be_polished.fitness = 0.3 #model_to_be_polished.calculate_and_set_fitness()
             self.models.append(model_to_be_polished)
         fitness_vals = [model.fitness for model in self.models]
         self.cur_avg_fitness = sum(fitness_vals) / len(fitness_vals)
@@ -64,90 +64,93 @@ class AlgoPolish:
             #             if new_model is None: continue
             #             merged_models.append(new_model)
 
-            # Mutation
+            # Mutation - redefine objective function
             mutated_models = []
             for unmutated_model in improved_models:
                 mutated_model = copy.deepcopy(unmutated_model)
                 mutated_model.set_type(Type.MUTATED)
-                m_index = 0
-
-                if m_index == 0:
-                    old_encoding = mutated_model.get_variables_codeblock() + "\n\n" + mutated_model.objective #+ "\n\n" + mutated_model.constraints
-                    objective_approaches = send_prompt_without_system_prompt(
-                        load_algopolish_mutation_file("mutation/ask_for_objective_fun_algorithms.txt").format(problem_description.strip()),
-                        self.llm,
-                        0.4)
-                    new_encoding = send_prompt_with_system_prompt(
-                                    load_algopolish_mutation_file(AlgoPolish.POLISHING_MUTATION_TYPES[m_index]).format(old_encoding, objective_approaches, problem_description.strip())
-                                    if m_index == 0
-                                    else load_algopolish_mutation_file(AlgoPolish.POLISHING_MUTATION_TYPES[m_index]).format(old_encoding),
-                                    self.llm,
-                                    0.85)
-                    new_model = self._execute_and_validate_model(mutated_model, new_encoding, old_encoding, problem_description, m_index)
+                old_encoding = mutated_model.get_variables_codeblock() + "\n\n" + mutated_model.objective  + "\n\n" + mutated_model.constraints
+                objective_approaches = send_prompt_without_system_prompt(
+                    load_algopolish_mutation_file("mutation/ask_for_objective_fun_algorithms.txt").format(
+                        problem_description.strip()),
+                    self.llm,
+                    0.4)
+                new_encoding = send_prompt_with_system_prompt(
+                    load_algopolish_mutation_file("mutation/refactor_redo_objective_fun.txt").format(old_encoding,
+                                                                                                       objective_approaches,
+                                                                                                       problem_description.strip()),
+                    self.llm,
+                    0.95)
+                new_model = self._execute_and_validate_model(mutated_model, new_encoding, old_encoding,
+                                                             problem_description, m_index)
                 if new_model is None: continue
-                print(f"""Successful refactoring:
-*******************************************
-Obj. + Constraints: {new_encoding}
-Objective value: {mutated_model.objective_val}
-Solver time: {mutated_model.solve_time}
-Semantic validation: {new_model.solution_model}
-*******************************************""")
-                # Update model with new encoding
-                encoding_components = decompose_full_polished_definition(new_encoding)
-                mutated_model.objective = encoding_components["objective"]
-                mutated_model.constraints = encoding_components["constraints"]
 
                 # Check fitness
-                mutated_model.calculate_and_set_fitness()
-                if mutated_model.fitness < unmutated_model.fitness:
-                    mutated_models.append(mutated_model)
-                    send_polish_feedback(old_encoding=old_encoding, refactored_encoding=mutated_model.full_formulation, llm=self.llm)
-                else:
-                    mutated_models.append(unmutated_model)
+                #mutated_model.calculate_and_set_fitness()
+                if mutated_model.state == State.CORRECT: mutated_models.append(mutated_model)
+
+#             # Mutation (redundancy-removement, experiment)
+#             for unmutated_model in improved_models:
+#                 mutated_model = copy.deepcopy(unmutated_model)
+#                 mutated_model.set_type(Type.MUTATED)
+#
+#                 new_encoding = send_prompt_with_system_prompt(
+#                                 load_algopolish_mutation_file(AlgoPolish.POLISHING_MUTATION_TYPES[m_index]).format(old_encoding, problem_description.strip())
+#                                 if m_index == 0
+#                                 else load_algopolish_mutation_file(AlgoPolish.POLISHING_MUTATION_TYPES[m_index]).format(old_encoding),
+#                                 self.llm,
+#                                 0.85)
+#                 new_model = self._execute_and_validate_model(mutated_model, new_encoding, old_encoding, problem_description, m_index)
+#                 if new_model is None: continue
+
+#                 # Update model with new encoding
+#                 encoding_components = decompose_full_polished_definition(new_encoding)
+#                 mutated_model.objective = encoding_components["objective"]
+#                 mutated_model.constraints = encoding_components["constraints"]
+#
+#                 # Check fitness
+#                 mutated_model.calculate_and_set_fitness()
+#                 if mutated_model.fitness < unmutated_model.fitness:
+#                     mutated_models.append(mutated_model)
+#                     send_polish_feedback(old_encoding=old_encoding, refactored_encoding=mutated_model.full_formulation, llm=self.llm)
+#                 else:
+#                     mutated_models.append(unmutated_model)
 
     def _execute_and_validate_model(self, model: PolishModel, new_encoding: str, old_encoding: str, problem_description: str, m_index: int):
-        encoding_components = decompose_full_polished_definition(new_encoding)
-        # # Check executability for objective function
-        model.objective = encoding_components["objective"]
-        # response = self.enter_feedback_loop(model, model.get_variables_codeblock() + "#--- Objective ---\n" + model.objective,
-        #                                     old_encoding, problem_description, m_index)
-        # if response is None:
-        #     print("Refactoring failed, even with feedback loop.")
-        #     return None
-        # Check executability for constraints
-        model.constraints = encoding_components["constraints"]
-        new_encoding = self.enter_feedback_loop(model,
-                                            model.get_variables_codeblock() +
-                                            "\n#--- Objective ---\n" + model.objective +
-                                            "\n#--- Constraints ---\n" + model.constraints,
+        # Check executability for
+        new_encoding = self.enter_feedback_loop(model, new_encoding,
                                             old_encoding, problem_description, m_index)
-        if new_encoding is None:
+        if new_encoding is None or model.state == State.FAILED:
             print("Refactoring failed, even with feedback loop.")
             return None
         encoding_components = decompose_full_polished_definition(new_encoding)
-        model.objective = encoding_components["objective"]
-        model.constraints = encoding_components["constraints"]
-        # execution_error = check_executability_for_polish(model.get_variables_codeblock()
-        #                                                  + "\n\n"
-        #                                                  + encoding, model)
-        # if execution_error is not None:
-        #     print(f"Execution error: {execution_error}")
-        #     return None
+        if "objective" in encoding_components:
+            model.objective = "#--- Objective ---\n" + encoding_components["objective"]
+        if "constraints" in encoding_components:
+            model.constraints = "#--- Constraints ---\n" + encoding_components["constraints"]
         validation_result = self._validate_model(model, model.solution_model)
         print(f"""Successful refactoring:
         *******************************************
-        Obj. + Constraints: {new_encoding}
         Objective value: {model.objective_val}
         Solver time: {model.solve_time}
         Semantic validation: {validation_result}
         *******************************************""")
-        return model
+        return model if model.validated else None
 
     def enter_feedback_loop(self, model: PolishModel, new_encoding: str, old_encoding: str, problem_description: str, m_index: int):
         execution_error = None
         for _ in range(MAX_NR_RESETS):
             nr_unsat_error = 0
             for i in range(LOOP_OF_DOOM_MAX_IT):
+                encoding_components = decompose_full_polished_definition(new_encoding)
+                if "objective" in encoding_components:
+                    model.objective = encoding_components["objective"]
+                if "constraints" in encoding_components:
+                    model.constraints = encoding_components["constraints"]
+                new_encoding = model.get_variables_codeblock() + \
+                                "\n\n#--- Objective ---\n" + model.objective + \
+                                "\n\n#--- Constraints ---\n" + model.constraints
+
                 # Send prompt anew, no feedback loop
                 if ("NTD" in new_encoding or
                     "Minizinc Solver Error" in new_encoding or
@@ -165,6 +168,7 @@ Semantic validation: {new_model.solution_model}
                         0.9)
                     execution_error = None
                     nr_unsat_error = 0
+                    continue
 
                 # Check for syntactical correctness and handle execution error, if no "Constraints/Objective FormatError" has occurred yet
                 if execution_error is None:
@@ -205,7 +209,7 @@ Semantic validation: {new_model.solution_model}
     <corrected code>
     ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
                                    """,
-                            max_tokens=1000
+                            max_tokens=3000
                         ))
                     elif "Semantic Error" in execution_error:
                         new_encoding = (self.llm.send_prompt(
@@ -224,7 +228,7 @@ Semantic validation: {new_model.solution_model}
     <corrected code>
     ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
                                    """,
-                            max_tokens=1000
+                            max_tokens=3000
                         ))
                         nr_unsat_error += 1
                     elif "Memory violation" in execution_error:
@@ -239,7 +243,7 @@ Semantic validation: {new_model.solution_model}
                                    "# --- Incorrect Code ---\n" +
                                    "<corrected code>\n" +
                                    "\n´´´, where <corrected code> all lines underneath \"# --- Incorrect Code ---\" with the corrections.",
-                            max_tokens=1500
+                            max_tokens=3000
                         ))
                     else:
                         new_encoding = (self.llm.send_prompt(
@@ -253,10 +257,21 @@ Semantic validation: {new_model.solution_model}
                                    "# --- Incorrect Code ---\n" +
                                    "<corrected code>\n" +
                                    "\n´´´, where <corrected code> are all lines underneath \"# --- Incorrect Code ---\" including the corrections.",
-                            max_tokens=1500
+                            max_tokens=3000
                         ))
                     execution_error = None
                 else:
+                    # Safety check: timeout reached and no objective value found
+                    if model.solve_time is None:
+                        model.state = State.FAILED
+                        if constants.DEBUG_MODE_ON: print(
+                            f"Timeout reached and no objective value found")
+                        new_encoding = (self.llm.send_prompt(
+                            system_prompt=( _get_system_prompt("format_sp")) + "\n" + _get_icl(),
+                            prompt=f"´´´ python\n" +
+                                   f"\n{model.get_variables_codeblock()}\n{new_encoding} ´´´\n\n" +
+                                   f"The OptDSL encoding above did not reach a solution within the given timeframe. Improve its efficiency by removing redundancies.",
+                            max_tokens=3000))
                     # Safety check: Prevent false-positive exec-run-through by sneakily never calling function
                     not_twice_appearing_func = check_functions_appear_twice(new_encoding)
                     if len(not_twice_appearing_func) > 0:
@@ -271,16 +286,16 @@ Semantic validation: {new_model.solution_model}
                                    f"\n{model.get_partial_formulation_up_until_now()}\n{new_encoding} ´´´\n\n" +
                                    f"The following functions are defined but never called, {not_twice_appearing_func}" +
                                    "Add the missing function calls to the code with the correct parameters. Do not return exactly the given code snippet.",
-                            max_tokens=800))
+                            max_tokens=3000))
                         continue
+                    model.state = State.CORRECT
                     return new_encoding
 
-            # Attempt reset
+            # Switch models
             self.llm.send_prompt_with_model_id(
                 model_id=(
                     "qwen.qwen3-coder-30b-a3b-v1:0" if self.llm.model_id == "qwen.qwen3-coder-480b-a35b-v1:0" else "qwen.qwen3-coder-480b-a35b-v1:0"),
-                prompt="",
-                max_tokens=1
+                prompt=""
             )
             new_encoding = model.get_variables_codeblock() + send_prompt_with_system_prompt(
                 load_algopolish_mutation_file(AlgoPolish.POLISHING_MUTATION_TYPES[m_index]).format(
@@ -314,17 +329,11 @@ Semantic validation: {new_model.solution_model}
             model.validated = True
         return validation_res
 
-    def _get_elites(self, top_n: int = None):
-        #elites = [model for model in self.models if model.fitness > self.cur_avg_fitness]
+    def _get_elites(self, top_n: int = 10):
         elites = [model for model in self.models if model.objective_val <= self.min_objective_val+4]
         if top_n is not None: elites = self.elites[:top_n]
         return elites
 
-    def _test_on_training_set(self):
-        model = self.models[0]
-        model = ModelReuser.use_given_model_with_input(model.get_as_dict(), "problem_descriptions/testset/test_inst_3.json")
-        i = 5
-        return model["objective_val"]
 
 def main():
     # Read problem description
@@ -336,10 +345,10 @@ def main():
         if isinstance(description_part, dict): continue
         problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
 
-    polishSomething = AlgoPolish(file_path="models/optDSL_models_2026-03-09_15-42.json")
+    constants.SOLVE_TIME_TIMEOUT = 20000
+    polishSomething = AlgoPolish(file_path="models/optDSL_models_smoll.json")
     polishSomething.polish(problem_description)
-    #polishSomething._test_on_training_set()
-
+    constants.SOLVE_TIME_TIMEOUT = 150000
 
 if __name__ == "__main__":
     main()

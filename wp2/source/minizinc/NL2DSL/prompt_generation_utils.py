@@ -374,15 +374,11 @@ Return your answer in the format
                         continue
                 return raw_definitions
 
-        # Attempt reset
+        # Switch models
         llm.send_prompt_with_model_id(
             model_id=(
                 "qwen.qwen3-coder-30b-a3b-v1:0" if llm.model_id == "qwen.qwen3-coder-480b-a35b-v1:0" else "qwen.qwen3-coder-480b-a35b-v1:0"),
-            # model_id=("eu.amazon.nova-lite-v1:0" if llm.model_id == "eu.amazon.nova-pro-v1:0" else "eu.amazon.nova-pro-v1:0"),
-            # model_id=("eu.anthropic.claude-3-5-sonnet-20240620-v1:0" if llm.model_id == "eu.anthropic.claude-3-7-sonnet-20250219-v1:0" else "eu.anthropic.claude-3-7-sonnet-20250219-v1:0"),
-            # model_id=("openai.gpt-oss-120b-1:0" if llm.model_id == "eu.amazon.nova-pro-v1:0" else "eu.amazon.nova-pro-v1:0"),
-            prompt="",
-            max_tokens=1
+            prompt=""
         )
         create_and_send_prompt_for_strictly_iterative_approach(node,
                                                                full_problem_description=full_problem_description,
