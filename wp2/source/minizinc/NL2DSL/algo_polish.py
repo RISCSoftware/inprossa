@@ -346,7 +346,7 @@ def main():
         problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
 
     constants.SOLVE_TIME_TIMEOUT = 20000
-    polishSomething = AlgoPolish(file_path="models/optDSL_models_smoll.json")
+    polishSomething = AlgoPolish(file_path="models/algopolish_test_smoll.json")
     polishSomething.polish(problem_description)
     constants.SOLVE_TIME_TIMEOUT = 150000
 

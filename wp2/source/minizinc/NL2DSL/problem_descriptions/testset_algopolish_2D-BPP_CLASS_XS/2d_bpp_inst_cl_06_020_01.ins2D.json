@@ -1,0 +1,151 @@
+{
+    "objects": {
+        "Item": [
+            {
+                "name": "width",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 300
+            },
+            {
+                "name": "height",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 300
+            }
+        ],
+        "X_Y_Position": [
+            {
+                "name": "x",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 300
+            },
+            {
+                "name": "y",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 300
+            }
+        ]
+    },
+    "input_variables": {
+        "BOX_HEIGHT": {
+            "type": "integer",
+            "value": 300
+        },
+        "BOX_WIDTH": {
+            "type": "integer",
+            "value": 300
+        },
+        "ITEMS": {
+            "type": {
+                "elem_type": "Item",
+                "length": 20
+            },
+            "value": [
+                {
+                    "width": 50,
+                    "height": 85
+                },
+                {
+                    "width": 35,
+                    "height": 14
+                },
+                {
+                    "width": 94,
+                    "height": 54
+                },
+                {
+                    "width": 47,
+                    "height": 62
+                },
+                {
+                    "width": 52,
+                    "height": 25
+                },
+                {
+                    "width": 96,
+                    "height": 67
+                },
+                {
+                    "width": 1,
+                    "height": 43
+                },
+                {
+                    "width": 24,
+                    "height": 42
+                },
+                {
+                    "width": 53,
+                    "height": 86
+                },
+                {
+                    "width": 11,
+                    "height": 31
+                },
+                {
+                    "width": 52,
+                    "height": 65
+                },
+                {
+                    "width": 66,
+                    "height": 11
+                },
+                {
+                    "width": 76,
+                    "height": 25
+                },
+                {
+                    "width": 36,
+                    "height": 94
+                },
+                {
+                    "width": 36,
+                    "height": 42
+                },
+                {
+                    "width": 97,
+                    "height": 24
+                },
+                {
+                    "width": 76,
+                    "height": 29
+                },
+                {
+                    "width": 61,
+                    "height": 79
+                },
+                {
+                    "width": 74,
+                    "height": 29
+                },
+                {
+                    "width": 71,
+                    "height": 69
+                }
+            ]
+        }
+    },
+    "output_variables": {
+        "nr_used_boxes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+        },
+        "item_box_assignments": {
+            "type": {
+                "elem_type": "integer",
+                "minimum": 1,
+                "maximum": 20,
+                "length": 20
+            }
+        },
+        "x_y_positions": {
+            "type": {
+                "elem_type": "X_Y_Position",
+                "length": 20
+            }
+        }
+    }
+}
