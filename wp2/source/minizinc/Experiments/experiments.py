@@ -1,6 +1,6 @@
 from Projects.BinPackingWithCutting.templates import create_bin_packing_codes
-from Experiments.create_figures import improvement_and_scatter_plots
-from Experiments.create_csv import instances_to_csv
+from create_figures import improvement_and_scatter_plots
+from create_csv import instances_to_csv
 
 function_mapping = {
     "bin_packing_with_cutting": create_bin_packing_codes

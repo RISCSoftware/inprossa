@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from Experiments.Instance import InstanceProgress
+from Instance import InstanceProgress
 from src.optdsl.translator.Objects.MiniZincTranslator import MiniZincTranslator
 from src.optdsl.solver.Minizinc_solver import MiniZincRunner
 
@@ -64,17 +64,17 @@ def improvement_and_scatter_plots(
     
     create_scatter_plot(
         instances,
-        formulation_1="dsl_formulation_4",
+        formulation_1="dsl_formulation_1",
         formulation_2="minizinc_formulation_1",
-        location=f"Data/{name}/scatter_plots/dsl_formulation_4_vs_minizinc_formulation_1.png",
+        location=f"Data/{name}/scatter_plots/dsl_formulation_1_vs_minizinc_formulation_1.png",
         print_figures=print_figures
         )
     
     create_scatter_plot(
         instances,
-        formulation_1="dsl_formulation_4",
+        formulation_1="dsl_formulation_1",
         formulation_2="minizinc_formulation_2",
-        location=f"Data/{name}/scatter_plots/dsl_formulation_4_vs_minizinc_formulation_2.png",
+        location=f"Data/{name}/scatter_plots/dsl_formulation_1_vs_minizinc_formulation_2.png",
         print_figures=print_figures
         )
     

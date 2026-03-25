@@ -33,7 +33,6 @@ class MiniZincRunner:
                 history["times"].append(time_so_far)
                 history["objectives"].append(res.objective)
                 best_solution = {name: getattr(res.solution, name) for name in dir(res.solution) if not name.startswith("__")}
-        print("Final result:", final_result)
         result = {
             "best_solution": best_solution,
             "statistics": final_result.statistics,
