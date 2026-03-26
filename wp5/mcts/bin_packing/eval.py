@@ -11,26 +11,23 @@ Usage:
 """
 
 import os
+
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["JAX_TRACEBACK_FILTERING"] = "off"
+
+
 import pickle
 import sys
 import time
 from functools import partial
 
-import numpy as np
-
 import jax
 import jax.numpy as jnp
 import mctx
-
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["JAX_TRACEBACK_FILTERING"] = "off"
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-
+import numpy as np
 from pydantic import BaseModel
 
-from env import (
+from mcts.bin_packing.env import (
     DEFAULT_MAX_ITEM_SIZE,
     DEFAULT_MAX_ITEMS,
     DEFAULT_MIN_ITEM_SIZE,
@@ -38,7 +35,15 @@ from env import (
     init,
     step_env,
 )
-from net import BinPackingNet, to_tokens
+from mcts.bin_packing.net import BinPackingNet, make_attention_mask, to_tokens
+
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
+os.environ["JAX_TRACEBACK_FILTERING"] = "off"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+
+
+DEFAULT_MAX_ITEMS = 128  # DEBUG
 
 
 # Must mirror train.py exactly so pickle can resolve __main__.Config
@@ -68,9 +73,10 @@ class Config(BaseModel):
 # ---------------------------------------------------------------------------
 
 # _CKPT_DIR = "/workspace/checkpoints/bin_packing_20260312000804"  # old encoding
-_CKPT_DIR = "/workspace/checkpoints/bin_packing_20260312173659"
-_DEFAULT_CKPT = os.path.join(_CKPT_DIR, "000399.ckpt")
-_DEFAULT_BATCH = 256
+# _CKPT_DIR = "/workspace/checkpoints/bin_packing_20260312173659"  # also old encoding
+_CKPT_DIR = "/workspace/checkpoints/bin_packing_20260313133031"
+_DEFAULT_CKPT = os.path.join(_CKPT_DIR, "000400.ckpt")
+_DEFAULT_BATCH = 12  # DEBUG
 _DEFAULT_SEED = 42
 
 
@@ -95,15 +101,27 @@ def main():
             elif k == "seed":
                 seed = int(v)
 
+    # --- Devices -------------------------------------------------------------
+    devices = jax.local_devices()
+    num_devices = len(devices)
+    print(f"Devices   : {num_devices}  ({[d.platform for d in devices]})")
+
+    assert batch_size % num_devices == 0, f"batch_size {batch_size} must be divisible by num_devices {num_devices}"
+    batch_per_device = batch_size // num_devices
+
     # --- Load checkpoint -----------------------------------------------------
     print(f"Loading: {ckpt_path}")
     with open(ckpt_path, "rb") as f:
         ckpt = pickle.load(f)
 
-    config = ckpt["config"]
+    # config = ckpt["config"]
+    config = Config()
     params = ckpt["params"]  # single-device params (saved as params[0] in train.py)
     print(f"Iteration : {ckpt['iteration']}")
     print(f"Config    : {config}")
+
+    # Replicate params to all devices
+    params = jax.device_put_replicated(params, devices)
 
     max_items = config.max_items
     num_simulations = config.num_simulations
@@ -125,13 +143,16 @@ def main():
     neg_inf = jnp.finfo(jnp.float32).min
 
     # --- Recurrent function (identical to train.py) --------------------------
+    # params is the first argument as per the mctx convention; pmap passes the
+    # per-device slice automatically when this is called inside a pmapped fn.
 
     def recurrent_fn(params, rng_key, action, state: BinPackingState):
         del rng_key
         prev_rewards = state.rewards
         next_state = jax.vmap(_step)(state, action)
         tokens = jax.vmap(_to_tokens)(next_state.observation)
-        value, bin_logits = net.apply(params, tokens)
+        mask = jax.vmap(make_attention_mask)(next_state.observation)  # (batch, SEQ_LEN, SEQ_LEN)
+        value, bin_logits = net.apply(params, tokens, mask)
         logits = bin_logits[:, 1 : max_items + 1]
         logits = jnp.where(next_state.legal_action_mask, logits, neg_inf)
         reward = next_state.rewards - prev_rewards
@@ -151,19 +172,46 @@ def main():
     rng = jax.random.PRNGKey(seed)
     rng, subkey = jax.random.split(rng)
     keys = jax.random.split(subkey, batch_size)
-    init_states: BinPackingState = jax.vmap(_init)(keys)
+    init_states_flat: BinPackingState = jax.vmap(_init)(keys)
 
-    n_bins_opt_mean = float(init_states.n_bins_opt.mean())
-    n_bins_opt_std = float(init_states.n_bins_opt.std())
+    n_bins_opt_mean = float(init_states_flat.n_bins_opt.mean())
+    n_bins_opt_std = float(init_states_flat.n_bins_opt.std())
     print(f"\nGround truth  n_bins_opt : {n_bins_opt_mean:.2f} ± {n_bins_opt_std:.2f}  " f"(batch={batch_size})")
 
-    # --- One JIT-compiled MCTS step ------------------------------------------
+    # Reshape to (num_devices, batch_per_device, ...) for pmap
+    def shard(x):
+        return x.reshape((num_devices, batch_per_device) + x.shape[1:])
 
-    @jax.jit
-    def mcts_step(key: jnp.ndarray, state: BinPackingState):
+    def unshard(x):
+        return x.reshape((-1,) + x.shape[2:])
+
+    init_states: BinPackingState = jax.tree_util.tree_map(shard, init_states_flat)
+
+    # --- Visualization setup (items array is fixed; record actions during eval) --
+    N_VIS = 10
+    n_vis = min(N_VIS, batch_size)
+    # Capture items for ALL episodes; vis episode selection happens after both loops.
+    all_items_np = np.asarray(jax.device_get(init_states_flat.items))  # (batch_size, max_items)
+
+    def build_bin_contents(vis_records, episode_ids):
+        """Replay recorded (steps, terminated, actions) tuples for selected episodes."""
+        n = len(episode_ids)
+        bin_contents = [[[] for _ in range(max_items)] for _ in range(n)]
+        for steps, terminated, actions in vis_records:
+            for out_ep, ep in enumerate(episode_ids):
+                if terminated[ep]:
+                    continue
+                bin_contents[out_ep][actions[ep]].append(float(all_items_np[ep, steps[ep]]))
+        return bin_contents
+
+    # --- One pmap-compiled MCTS step -----------------------------------------
+
+    @jax.pmap
+    def mcts_step(params, key: jnp.ndarray, state: BinPackingState):
         key, key1 = jax.random.split(key)
         tokens = jax.vmap(_to_tokens)(state.observation)
-        value, all_logits = net.apply(params, tokens)
+        mask = jax.vmap(make_attention_mask)(state.observation)  # (batch, SEQ_LEN, SEQ_LEN)
+        value, all_logits = net.apply(params, tokens, mask)
         bin_logits = all_logits[:, 1 : max_items + 1]
 
         # For already-terminated episodes the legal mask is all-False, which
@@ -193,19 +241,31 @@ def main():
         # (action_weights), not policy_output.action which includes Gumbel noise.
         action = jnp.argmax(policy_output.action_weights, axis=-1)
         next_state = jax.vmap(_step)(state, action)
-        return key, next_state
+        return key, next_state, action
 
-    # --- MCTS rollout (Python loop so JIT compiles once, reuses thereafter) --
+    # --- MCTS rollout (Python loop so pmap compiles once, reuses thereafter) --
     print(f"\nRunning MCTS evaluation  " f"(batch={batch_size}, num_simulations={num_simulations}) ...")
-    print("JIT-compiling first step (may take ~1 min) ...")
+    print("Compiling first step (may take ~1 min) ...")
 
     rng, subkey = jax.random.split(rng)
+    pmap_keys = jax.random.split(subkey, num_devices)  # one key per device
     state = init_states
     step_count = 0
     t0 = time.time()
+    mcts_vis_records = []  # list of (steps, terminated, actions) for vis episodes
 
     while not bool(jnp.all(state.terminated)):
-        subkey, state = mcts_step(subkey, state)
+        # Capture pre-step info for ALL episodes.
+        # state is already synced (jnp.all above blocks); unshard is a free reshape.
+        state_flat = jax.tree_util.tree_map(unshard, state)
+        rec_steps = np.asarray(jax.device_get(state_flat.step))
+        rec_terminated = np.asarray(jax.device_get(state_flat.terminated))
+
+        pmap_keys, state, actions_sharded = mcts_step(params, pmap_keys, state)
+
+        rec_actions = np.asarray(jax.device_get(actions_sharded)).reshape(batch_size)
+        mcts_vis_records.append((rec_steps, rec_terminated, rec_actions))
+
         step_count += 1
         if step_count == 1:
             state.terminated.block_until_ready()
@@ -216,27 +276,51 @@ def main():
 
     state.terminated.block_until_ready()
     mcts_elapsed = time.time() - t0
-    mcts_final = state
 
+    # Flatten device dimension for statistics
+    mcts_final = jax.tree_util.tree_map(unshard, state)
     mcts_ratio = mcts_final.n_bins_opt / mcts_final.n_bins_used
 
     # --- FFD greedy evaluation -----------------------------------------------
     print(f"\nRunning FFD greedy evaluation ...")
 
-    @jax.jit
-    def greedy_body(state: BinPackingState) -> BinPackingState:
+    @jax.pmap
+    def greedy_body(state: BinPackingState):
         actions = jnp.argmax(state.legal_action_mask, axis=-1)
-        return jax.vmap(_step)(state, actions)
+        return jax.vmap(_step)(state, actions), actions
 
     greedy_state = init_states
     t1 = time.time()
+    greedy_vis_records = []
+
     while not bool(jnp.all(greedy_state.terminated)):
-        greedy_state = greedy_body(greedy_state)
+        state_flat = jax.tree_util.tree_map(unshard, greedy_state)
+        rec_steps = np.asarray(jax.device_get(state_flat.step))
+        rec_terminated = np.asarray(jax.device_get(state_flat.terminated))
+
+        greedy_state, actions_sharded = greedy_body(greedy_state)
+
+        rec_actions = np.asarray(jax.device_get(actions_sharded)).reshape(batch_size)
+        greedy_vis_records.append((rec_steps, rec_terminated, rec_actions))
+
     greedy_state.terminated.block_until_ready()
     greedy_elapsed = time.time() - t1
 
-    greedy_final = greedy_state
+    # Flatten device dimension for statistics
+    greedy_final = jax.tree_util.tree_map(unshard, greedy_state)
     greedy_ratio = greedy_final.n_bins_opt / greedy_final.n_bins_used
+
+    # Select vis episodes: prefer those where MCTS saves the most bins vs greedy.
+    # Sorting by descending improvement means the most interesting contrasts come first.
+    mcts_bins_np = np.asarray(jax.device_get(mcts_final.n_bins_used))    # (batch_size,)
+    greedy_bins_np = np.asarray(jax.device_get(greedy_final.n_bins_used))  # (batch_size,)
+    improvement_np = greedy_bins_np - mcts_bins_np                         # higher = MCTS better
+    vis_episode_ids = np.argsort(improvement_np)[::-1][:n_vis].tolist()
+
+    mcts_bin_contents = build_bin_contents(mcts_vis_records, vis_episode_ids)
+    greedy_bin_contents = build_bin_contents(greedy_vis_records, vis_episode_ids)
+    mcts_used = mcts_bins_np[vis_episode_ids]
+    greedy_used = greedy_bins_np[vis_episode_ids]
 
     # --- Report --------------------------------------------------------------
     print("\n" + "=" * 60)
@@ -244,7 +328,7 @@ def main():
     print("=" * 60)
     print(f"Checkpoint  : {ckpt_path}")
     print(f"Iteration   : {ckpt['iteration']}")
-    print(f"Batch size  : {batch_size}")
+    print(f"Batch size  : {batch_size}  ({num_devices} devices × {batch_per_device})")
     print(f"Simulations : {num_simulations}")
     print()
     print(f"Ground truth  n_bins_opt : {n_bins_opt_mean:.3f} ± {n_bins_opt_std:.3f}")
@@ -275,95 +359,26 @@ def main():
     print("=" * 60)
 
     # --- Visualization -------------------------------------------------------
-    # Show 10 episodes in a 10×2 grid: left = FFD greedy, right = MCTS.
-    # Both columns use the same initial states.
+    # Build optimal bin contents from opt_assignment stored in init_states.
+    all_n_bins_opt = np.asarray(jax.device_get(init_states_flat.n_bins_opt))
+    all_opt_items = np.asarray(jax.device_get(init_states_flat.items))
+    all_opt_assign = np.asarray(jax.device_get(init_states_flat.opt_assignment))
+    all_n_items = np.asarray(jax.device_get(init_states_flat.n_items))
 
-    N_VIS = 10
-    n_vis = min(N_VIS, batch_size)
-    vis_init = jax.tree_util.tree_map(lambda x: x[:n_vis], init_states)
-    n_bins_opt_vis = np.asarray(jax.device_get(vis_init.n_bins_opt))
-
-    def track_episodes(get_actions_fn):
-        """Run n_vis episodes with get_actions_fn, returning bin_contents and n_bins_used."""
-        bin_contents = [[[] for _ in range(max_items)] for _ in range(n_vis)]
-        state = vis_init
-
-        while not bool(jnp.all(state.terminated)):
-            actions = get_actions_fn(state)
-
-            actions_np = np.asarray(jax.device_get(actions))
-            steps_np = np.asarray(jax.device_get(state.step))
-            items_np = np.asarray(jax.device_get(state.items))
-            terminated_np = np.asarray(jax.device_get(state.terminated))
-
-            for ep in range(n_vis):
-                if terminated_np[ep]:
-                    continue
-                action = int(actions_np[ep])
-                step_idx = int(steps_np[ep])
-                item_size = float(items_np[ep, step_idx])
-                bin_contents[ep][action].append(item_size)
-
-            state = jax.vmap(_step)(state, actions)
-
-        n_used = np.asarray(jax.device_get(state.n_bins_used))
-        return bin_contents, n_used
-
-    # Greedy action function
-    @jax.jit
-    def _greedy_actions(state: BinPackingState):
-        return jnp.argmax(state.legal_action_mask, axis=-1)
-
-    # MCTS action function
-    @jax.jit
-    def _mcts_actions(state: BinPackingState):
-        key = jax.random.PRNGKey(0)  # deterministic at eval; key unused (gumbel_scale=0)
-        tokens = jax.vmap(_to_tokens)(state.observation)
-        value, all_logits = net.apply(params, tokens)
-        bl = all_logits[:, 1 : max_items + 1]
-        has_valid = jnp.any(state.legal_action_mask, axis=-1)
-        fallback = jnp.zeros_like(state.legal_action_mask).at[:, 0].set(True)
-        eff_mask = jnp.where(has_valid[:, None], state.legal_action_mask, fallback)
-        bl = jnp.where(eff_mask, bl, neg_inf)
-        root = mctx.RootFnOutput(prior_logits=bl, value=value, embedding=state)
-        po = mctx.gumbel_muzero_policy(
-            params=params,
-            rng_key=key,
-            root=root,
-            recurrent_fn=recurrent_fn,
-            num_simulations=num_simulations,
-            invalid_actions=~eff_mask,
-            qtransform=mctx.qtransform_completed_by_mix_value,
-            gumbel_scale=0.0,
-        )
-        return jnp.argmax(po.action_weights, axis=-1)
-
-    print(f"\nCollecting {n_vis} episodes (greedy) for visualization ...")
-    greedy_contents, greedy_used = track_episodes(_greedy_actions)
-
-    print(f"Collecting {n_vis} episodes (MCTS) for visualization ...")
-    mcts_contents, mcts_used = track_episodes(_mcts_actions)
-
-    # --- Build optimal bin contents from opt_assignment stored in init_states -
-    opt_items_np = np.asarray(jax.device_get(vis_init.items))
-    opt_assign_np = np.asarray(jax.device_get(vis_init.opt_assignment))
-    opt_n_items_np = np.asarray(jax.device_get(vis_init.n_items))
-
+    n_bins_opt_vis = all_n_bins_opt[vis_episode_ids]
     opt_contents = [[[] for _ in range(max_items)] for _ in range(n_vis)]
-    for ep in range(n_vis):
-        n_items_ep = int(opt_n_items_np[ep])
-        for i in range(n_items_ep):
-            bin_id = int(opt_assign_np[ep, i])
+    for out_ep, ep in enumerate(vis_episode_ids):
+        for i in range(int(all_n_items[ep])):
+            bin_id = int(all_opt_assign[ep, i])
             if bin_id >= 0:
-                opt_contents[ep][bin_id].append(float(opt_items_np[ep, i]))
+                opt_contents[out_ep][bin_id].append(float(all_opt_items[ep, i]))
 
-    # --- Plot 10×3 grid ------------------------------------------------------
     from visualization import plot_grid
 
     plot_grid(
         columns=[
-            (greedy_contents, greedy_used),
-            (mcts_contents, mcts_used),
+            (greedy_bin_contents, greedy_used),
+            (mcts_bin_contents, mcts_used),
             (opt_contents, n_bins_opt_vis),
         ],
         col_headers=["FFD greedy", f"MCTS (iter {ckpt['iteration']})", "Optimum"],

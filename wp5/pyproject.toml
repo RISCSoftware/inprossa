@@ -109,10 +109,12 @@ test = "pytest"
 [tool.black]
 # https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#configuration-via-a-file
 line-length = 120
+exclude = "(pgx|InProSSA_Reinforcement_Learning)"
 
 [tool.isort]
 # https://pycqa.github.io/isort/docs/configuration/config_files
 profile = "black"
+skip_glob = ["pgx/*", "InProSSA_Reinforcement_Learning/*"]
 
 [tool.pytest.ini_options]
 # https://docs.pytest.org/en/7.1.x/reference/customize.html

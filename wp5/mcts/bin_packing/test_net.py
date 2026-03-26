@@ -3,16 +3,11 @@
 import os
 import sys
 
-
 import jax.numpy as jnp
 import numpy as np
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-
-
-from net import to_tokens
+from mcts.bin_packing.net import TOKEN_DIM, to_tokens
 
 MAX_ITEMS = 4  # small, easy to reason about
 SEQ_LEN = 1 + 2 * MAX_ITEMS  # 9
@@ -32,7 +27,7 @@ def _obs(bin_caps, item_sizes):
 def test_output_shape():
     obs = _obs([1.0], [0.5])
     tokens = to_tokens(obs, max_items=MAX_ITEMS)
-    assert tokens.shape == (SEQ_LEN, 6)
+    assert tokens.shape == (SEQ_LEN, TOKEN_DIM)
 
 
 def test_value_token():
@@ -45,7 +40,7 @@ def test_bin_tokens_dims():
     """dim 1 is 1 for bin tokens (used + new-bin slot), 0 for padding; dims 0,3,4,5 are always 0."""
     obs = _obs([0.7, 1.0], [0.3])  # bins: [0.7(used), 1.0(new-bin), 1.0(pad), 1.0(pad)]
     tokens = to_tokens(obs, max_items=MAX_ITEMS)
-    bin_tokens = tokens[1 : MAX_ITEMS + 1]  # (MAX_ITEMS, 6)
+    bin_tokens = tokens[1 : MAX_ITEMS + 1]  # (MAX_ITEMS, d_in)
     np.testing.assert_array_equal(bin_tokens[:, 0], 0)  # not value
     np.testing.assert_array_equal(bin_tokens[:, 1], [1, 1, 0, 0])  # bin flag
     np.testing.assert_array_equal(bin_tokens[:, 3], 0)  # not item
@@ -74,7 +69,7 @@ def test_item_tokens_dims():
     """dims 0,1,2 are always 0 for item positions; dim 3 is 1 for real items, 0 for padding."""
     obs = _obs([1.0], [0.5, 0.3])  # 2 real items, 2 padding
     tokens = to_tokens(obs, max_items=MAX_ITEMS)
-    item_tokens = tokens[MAX_ITEMS + 1 :]  # (MAX_ITEMS, 6)
+    item_tokens = tokens[MAX_ITEMS + 1 :]  # (MAX_ITEMS, d_in)
     np.testing.assert_array_equal(item_tokens[:, 0], 0)
     np.testing.assert_array_equal(item_tokens[:, 1], 0)
     np.testing.assert_array_equal(item_tokens[:, 2], 0)

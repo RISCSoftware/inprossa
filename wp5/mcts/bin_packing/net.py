@@ -1,11 +1,13 @@
 import os
-import jax
+
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
 from tqdm import tqdm
 
-from transformer import TransformerBackbone
+from mcts.transformer_ import TransformerBackbone
+
+TOKEN_DIM = 6
 
 # Input token layout (dim=6):
 #   dim 0: 1 if value-estimation token, 0 otherwise
@@ -22,7 +24,7 @@ def to_tokens(
     obs: jnp.ndarray,
     max_items: int,
 ) -> jnp.ndarray:
-    """Return (1 + 2*max_items, 6) token sequence ready for BinPackingNet.
+    """Return (1 + 2*max_items, d_in) token sequence ready for BinPackingNet.
 
     obs is the (2*max_items,) observation from BinPackingState.observation.
 
@@ -58,7 +60,7 @@ def to_tokens(
             jnp.zeros(max_items),  # dim 5: not the next item
         ],
         axis=-1,
-    )  # (max_items, 6)
+    )  # (max_items, d_in)
 
     is_real_item = (item_sizes > 0).astype(jnp.float32)
     is_next = jnp.zeros(max_items, dtype=jnp.float32).at[0].set((item_sizes[0] > 0).astype(jnp.float32))
@@ -72,11 +74,43 @@ def to_tokens(
             is_next,  # dim 5: 1 at position 0 if items remain
         ],
         axis=-1,
-    )  # (max_items, 6)
+    )  # (max_items, d_in)
 
     value_token = jnp.array([[1, 0, 0, 0, 0, 0]], dtype=jnp.float32)
     return jnp.concatenate([value_token, bin_tokens, item_tokens], axis=0)
-    # shape: (1 + 2*max_items, 6)
+    # shape: (1 + 2*max_items, d_in)
+
+
+def make_attention_mask(obs: jnp.ndarray) -> jnp.ndarray:
+    """Return (S, S) bool attention mask for a single observation, S = 1 + 2*max_items.
+
+    obs is the (2*max_items,) observation from BinPackingState.observation;
+    max_items is inferred as obs.shape[0] // 2.
+
+    The (S,) token validity vector is:
+      token 0                          : value token         → always 1
+      tokens 1..n_used                 : used bins           → 1
+      token  n_used+1                  : new-bin slot        → 1
+      tokens n_used+2..max_items       : padding bin slots   → 0
+      tokens max_items+1..max_items+n  : real item tokens    → 1
+      tokens max_items+n+1..2*max_items: padding item slots  → 0
+
+    The (S, S) mask is valid[i] & valid[j]: both query and key must be non-padding.
+    Mirrors the is_bin / is_real_item logic in to_tokens() exactly.
+    """
+    max_items = obs.shape[0] // 2
+    bin_cap = obs[:max_items]
+    item_sizes = obs[max_items:]
+
+    is_used = bin_cap < 1.0
+    is_new_slot = (bin_cap == 1.0) & (jnp.cumsum(bin_cap == 1.0) == 1)
+    is_bin = is_used | is_new_slot  # (max_items,) bool
+
+    is_real_item = item_sizes > 0  # (max_items,) bool
+
+    value_mask = jnp.array([True])
+    valid = jnp.concatenate([value_mask, is_bin, is_real_item])  # (S,)
+    return valid[:, None] & valid[None, :]  # (S, S)
 
 
 class BinPackingNet(nn.Module):
@@ -94,8 +128,9 @@ class BinPackingNet(nn.Module):
     mlp_ratio: int = 4  # intermediate_size = 4 * hidden_size = 768
 
     @nn.compact
-    def __call__(self, tokens: jnp.ndarray):
+    def __call__(self, tokens: jnp.ndarray, mask: jnp.ndarray):
         # tokens: (batch, seq_len, TOKEN_DIM)
+        # mask:   (batch, seq_len, seq_len) bool — from jax.vmap(make_attention_mask)(obs)
 
         # --- extract type masks from input features ---
         value_mask = tokens[..., 0]  # (batch, seq_len)  exactly 1 value token per seq
@@ -112,7 +147,7 @@ class BinPackingNet(nn.Module):
             num_heads=self.num_heads,
             mlp_ratio=self.mlp_ratio,
         )(
-            x
+            x, mask=mask
         )  # (batch, seq_len, hidden_size)
 
         # --- shared scalar output head ---
@@ -130,7 +165,7 @@ class BinPackingNet(nn.Module):
 
 def demo():
     # Toy sequence: 1 value token + 3 bin tokens + 4 item tokens
-    #               (batch=2, seq_len=8, TOKEN_DIM=6)
+    #               (batch=2, seq_len=8, d_in)
     tokens = jnp.array(
         [
             [
@@ -148,13 +183,16 @@ def demo():
         dtype=jnp.float32,
     )  # batch=2
 
+    s = tokens.shape[1]
+    mask = jnp.ones((tokens.shape[0], s, s), dtype=jnp.bool_)
+
     model = BinPackingNet()
-    params = jax.jit(model.init)(jax.random.PRNGKey(0), tokens)
+    params = jax.jit(model.init)(jax.random.PRNGKey(0), tokens, mask)
 
     n_params = sum(p.size for p in jax.tree.leaves(params))
     print(f"Parameter count: {n_params:,}  ({n_params / 1e6:.2f}M)")
 
-    value, bin_logits = jax.jit(model.apply)(params, tokens)
+    value, bin_logits = jax.jit(model.apply)(params, tokens, mask)
     print(f"value:      {value}")  # (2,)
     print(f"bin_logits: {bin_logits[0]}")  # (8,) — finite only at positions 1-3
 
@@ -186,8 +224,11 @@ def demo_gpu():
     seq = jnp.concatenate([value_token, bin_tokens, item_tokens], axis=0)
     tokens = jax.device_put(jnp.stack([seq] * batch_size, axis=0), gpu)  # (batch, 257, 6)
 
+    s = seq.shape[0]
+    mask = jax.device_put(jnp.ones((batch_size, s, s), dtype=jnp.bool_), gpu)
+
     model = BinPackingNet()
-    params = model.init(jax.random.PRNGKey(0), tokens)
+    params = model.init(jax.random.PRNGKey(0), tokens, mask)
 
     n_params = sum(p.size for p in jax.tree.leaves(params))
     print(f"Parameter count: {n_params:,}  ({n_params / 1e6:.2f}M)")
@@ -197,10 +238,10 @@ def demo_gpu():
     apply_jit = jax.jit(model.apply, device=gpu)
 
     # First iteration takes longer
-    apply_jit(params, tokens)
+    apply_jit(params, tokens, mask)
 
     for i in tqdm(range(n_batches)):
-        value, bin_logits = apply_jit(params, tokens)
+        value, bin_logits = apply_jit(params, tokens, mask)
         value.block_until_ready()  # wait for GPU to finish before next iteration
         # print(f"Batch {i}: value={value}, bin_logits[0,:3]={bin_logits[0, :3]}")
 
