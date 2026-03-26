@@ -7,14 +7,15 @@ from tqdm import tqdm
 
 from transformer import TransformerBackbone
 
-# Input token layout (dim=7):
+# Input token layout (dim=6):
 #   dim 0: 1 if value-estimation token, 0 otherwise
-#   dim 1: 1 if bin token, 0 otherwise
-#   dim 2: 1 if bin is active (used bins + first unused/new-bin slot), 0 otherwise
-#   dim 3: remaining capacity of this bin
-#   dim 4: 1 if item token, 0 otherwise
-#   dim 5: size of the item
-#   dim 6: 1 if this is the next item to assign, 0 otherwise
+#   dim 1: 1 if bin token (used bin or new-bin slot); 0 for padding and non-bin tokens
+#   dim 2: remaining capacity of this bin (0 for padding)
+#   dim 3: 1 if item token (real, non-padding item); 0 otherwise
+#   dim 4: size of the item (0 for padding)
+#   dim 5: 1 if this is the next item to assign, 0 otherwise
+#
+# Padding tokens are all-zero vectors used for unused bin slots and unassigned item slots.
 
 
 def to_tokens(
@@ -26,55 +27,56 @@ def to_tokens(
     obs is the (2*max_items,) observation from BinPackingState.observation.
 
     Layout:
-      token 0                        : value token  [1, 0, 0, 0, 0, 0, 0]
-      tokens 1..max_items            : bin tokens   [0, 1, active, cap, 0, 0, 0]
-      tokens max_items+1..2*max_items: item tokens  [0, 0, 0, 0, 1, size, is_next]
+      token 0                          : value token   [1, 0, 0,   0, 0,    0]
+      tokens 1..n_used                 : used bins     [0, 1, cap, 0, 0,    0]
+      token  n_used+1                  : new-bin slot  [0, 1, 1,   0, 0,    0]
+      tokens n_used+2..max_items       : padding       [0, 0, 0,   0, 0,    0]
+      tokens max_items+1..max_items+n  : item tokens   [0, 0, 0,   1, size, is_next]
+      tokens max_items+n+1..2*max_items: padding       [0, 0, 0,   0, 0,    0]
 
-    Bin tokens are in action-index order (token i+1 = action i).  active=1 for
-    all used (open) bins and the first unused (new-bin) slot; active=0 for all
-    further inactive slots.  cap is the remaining capacity: open bins have cap
-    in (0,1), new-bin slot has cap=1.0, inactive slots have cap=0.0.  is_next=1
-    at item position 0 if any items remain.
+    Bin tokens are in action-index order (token i+1 = action i).  Unused bin
+    slots beyond the new-bin slot and unassigned item slots beyond the real
+    items are all-zero padding tokens.  is_next=1 at item position 0 if any
+    items remain.
     """
     bin_cap = obs[:max_items]  # (max_items,) — directly from observation
     item_sizes = obs[max_items:]  # (max_items,)
 
-    # Active = used bins (cap < 1.0) plus the first unused slot (new-bin action).
-    # Inactive slots beyond the new-bin slot also have cap==1.0 but are not active.
+    # Bin tokens: used bins (cap < 1.0) plus the first unused slot (new-bin action).
+    # Slots beyond the new-bin slot are padding (all zeros).
     is_used = bin_cap < 1.0
     is_new_slot = (bin_cap == 1.0) & (jnp.cumsum(bin_cap == 1.0) == 1)
-    is_active = (is_used | is_new_slot).astype(jnp.float32)
+    is_bin = (is_used | is_new_slot).astype(jnp.float32)
 
     bin_tokens = jnp.stack(
         [
             jnp.zeros(max_items),  # dim 0: not a value token
-            jnp.ones(max_items),  # dim 1: always a bin token
-            is_active,  # dim 2: 1 for used bins + new-bin slot
-            bin_cap,  # dim 3: remaining capacity
-            jnp.zeros(max_items),  # dim 4: not an item token
-            jnp.zeros(max_items),  # dim 5: no item size
-            jnp.zeros(max_items),  # dim 6: not the next item
+            is_bin,  # dim 1: 1 for bins (used + new-bin slot); 0 = padding
+            bin_cap * is_bin,  # dim 2: capacity; zeroed for padding slots
+            jnp.zeros(max_items),  # dim 3: not an item token
+            jnp.zeros(max_items),  # dim 4: no item size
+            jnp.zeros(max_items),  # dim 5: not the next item
         ],
         axis=-1,
-    )  # (max_items, 7)
+    )  # (max_items, 6)
 
+    is_real_item = (item_sizes > 0).astype(jnp.float32)
     is_next = jnp.zeros(max_items, dtype=jnp.float32).at[0].set((item_sizes[0] > 0).astype(jnp.float32))
     item_tokens = jnp.stack(
         [
             jnp.zeros(max_items),  # dim 0: not a value token
             jnp.zeros(max_items),  # dim 1: not a bin token
-            jnp.zeros(max_items),  # dim 2: not active (bin-only field)
-            jnp.zeros(max_items),  # dim 3: no bin capacity
-            jnp.ones(max_items),  # dim 4: always 1 (only unassigned items shown)
-            item_sizes,  # dim 5: item size (0 for padding slots)
-            is_next,  # dim 6: 1 at position 0 if items remain
+            jnp.zeros(max_items),  # dim 2: no bin capacity
+            is_real_item,  # dim 3: 1 for real items only; 0 = padding
+            item_sizes,  # dim 4: item size (0 for padding slots)
+            is_next,  # dim 5: 1 at position 0 if items remain
         ],
         axis=-1,
-    )  # (max_items, 7)
+    )  # (max_items, 6)
 
-    value_token = jnp.array([[1, 0, 0, 0, 0, 0, 0]], dtype=jnp.float32)
+    value_token = jnp.array([[1, 0, 0, 0, 0, 0]], dtype=jnp.float32)
     return jnp.concatenate([value_token, bin_tokens, item_tokens], axis=0)
-    # shape: (1 + 2*max_items, 7)
+    # shape: (1 + 2*max_items, 6)
 
 
 class BinPackingNet(nn.Module):
@@ -98,7 +100,7 @@ class BinPackingNet(nn.Module):
         # --- extract type masks from input features ---
         value_mask = tokens[..., 0]  # (batch, seq_len)  exactly 1 value token per seq
         bin_mask = tokens[..., 1]  # (batch, seq_len)
-        # item_mask = tokens[..., 3]  # (batch, seq_len)
+        # item_mask = tokens[..., 3]  # (batch, seq_len)  — now at dim 3 after dim-2 removal
 
         # --- embed TOKEN_DIM → hidden_size ---
         x = nn.Dense(self.hidden_size)(tokens)  # (batch, seq_len, hidden_size)
@@ -132,14 +134,14 @@ def demo():
     tokens = jnp.array(
         [
             [
-                [1, 0, 0, 0, 0, 0, 0],  # value token
-                [0, 1, 1, 8, 0, 0, 0],  # bin 0, active, remaining=8
-                [0, 1, 1, 5, 0, 0, 0],  # bin 1, active, remaining=5
-                [0, 1, 1, 3, 0, 0, 0],  # bin 2, active, remaining=3
-                [0, 0, 0, 0, 1, 2, 1],  # item 0, size=2, next-to-assign
-                [0, 0, 0, 0, 1, 4, 0],  # item 1, size=4
-                [0, 0, 0, 0, 1, 3, 0],  # item 2, size=3
-                [0, 0, 0, 0, 1, 1, 0],  # item 3, size=1
+                [1, 0, 0, 0, 0, 0],  # value token
+                [0, 1, 8, 0, 0, 0],  # bin 0, active, remaining=8
+                [0, 1, 5, 0, 0, 0],  # bin 1, active, remaining=5
+                [0, 1, 3, 0, 0, 0],  # bin 2, active, remaining=3
+                [0, 0, 0, 1, 2, 1],  # item 0, size=2, next-to-assign
+                [0, 0, 0, 1, 4, 0],  # item 1, size=4
+                [0, 0, 0, 1, 3, 0],  # item 2, size=3
+                [0, 0, 0, 1, 1, 0],  # item 3, size=1
             ]
         ]
         * 2,
@@ -177,10 +179,10 @@ def demo_gpu():
     n_bins = 128
     n_items = 128
 
-    value_token = jnp.array([[1, 0, 0, 0, 0, 0, 0]], dtype=jnp.float32)
-    bin_tokens = jnp.array([[0, 1, 1, 8, 0, 0, 0]] * n_bins, dtype=jnp.float32)
-    item_tokens = jnp.array([[0, 0, 0, 0, 1, 3, 0]] * n_items, dtype=jnp.float32)
-    item_tokens = item_tokens.at[0].set([0, 0, 0, 0, 1, 3, 1])
+    value_token = jnp.array([[1, 0, 0, 0, 0, 0]], dtype=jnp.float32)
+    bin_tokens = jnp.array([[0, 1, 8, 0, 0, 0]] * n_bins, dtype=jnp.float32)
+    item_tokens = jnp.array([[0, 0, 0, 1, 3, 0]] * n_items, dtype=jnp.float32)
+    item_tokens = item_tokens.at[0].set([0, 0, 0, 1, 3, 1])
     seq = jnp.concatenate([value_token, bin_tokens, item_tokens], axis=0)
     tokens = jax.device_put(jnp.stack([seq] * batch_size, axis=0), gpu)  # (batch, 257, 6)
 

@@ -14,7 +14,7 @@ Init procedure
 Observation
 -----------
   shape (2 * max_items,) float32:
-    obs[:max_items] - open bins' remaining capacity, sorted *descending*, 0-padded
+    obs[:max_items] - open bins' remaining capacity, in action-index (insertion) order, 0-padded
     obs[max_items:] - unassigned items' sizes, sorted *descending*, 0-padded
   (Directly feeds to_tokens() to build the BinPackingNet token sequence.)
 
@@ -38,7 +38,7 @@ from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
-
+import numpy as np
 
 # jax.config.update("jax_disable_jit", True)  # DEBUG
 
@@ -59,9 +59,10 @@ class BinPackingState(NamedTuple):
     items: jnp.ndarray  # (max_items,) float32  All items (assigned and anassigned) sorted descending, padded with 0s
     n_items: jnp.ndarray  # ()         int32
     step: jnp.ndarray  # ()           int32    next-item-to-assign index
-    bin_spaces: jnp.ndarray  # (max_items,) float32  Remaining capacity per bin, descending order
+    bin_spaces: jnp.ndarray  # (max_items,) float32  Remaining capacity per bin, in action-index (insertion) order
     n_bins_used: jnp.ndarray  # ()           int32    open bin slots count
     n_bins_opt: jnp.ndarray  # ()           int32    optimal bin count (if known)
+    opt_assignment: jnp.ndarray  # (max_items,) int32   optimal bin index per item (0-based); -1 for padding
     observation: jnp.ndarray  # (2*max_items,) float32 for the neural net
     legal_action_mask: jnp.ndarray  # (max_items,) bool
     terminated: jnp.ndarray  # ()           bool
@@ -76,7 +77,7 @@ def _make_observation(
     max_items: int,
 ) -> jnp.ndarray:
     """Build the (2 * max_items,) observation array."""
-    # Bins: slots are in action-index order (bin_spaces is kept sorted descending by step_env).
+    # Bins: slots are in action-index (insertion) order
     # Open bins keep their remaining capacity; all unused bins gets capacity 1.0.
     bin_idx = jnp.arange(max_items)
     is_open = bin_idx < n_bins_used
@@ -203,9 +204,23 @@ def init(
 
     valid = rep_active & item_active
 
-    # Zero out inactive entries, flatten, sort descending, trim
+    # Zero out inactive entries, flatten
     item_buf = jnp.where(valid, sizes_per_rep_and_type, 0.0).reshape(-1)
-    items = jnp.sort(item_buf, descending=True)[:max_items]
+
+    # Compute optimal bin ID for every slot in the flat buffer.
+    # Bin index for (type t, rep r) = sum(n_reps_per_type[:t]) + r
+    n_bins_before_type = jnp.concatenate([jnp.array([0], dtype=jnp.int32), jnp.cumsum(n_reps_per_type)[:-1]])  # (T,)
+    bin_id_per_item = n_bins_before_type[:, None, None] + rep_idx.astype(jnp.int32)  # (T, R, max_n) via broadcast
+    bin_id_buf = jnp.where(valid, bin_id_per_item, jnp.int32(-1)).reshape(-1)
+
+    # Sort items descending; apply the same permutation to bin IDs so they stay aligned.
+    sort_idx = jnp.argsort(item_buf)[::-1]  # descending order
+    items = item_buf[sort_idx[:max_items]]
+    opt_assignment = jnp.where(
+        items > 0,
+        bin_id_buf[sort_idx[:max_items]],
+        jnp.int32(-1),
+    )
 
     n_items = jnp.sum(items > 0)
 
@@ -225,6 +240,7 @@ def init(
         bin_spaces=bin_spaces,
         n_bins_used=ini_bins_used,
         n_bins_opt=n_bins_opt,
+        opt_assignment=opt_assignment,
         observation=obs,
         legal_action_mask=legal,
         terminated=jnp.bool_(False),
@@ -246,7 +262,6 @@ def step_env(
     old_cap = state.bin_spaces[action]
     new_cap = jnp.where(is_new_bin, 1.0 - item_size, old_cap - item_size)
     bin_spaces = state.bin_spaces.at[action].set(new_cap)
-    bin_spaces = jnp.sort(bin_spaces)[::-1]  # keep descending order
 
     # Advance counters
     n_bins_used = state.n_bins_used + is_new_bin.astype(jnp.int32)
@@ -270,6 +285,7 @@ def step_env(
         bin_spaces=bin_spaces,
         n_bins_used=n_bins_used,
         n_bins_opt=state.n_bins_opt,
+        opt_assignment=state.opt_assignment,
         observation=obs,
         legal_action_mask=legal,
         terminated=terminated,
@@ -316,6 +332,43 @@ def demo(batch_size: int = 8, n_steps: int = 4) -> None:
     print(f"\nn_bins_opt  : {states.n_bins_opt}")
     print(f"n_bins_used : {states.n_bins_used}")
 
+    # Visualise the optimal assignment for the first episode
+
+    from mcts.bin_packing.visualization import plot_grid
+
+    ep = 0
+    items_np = np.array(states.items[ep])
+    opt_np = np.array(states.opt_assignment[ep])
+    n_items = int(states.n_items[ep])
+    n_bins_opt = int(states.n_bins_opt[ep])
+
+    bin_contents: list[list[float]] = [[] for _ in range(n_bins_opt)]
+    for i in range(n_items):
+        bin_contents[int(opt_np[i])].append(float(items_np[i]))
+
+    plot_grid(
+        columns=[([bin_contents], [n_bins_opt])],
+        col_headers=["Optimal"],
+        opt_per_row=[n_bins_opt],
+        out_path="bin_packing_opt_demo.png",
+    )
+
+
+def demo_item_counts(batch_size: int = 16, max_items: int = 32) -> None:
+    """Init a batch of environments and print the number of items in each instance."""
+
+    print(f"=== BinPackingEnv demo_item_counts  batch={batch_size}  max_items={max_items} ===\n")
+
+    rng = jax.random.PRNGKey(42)
+    keys = jax.random.split(rng, batch_size)
+
+    init_fn = jax.jit(jax.vmap(lambda k: init(k, max_items=max_items)))
+    states: BinPackingState = init_fn(keys)
+
+    for i in range(batch_size):
+        print(f"instance {i:2d}: n_items = {int(states.n_items[i])}  n_bins_opt = {int(states.n_bins_opt[i])}")
+
 
 if __name__ == "__main__":
     demo()
+    demo_item_counts()

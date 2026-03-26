@@ -20,7 +20,6 @@ Eval policy note:
   Only for debugging. Please use MCTS and run tournaments for serious evaluation."
 """
 
-import pandas as pd
 import datetime
 import os
 import pickle
@@ -33,9 +32,11 @@ import jax
 import jax.numpy as jnp
 import mctx
 import optax
-import wandb
+import pandas as pd
 from omegaconf import OmegaConf
 from pydantic import BaseModel
+
+import wandb
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
@@ -73,7 +74,7 @@ class Config(BaseModel):
     num_heads: int = 3
     # selfplay
     selfplay_batch_size: int = 512  # no of envs in parallel (lanes) (all gpus combined)
-    num_simulations: int = 2 * DEFAULT_MAX_ITEMS # no of rollouts
+    num_simulations: int = 2 * DEFAULT_MAX_ITEMS  # no of rollouts
     # max_num_steps: int = 10 * DEFAULT_MAX_ITEMS  # at least 10 episodes per lane
     max_num_steps: int = DEFAULT_MAX_ITEMS  # at least 1 finished episodes per lane
     # training
@@ -142,7 +143,7 @@ def recurrent_fn(params, rng_key: jnp.ndarray, action: jnp.ndarray, state: BinPa
     prev_rewards = state.rewards  # (batch,) cumulative
 
     next_state = jax.vmap(_step)(state, action)
-    tokens = jax.vmap(_to_tokens)(next_state.observation)  # (batch, SEQ_LEN, 7)
+    tokens = jax.vmap(_to_tokens)(next_state.observation)  # (batch, SEQ_LEN, d)
     value, bin_logits = net.apply(params, tokens)
 
     # Slice bin logits to action space [1 .. max_items] and mask illegal actions
@@ -190,7 +191,7 @@ def selfplay(params, rng_key: jnp.ndarray) -> SelfplayOutput:
         key1, key2 = jax.random.split(key)
 
         # Evaluate the current state
-        tokens = jax.vmap(_to_tokens)(state.observation)  # (batch, SEQ_LEN, 7)
+        tokens = jax.vmap(_to_tokens)(state.observation)  # (batch, SEQ_LEN, d)
         value, all_logits = net.apply(params, tokens)
         bin_logits = all_logits[:, 1 : config.max_items + 1]  # (batch, max_items)
         neg_inf = jnp.finfo(jnp.float32).min
@@ -362,7 +363,7 @@ if __name__ == "__main__":
     wandb.init(project="bin-packing-az", config=config.model_dump())
 
     # Initialize model params (Flax — no mutable state)
-    dummy_tokens = jnp.zeros((2, SEQ_LEN, 7), dtype=jnp.float32)
+    dummy_tokens = jnp.zeros((2, SEQ_LEN, 6), dtype=jnp.float32)
     params = net.init(jax.random.PRNGKey(config.seed), dummy_tokens)
     opt_state = optimizer.init(params)
     # Replicate to all devices
@@ -382,7 +383,7 @@ if __name__ == "__main__":
     rng_key = jax.random.PRNGKey(config.seed)
     while True:
         # Evaluate and checkpoint at specified intervals
-        if iteration % config.eval_interval == 0 and iteration > 0:  # TODO: DEBUG: remove iteration > 0
+        if iteration % config.eval_interval == 0:
             rng_key, subkey = jax.random.split(rng_key)
             keys = jax.random.split(subkey, num_devices)
             model_ratio, greedy_ratio = evaluate(keys, params)
