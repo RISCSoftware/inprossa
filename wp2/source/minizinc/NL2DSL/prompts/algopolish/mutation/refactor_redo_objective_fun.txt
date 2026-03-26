@@ -3,21 +3,21 @@
 {}
 ```
 
-[Object_approaches]
+[Objective_approaches]
 {}
 
 [Task]
-Perform the following steps:
-1. Choose one description from [Object_approaches] that is different from the function in "# --- Objective ---" in [Code]. Make sure this approach is also expressible in OptDSL and has not tried out yet. The chosen approach will be later used for step 3.
-2. Remove the code within "# --- Objective ---" section in [Code].
-3. Take the chosen description from step 1. and encode it as efficient, valid OptDSL formulation into section "# --- Objective ---" in [Code]. Update the assignment to "objective" variable accordingly. Note in a comment the name of the chosen approach.
+Perform the following three steps:
+1. Remove the code within "# --- Objective ---" section in [Code] completely.
+2. Encode the full description of the {}. approach from [Objective_approaches] as valid OptDSL formulation into section "# --- Objective ---" in [Code]. Follow the description in [Objective_approaches]. Update the assignment to "objective" variable accordingly. Note in a comment the name of the chosen approach. Do not return the same code as in previous "# --- Objective ---".
+
 Fulfill the following rules:
-- Never return the same answer twice, deliver diverse code.
-- Do not use list comprehension or any list multiplication operator. Code like `[1] * 5` and `[True for _ in range(1, 5)]` are illegal.
+- Do not use list comprehension or any list multiplication operator. Code like `[1] * 5` and `[True for _ in range(1, 5)]` is illegal.
 - Do not use floating-point division.
+- Assume every list element is automatically initialized at runtime, e.g. the list elements of a list of booleans are automatically set to false.
 - Use minimal necessary temporary variables.
 - Encode the function in the most efficient way and with minimal necessary number of lines.
-- Make sure there is a variable "objective". Constrain all given decision variables with asserts to assign them a value.
+- Make sure there is a variable "objective".
 - Provide your answer as valid OptDSL code enclosed with python codeblock in the following format:
 ```python
 # --- Objective ---
@@ -25,9 +25,14 @@ Fulfill the following rules:
 objective = <objective_function>(...)
 <optimize>(objective)
 
+<decision_variable_constraint_update>
+
 # --- Constraints ---
 <constraints>
-```, replace <objective_function> with OptDSL code of the objective function in a view lines, replace <optimize> with minimize or maximize, <constraints> with OptDSL code of the constraints of [Code]. Improve the constraints' efficiency. Merge objective function with constraints, if you want.
+```, replace <objective_function> with OptDSL code of the objective function in a view lines, replace <optimize> with minimize or maximize, replace <decision_variable_constraint_update> with all missing assert-constraints for decision variables in [decision variables], according to semantic [Problem]. Replace <constraints> with OptDSL code of the constraints of [Code].
+
+[Decision_variables]
+{}
 
 [Problem]
 {}

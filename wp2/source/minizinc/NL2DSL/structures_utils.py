@@ -529,7 +529,7 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
             elif "ValueError: Variable" in exc_msg and "has incompatible types in if-else branches:" in exc_msg:
                 return "Do not extract assert-expression into temporary variables, but inline the expression within assert directly."
             elif "ListComp" in exc_msg:
-                return "Do not use list comprehension or any list multiplication operator. Do not use function calls append() and extend() for DSList."
+                return "Do not use list comprehension or any list multiplication operator. Do not use function calls append() and extend() for DSList. Set every list element exactly once."
             elif "Unsupported statement: Break()" in exc_msg:
                 return "Do not use break statement."
             elif "undefined identifier `None" in exc_msg:

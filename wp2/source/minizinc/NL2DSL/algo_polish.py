@@ -1,5 +1,8 @@
 import copy
 import json
+import random
+import re
+
 import constants
 
 from BinPackingValidator import validate_solution
@@ -69,16 +72,21 @@ class AlgoPolish:
             for unmutated_model in improved_models:
                 mutated_model = copy.deepcopy(unmutated_model)
                 mutated_model.set_type(Type.MUTATED)
-                old_encoding = mutated_model.get_variables_codeblock() + "\n\n" + mutated_model.objective  + "\n\n" + mutated_model.constraints
+                old_encoding = mutated_model.get_variables_codeblock() + "\n\n" + mutated_model.objective + "\n\n" + mutated_model.constraints
+
                 objective_approaches = send_prompt_without_system_prompt(
                     load_algopolish_mutation_file("mutation/ask_for_objective_fun_algorithms.txt").format(
                         problem_description.strip()),
                     self.llm,
                     0.4)
+                nr_found_approaches = re.search(r"Found approaches:\s*(\d+)", objective_approaches).group(1)
+                chosen_approach = random.randint(1, int(nr_found_approaches))
                 new_encoding = send_prompt_with_system_prompt(
                     load_algopolish_mutation_file("mutation/refactor_redo_objective_fun.txt").format(old_encoding,
-                                                                                                       objective_approaches,
-                                                                                                       problem_description.strip()),
+                                                                                                     objective_approaches,
+                                                                                                     chosen_approach,
+                                                                                                     [m["variable_name"] for m in mutated_model.decision_variables],
+                                                                                                     problem_description.strip()),
                     self.llm,
                     0.95)
                 new_model = self._execute_and_validate_model(mutated_model, new_encoding, old_encoding,
@@ -199,10 +207,11 @@ class AlgoPolish:
                     elif "Syntax Error" in execution_error:
                         new_encoding = (self.llm.send_prompt(
                             system_prompt=_get_system_prompt("format_sp") + "\n" + _get_icl(),
-                            prompt=f"´´´python\n" +
+                            prompt=f"[old_code]\n´´´python\n{old_encoding}´´´\n\n" +
+                                   f"´´´python\n" +
                                    f"\n# --- Incorrect Code --- \n{new_encoding}´´´\n\n" +
                                    f"The section above contains a syntax error: {execution_error}" +
-                                   "Given this error message, improve the mentioned lines of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not return \nNTD\n."
+                                   "Given this error message, improve the mentioned lines of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not provide the same code as in [old_code]."
                                    """Return your answer in the format
     ´´´python
     # --- Incorrect Code ---
@@ -215,10 +224,10 @@ class AlgoPolish:
                         new_encoding = (self.llm.send_prompt(
                             system_prompt=_get_system_prompt(
                                 "format_sp") + "\n" + _get_icl(),
-                            prompt=f"´´´python\n" +
+                            prompt=f"[old_code]\n´´´python\n{old_encoding}´´´\n\n" +
                                    f"\n# --- Incorrect Code --- \n{new_encoding}´´´\n\n" +
                                    f"The section above contains a semantic error: {execution_error}" +
-                                   "Given this error message, improve the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else." +
+                                   "Given this error message, improve the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not provide the same code as in [old_code]." +
                                    f"The semantics of the section \"# --- Incorrect Code ---\" must be in line with the following description:\n{problem_description}" +
                                    """
     Define more bounds for variables. Reduce the number of temporary variables.
@@ -270,8 +279,9 @@ class AlgoPolish:
                             system_prompt=( _get_system_prompt("format_sp")) + "\n" + _get_icl(),
                             prompt=f"´´´ python\n" +
                                    f"\n{model.get_variables_codeblock()}\n{new_encoding} ´´´\n\n" +
-                                   f"The OptDSL encoding above did not reach a solution within the given timeframe. Improve its efficiency by removing redundancies.",
+                                   f"The OptDSL encoding above did not reach a solution within the given timeframe. Improve its efficiency by removing redundancies. Set list elements exactly once. Do not set initial default values for list elements.",
                             max_tokens=3000))
+                        continue
                     # Safety check: Prevent false-positive exec-run-through by sneakily never calling function
                     not_twice_appearing_func = check_functions_appear_twice(new_encoding)
                     if len(not_twice_appearing_func) > 0:
