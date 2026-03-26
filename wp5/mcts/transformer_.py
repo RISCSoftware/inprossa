@@ -20,7 +20,7 @@ class Block(nn.Module):
     mlp_ratio: int = 4
 
     @nn.compact
-    def __call__(self, x, c):
+    def __call__(self, x, c, mask=None):
         if self.use_conditioning:
             c = nn.silu(c)  # Calculate adaLn modulation parameters.
             c = nn.Dense(6 * self.hidden_size)(c)
@@ -46,7 +46,15 @@ class Block(nn.Module):
             w = nn.softmax(w, axis=-1)
             w = jnp.where(causal_mask[None, None, :, :], w, 0)
         else:
+            if mask is not None:
+                # mask: (B, S, S) — 1 = attend, 0 = block.
+                # Rows where all keys are masked (padding queries) get finfo.min
+                # everywhere; softmax produces uniform weights, which are then
+                # zeroed out, so the residual connection leaves them unchanged.
+                w = jnp.where(mask[:, None, :, :], w, jnp.finfo(w.dtype).min)
             w = nn.softmax(w, axis=-1)  # Softmax over key dimension = Total mass of 1 per query.
+            if mask is not None:
+                w = jnp.where(mask[:, None, :, :], w, 0.0)
         y = jnp.einsum("bhqk,bkhc->bqhc", w, v)  # [B, Q=HW, num_heads, channels_per_head]
         y = jnp.reshape(y, x.shape)  # [B, Q=HW, C] (C = heads * channels_per_head)
         attn_x = nn.Dense(self.hidden_size)(y)
@@ -79,15 +87,16 @@ class TransformerBackbone(nn.Module):
     use_causal_masking: bool = False
 
     @nn.compact
-    def __call__(self, x, c=None):
+    def __call__(self, x, c=None, mask=None):
         assert len(x.shape) == 3  # Input tokens = (batch, seq_len, channels)
         assert c is None or len(c.shape) == 2  # Conditioning = (batch, channels)
+        # mask: (B, S, S) bool — 1 = attend, 0 = block; or None for no masking.
 
         x = x.astype(global_dtype)
         c = c.astype(global_dtype) if c is not None else c
         for _ in range(self.depth):
             x = Block(self.hidden_size, self.num_heads, self.use_conditioning, self.use_causal_masking, self.mlp_ratio)(
-                x, c
+                x, c, mask
             )
         return x
 
