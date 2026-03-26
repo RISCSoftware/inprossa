@@ -45,8 +45,9 @@ import numpy as np
 
 # Default hyper-parameters
 
-DEFAULT_MAX_ITEMS: int = 32
+DEFAULT_MAX_ITEMS: int = 64
 # DEFAULT_MAX_ITEMS: int = 6  # DEBUG
+DEFAULT_MIN_ITEMS: int = 8
 DEFAULT_MIN_ITEM_SIZE: float = 0.3
 DEFAULT_MAX_ITEM_SIZE: float = 0.7
 
@@ -115,6 +116,7 @@ def _legal_mask(
 def init(
     key: jnp.ndarray,
     max_items: int = DEFAULT_MAX_ITEMS,
+    min_items: int = DEFAULT_MIN_ITEMS,
     min_item_size: float = DEFAULT_MIN_ITEM_SIZE,
     max_item_size: float = DEFAULT_MAX_ITEM_SIZE,
     max_items_per_bin: int = _MAX_ITEMS_PER_BIN,
@@ -127,7 +129,10 @@ def init(
     """
 
     # Create separate rng keys
-    key, k_n, k_reps, k_cut = jax.random.split(key, 4)
+    key, k_n_items, k_n, k_reps, k_cut = jax.random.split(key, 5)
+
+    # Roll the actual item count for this episode
+    n_items_target = jax.random.randint(k_n_items, (), min_items, max_items + 1)
 
     # Roll bin-template meta-parameters
     # Valid n (items/bin): n*min_size ≤ 1 ≤ n*max_size
@@ -146,7 +151,7 @@ def init(
     cum_before = jnp.concatenate(
         [jnp.array([0], dtype=jnp.int32), jnp.cumsum(n_items_per_type * n_reps_per_type)[:-1]]
     )  # items contributed by all preceding types at original reps
-    budget_left = jnp.maximum(max_items - cum_before, 0)
+    budget_left = jnp.maximum(n_items_target - cum_before, 0)
     n_reps_per_type = jnp.minimum(budget_left // n_items_per_type, n_reps_per_type)  # (T,)
     type_active = n_reps_per_type > 0  # (T,) bool
 

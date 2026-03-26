@@ -31,6 +31,7 @@ from mcts.bin_packing.env import (
     DEFAULT_MAX_ITEM_SIZE,
     DEFAULT_MAX_ITEMS,
     DEFAULT_MIN_ITEM_SIZE,
+    DEFAULT_MIN_ITEMS,
     BinPackingState,
     init,
     step_env,
@@ -43,7 +44,8 @@ os.environ["JAX_TRACEBACK_FILTERING"] = "off"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 
-DEFAULT_MAX_ITEMS = 128  # DEBUG
+DEFAULT_MAX_ITEMS = 256  # DEBUG
+DEFAULT_MIN_ITEMS = 256
 
 
 # Must mirror train.py exactly so pickle can resolve __main__.Config
@@ -74,7 +76,8 @@ class Config(BaseModel):
 
 # _CKPT_DIR = "/workspace/checkpoints/bin_packing_20260312000804"  # old encoding
 # _CKPT_DIR = "/workspace/checkpoints/bin_packing_20260312173659"  # also old encoding
-_CKPT_DIR = "/workspace/checkpoints/bin_packing_20260313133031"
+# _CKPT_DIR = "/workspace/checkpoints/bin_packing_20260313133031"  # trained on 32
+_CKPT_DIR = "/workspace/checkpoints/bin_packing_20260313221141"  # trained on 8-64
 _DEFAULT_CKPT = os.path.join(_CKPT_DIR, "000400.ckpt")
 _DEFAULT_BATCH = 12  # DEBUG
 _DEFAULT_SEED = 42
@@ -129,6 +132,7 @@ def main():
     _init = partial(
         init,
         max_items=max_items,
+        min_items=DEFAULT_MIN_ITEMS,
         min_item_size=config.min_item_size,
         max_item_size=config.max_item_size,
     )
@@ -312,9 +316,9 @@ def main():
 
     # Select vis episodes: prefer those where MCTS saves the most bins vs greedy.
     # Sorting by descending improvement means the most interesting contrasts come first.
-    mcts_bins_np = np.asarray(jax.device_get(mcts_final.n_bins_used))    # (batch_size,)
+    mcts_bins_np = np.asarray(jax.device_get(mcts_final.n_bins_used))  # (batch_size,)
     greedy_bins_np = np.asarray(jax.device_get(greedy_final.n_bins_used))  # (batch_size,)
-    improvement_np = greedy_bins_np - mcts_bins_np                         # higher = MCTS better
+    improvement_np = greedy_bins_np - mcts_bins_np  # higher = MCTS better
     vis_episode_ids = np.argsort(improvement_np)[::-1][:n_vis].tolist()
 
     mcts_bin_contents = build_bin_contents(mcts_vis_records, vis_episode_ids)

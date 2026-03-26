@@ -94,5 +94,5 @@ def plot_grid(
         axes[row_idx][0].set_xlim(-0.5, max_bins_in_row - 0.5)
 
     plt.tight_layout()
-    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.savefig(out_path, dpi=250, bbox_inches="tight")
     print(f"Saved: {out_path}")
