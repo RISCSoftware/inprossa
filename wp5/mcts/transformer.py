@@ -10,6 +10,7 @@ def modulate(x, shift, scale):
 
 class Block(nn.Module):
     """A standard transformer block. Has residual connection, self-attention, and a two-layer MLP."""
+
     # Taken from: https://github.com/kvfrans/jaxtransformer/blob/main/jaxtransformer/transformer.py
 
     hidden_size: int
@@ -67,6 +68,7 @@ class Block(nn.Module):
 
 class TransformerBackbone(nn.Module):
     """Generic transformer backbone."""
+
     # Taken from: https://github.com/kvfrans/jaxtransformer/blob/main/jaxtransformer/transformer.py
 
     hidden_size: int
