@@ -41,6 +41,7 @@ from mcts.bin_packing.env import (
     DEFAULT_MAX_ITEM_SIZE,
     DEFAULT_MAX_ITEMS,
     DEFAULT_MIN_ITEM_SIZE,
+    DEFAULT_MIN_ITEMS,
     BinPackingState,
     init,
     step_env,
@@ -49,7 +50,8 @@ from mcts.bin_packing.net import TOKEN_DIM, BinPackingNet, make_attention_mask, 
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 os.environ["JAX_TRACEBACK_FILTERING"] = "off"
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+# os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.01"
 
 
 devices = jax.local_devices()
@@ -58,25 +60,26 @@ num_devices = len(devices)
 
 class Config(BaseModel):
     max_items: int = DEFAULT_MAX_ITEMS
+    min_items: int = DEFAULT_MIN_ITEMS
     min_item_size: float = DEFAULT_MIN_ITEM_SIZE
     max_item_size: float = DEFAULT_MAX_ITEM_SIZE
     seed: int = 0
-    max_num_iters: int = 400
+    max_num_iters: int = 400  # DEBUG
     # network
     hidden_size: int = 192
     depth: int = 12
     num_heads: int = 3
     # selfplay
-    selfplay_batch_size: int = 512  # no of envs in parallel (lanes) (all gpus combined)
+    selfplay_batch_size: int = 128  # no of envs in parallel (lanes) (all gpus combined)
     num_simulations: int = 2 * DEFAULT_MAX_ITEMS  # no of rollouts
-    # max_num_steps: int = 10 * DEFAULT_MAX_ITEMS  # at least 10 episodes per lane
-    max_num_steps: int = DEFAULT_MAX_ITEMS  # at least 1 finished episodes per lane
+    max_num_steps: int = 4 * DEFAULT_MAX_ITEMS  # at least 4 episodes per lane
+    # max_num_steps: int = DEFAULT_MAX_ITEMS  # at least 1 finished episodes per lane
     # training
     training_batch_size: int = 128  # batch size for gradient updates (all gpus combined)
     learning_rate: float = 1e-3
     weight_decay: float = 1e-2
     # eval
-    eval_interval: int = 5
+    eval_interval: int = 5  # DEBUG
 
     class Config:
         extra = "forbid"
@@ -84,12 +87,13 @@ class Config(BaseModel):
 
 conf_dict = OmegaConf.from_cli()
 config: Config = Config(**conf_dict)
-print(config)
+print(config, flush=True)
 
 # Partials with fixed env hyperparameters
 _init = partial(
     init,
     max_items=config.max_items,
+    min_items=config.min_items,
     min_item_size=config.min_item_size,
     max_item_size=config.max_item_size,
 )
@@ -410,7 +414,7 @@ if __name__ == "__main__":
                     f,
                 )
 
-        print(log)
+        print(log, flush=True)
         wandb.log(log)
 
         if iteration >= config.max_num_iters:
@@ -464,4 +468,4 @@ if __name__ == "__main__":
         )
 
 
-# WANDB_MODE=offline python mcts/bin_packing/train.py 2>&1 | tee out5.log
+# WANDB_MODE=offline python wp5/mcts/bin_packing/train.py 2>&1 | tee out6.log
