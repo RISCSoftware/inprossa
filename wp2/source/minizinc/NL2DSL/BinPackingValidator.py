@@ -32,8 +32,6 @@ def _extract_assignment_and_position(solver_solution: dict):
                         else:
                             raise ValueError(
                                 "Unreadable format of x_y_positions[\"position\"], no x or y position found.")
-                else:
-                    raise AssertionError("x_y_positions has invalid keys.")
         else:
             raise ValueError("Unreadable format of x_y_positions of solver solution for validation.")
     for i, box_assigment in enumerate(box_assigments[0]):
@@ -46,11 +44,11 @@ def _extract_assignment_and_position(solver_solution: dict):
                 elif "item" in key:
                     solution[i].update({"item_id": box_assigment[key]})
                 elif "x" not in solution[i] or "y" not in solution[i]:
-                    if "x" in key:
+                    if "x" not in solution[i] and "x" in key:
                         solution[i].update({"x": box_assigment[key]})
-                    elif "y" in key:
+                    elif "y" not in solution[i] and "y" in key:
                         solution[i].update({"y": box_assigment[key]})
-                    elif "position" in key:
+                    elif "position" not in solution[i] and "position" in key:
                         for position_key in box_assigment[key]:
                             if "x" in position_key:
                                 solution[i].update({"x": box_assigment[key][position_key]})
@@ -150,7 +148,7 @@ def validate_solution(solver_solution : dict, task : dict):
                         # item j is on the above of item i
                         assign_i["y"] + item_i["height"] <= assign_j["y"] or
                         # item i is on the above of item j
-                        assign_j["y"] + item_j["height"] <= assign_i["y"]), f"Items {i} and {j} overlap."
+                        assign_j["y"] + item_j["height"] <= assign_i["y"]), f"Items {i+1} and {j+1} overlap."
 
 def check_satisfiability_given(constants: list[dict]):
     box_height = None

@@ -41,7 +41,7 @@
     "ITEMS": {
       "type": {
         "elem_type": "Item",
-        "length": 2
+        "length": 6
       },
       "value": [
         {

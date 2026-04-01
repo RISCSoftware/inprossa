@@ -94,7 +94,7 @@ class AlgoPolish:
                 if new_model is None: continue
 
                 # Check fitness
-                #mutated_model.calculate_and_set_fitness()
+                mutated_model.calculate_and_set_fitness()
                 if mutated_model.state == State.CORRECT: mutated_models.append(mutated_model)
 
 #             # Mutation (redundancy-removement, experiment)

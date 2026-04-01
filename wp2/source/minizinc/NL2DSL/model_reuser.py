@@ -152,7 +152,7 @@ class ModelReuser():
         try:
             objective_val, solve_time, solution_model = check_solver_executability_for_plain_model(minizinc_model)
         except Exception as e:
-            model.update({"state": State.FAILED})
+            model.update({"state": State.FAILED.value})
             print(str(e))
 
         model.update({"objective_val": objective_val})
@@ -174,14 +174,14 @@ class ModelReuser():
         except AssertionError as e:
             validation_res = f"Failed to validate solution: {e}"
             model.update({"validated": False})
-            model.update({"state": State.FAILED})
+            model.update({"state": State.FAILED.value})
         except Exception as e:
             validation_res = f"Evaluation failed: {e}"
             model.update({"validated": False})
-            model.update({"state": State.FAILED})
+            model.update({"state": State.FAILED.value})
         else:
             validation_res = f"Successfully validated solution."
             model.update({"validated": True})
-            model.update({"state": State.CORRECT})
+            model.update({"state": State.CORRECT.value})
         model.update({"final_evaluation_result": validation_res})
         return model
