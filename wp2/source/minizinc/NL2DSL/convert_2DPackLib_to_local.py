@@ -2,14 +2,19 @@ import json
 import os
 import random
 
-def convert_2DPackLib_to_local_flex_objects():
+def convert_2DPackLib_to_local_flex_objects(directory: str):
+    """
+    Convert instance files from 2DPackLib to locally used 2d bin packing input files for LLM-prompting Framework.
+    Specifically, to input files for formulation generation with flexible shapes.
+    Args:
+        directory (str): Directory containing instance files.
+    """
     general_item_spec = {
         "BOX_HEIGHT": 9,
         "BOX_WIDTH": 9,
         "ITEMS": []
     }
 
-    directory = "problem_descriptions/2DPackLib/CLASS/CLASS"
     files = [filename for filename in os.listdir(directory) if "01_020_" in filename or "02_020_" in filename or "03_020_" in filename or "04_020_" in filename or "05_020_" in filename or "06_020_" in filename or "07_020_" in filename or "08_020_" in filename]
     files = random.sample(files, 20)
     for filename in files:
@@ -39,7 +44,13 @@ def convert_2DPackLib_to_local_flex_objects():
             json.dump(general_item_spec, f, indent=4)
 
 
-def convert_2DPackLib_to_local_fixed_objects():
+def convert_2DPackLib_to_local_fixed_objects(directory: str):
+    """
+    Convert instance files from 2DPackLib to locally used 2d bin packing input files for LLM-prompting Framework.
+    Specifically, to input files for formulation generation with fixed shapes.
+    Args:
+        directory (str): Directory containing instance files.
+    """
     general_item_spec = {
         "objects": {
             "Item": [
@@ -111,7 +122,6 @@ def convert_2DPackLib_to_local_fixed_objects():
         }
     }
 
-    directory = "problem_descriptions/2DPackLib/CLASS/CLASS"
     files = [filename for filename in os.listdir(directory) if
              "01_020_" in filename or "02_020_" in filename or "03_020_" in filename or "04_020_" in filename or "05_020_" in filename or "06_020_" in filename or "07_020_" in filename or "08_020_" in filename or "09_020_" in filename or "10_020_" in filename]
     files = random.sample(files, 20)
@@ -151,4 +161,5 @@ def convert_2DPackLib_to_local_fixed_objects():
             json.dump(general_item_spec, f, indent=4)
 
 if __name__ == "__main__":
-    convert_2DPackLib_to_local_fixed_objects()
+    convert_2DPackLib_to_local_flex_objects("problem_descriptions/2DPackLib/CLASS/CLASS")
+    convert_2DPackLib_to_local_fixed_objects("problem_descriptions/2DPackLib/CLASS/CLASS")

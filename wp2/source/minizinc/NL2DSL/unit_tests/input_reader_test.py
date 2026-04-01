@@ -11,8 +11,8 @@ class TestInputReaderAndResuse(unittest.TestCase):
 
     def test_flex_objects_flex_input_values(self):
         problem_description = InputReader.read_problem_description_from_file(
-            "problem_descriptions/2d_bin_packing_input_inst_1.json",
-            "problem_descriptions/2d_bin_packing_inst_1.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_input_inst_1.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_inst_1.json",
             "flex_objects_fixed_input_values")
         self.assertEqual(problem_description[0], """´´´ json
 {
@@ -67,8 +67,8 @@ class TestInputReaderAndResuse(unittest.TestCase):
 
     def test_flex_objects_fixed_input_values(self):
         problem_description = InputReader.read_problem_description_from_file(
-            "problem_descriptions/2d_bin_packing_generic_input_inst_1.json",
-            "problem_descriptions/2d_bin_packing_inst_1.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_generic_input_inst_1.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_inst_1.json",
             "flex_objects_fixed_input_values")
         self.assertEqual(problem_description[1], """´´´ json
 [
@@ -106,8 +106,8 @@ class TestInputReaderAndResuse(unittest.TestCase):
 
     def test_fixed_objects_fixed_input_values(self):
         objects, intput_variable_spec, output_variable_spec, problem_description = InputReader.read_problem_description_and_generateDSLcode_from_file(
-            "problem_descriptions/2d_bin_packing_generic_input_inst_1.json",
-            "problem_descriptions/2d_bin_packing_inst_1.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_generic_input_inst_1.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_inst_1.json",
             "fixed_objects_fixed_input_values")
         self.assertEqual(objects, {'Item': 'Item = DSRecord({"width" : DSInt(lb=1, ub=5), "height" : DSInt(lb=1, ub=6)})\n'})
         self.assertEqual(intput_variable_spec[0], {
@@ -125,8 +125,8 @@ class TestInputReaderAndResuse(unittest.TestCase):
 
     def test_fixed_objects_fixed_output_values(self):
         objects, intput_variable_spec, output_variable_spec, problem_description = InputReader.read_problem_description_and_generateDSLcode_from_file(
-            "problem_descriptions/2d_bin_packing_generic_output_inst_1.json",
-            "problem_descriptions/2d_bin_packing_inst_1.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_generic_output_inst_1.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_inst_1.json",
             "fixed_objects_fixed_output_values")
         self.assertEqual(objects, {'X_Y_Position': 'X_Y_Position = DSRecord({"x" : DSInt(lb=0, ub=12), "y" : DSInt(lb=0, ub=5)})\n'})
         self.assertEqual(output_variable_spec[0]["variable_name"], "nr_used_boxes")
@@ -151,8 +151,8 @@ class TestInputReaderAndResuse(unittest.TestCase):
 
     def test_fixed_objects_fixed_inoutput_values(self):
         objects, intput_variable_spec, output_variable_spec, problem_description = InputReader.read_problem_description_and_generateDSLcode_from_file(
-            "problem_descriptions/2d_bin_packing_generic_input_and_output_inst_1.json",
-            "problem_descriptions/2d_bin_packing_inst_1_without_inoutput.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_generic_input_and_output_inst_1.json",
+            "problem_descriptions/2d_bin_packing_without_inoutput.json",
             "fixed_objects_fixed_inoutput_values")
         self.assertEqual(objects, {
             'Item': 'Item = DSRecord({"width" : DSInt(lb=1, ub=10), "height" : DSInt(lb=1, ub=5)})\n',
@@ -179,8 +179,8 @@ class TestInputReaderAndResuse(unittest.TestCase):
 
     def test_fixed_objects_fixed_inoutput_values_with_file(self):
         objects, intput_variable_spec, output_variable_spec, problem_description = InputReader.read_problem_description_and_generateDSLcode_from_file(
-            "problem_descriptions/2d_bin_packing_generic_and_file_input_inst_1.json",
-            "problem_descriptions/2d_bin_packing_inst_1_without_inoutput.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_generic_and_file_input_inst_1.json",
+            "problem_descriptions/2d_bin_packing_without_inoutput.json",
             "fixed_objects_fixed_input_values")
         self.assertEqual(objects, {
             'Item': 'Item = DSRecord({"width" : DSInt(lb=1, ub=5), "height" : DSInt(lb=1, ub=6)})\n',
@@ -211,11 +211,11 @@ class TestInputReaderAndResuse(unittest.TestCase):
                          'x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}')
 
     def test_reuse_model_fixed_inoutput_values(self):
-        updated_models_filename = ModelReuser.use_given_models_with_input("models/optDSL_resusable_models_test.json",
-                                            "problem_descriptions/2d_bin_packing_generic_input_and_output_inst_2.json")
+        updated_models_filename = ModelReuser.use_given_models_with_input("problem_descriptions/testset_unittests/optDSL_resusable_models_test.json",
+                                            "problem_descriptions/testset_unittests/2d_bin_packing_generic_input_and_output_inst_2.json")
         with open(updated_models_filename, "r", encoding="utf-8") as f:
             updated_models = json.load(f)
-        with open("models/optDSL_resusable_models_test_solution.json", "r", encoding="utf-8") as f:
+        with open("problem_descriptions/testset_unittests/optDSL_resusable_models_test_solution.json", "r", encoding="utf-8") as f:
             updated_models_solution = json.load(f)
         self.assertEqual(updated_models[0]["problem_description"], updated_models_solution[0]["problem_description"])
         self.assertEqual(updated_models[0]["llm_generated_objects"], updated_models_solution[0]["llm_generated_objects"])

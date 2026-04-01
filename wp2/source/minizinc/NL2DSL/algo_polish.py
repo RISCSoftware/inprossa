@@ -47,6 +47,12 @@ class AlgoPolish:
 
 
     def polish (self, problem_description: str):
+        """
+        Perform polishing of self.models by applying Biased Crossover and Mutation (remove redundancies, refactor obj. func.)
+        Args:
+            problem_description (str): Problem description
+            (self.models: Models to be polished)
+        """
         improved_models = self.models
 
         for m_index in range(AlgoPolish.POLISHING_ITERATIONS):
@@ -125,7 +131,15 @@ class AlgoPolish:
 #                     mutated_models.append(unmutated_model)
 
     def _execute_and_validate_model(self, model: PolishModel, new_encoding: str, old_encoding: str, problem_description: str, m_index: int):
-        # Check executability for
+        """
+        Check executability and validate refactored encoding
+        Args:
+            model (PolishModel): Model to be polished
+            new_encoding (str): Refactored new encoding
+            old_encoding (str): Old encoding (unrefactored)
+            problem_description (str): Problem description
+            m_index (int): Index of mutation option
+        """
         new_encoding = self.enter_feedback_loop(model, new_encoding,
                                             old_encoding, problem_description, m_index)
         if new_encoding is None or model.state == State.FAILED:
@@ -146,6 +160,15 @@ class AlgoPolish:
         return model if model.validated else None
 
     def enter_feedback_loop(self, model: PolishModel, new_encoding: str, old_encoding: str, problem_description: str, m_index: int):
+        """
+        Performs feedback loop for LOOP_OF_DOOM_MAX_IT * MAX_NR_RESETS times or until new_encoding is syntactically valid.
+        Args:
+            model (PolishModel): Model to be polished
+            new_encoding (str): Refactored new encoding
+            old_encoding (str): Old encoding (unrefactored)
+            problem_description (str): Problem description
+            m_index (int): Index of mutation option
+        """
         execution_error = None
         for _ in range(MAX_NR_RESETS):
             nr_unsat_error = 0
@@ -213,11 +236,10 @@ class AlgoPolish:
                                    f"The section above contains a syntax error: {execution_error}" +
                                    "Given this error message, improve the mentioned lines of the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not change the semantics of the code. Do not provide the same code as in [old_code]."
                                    """Return your answer in the format
-    ´´´python
-    # --- Incorrect Code ---
-    <corrected code>
-    ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
-                                   """,
+´´´python
+# --- Incorrect Code ---
+<corrected code>
+´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.""",
                             max_tokens=3000
                         ))
                     elif "Semantic Error" in execution_error:
@@ -229,14 +251,12 @@ class AlgoPolish:
                                    f"The section above contains a semantic error: {execution_error}" +
                                    "Given this error message, improve the section \"# --- Incorrect Code ---\" the pythonic OptDSL code snippet according to the error message, nothing else. Do not provide the same code as in [old_code]." +
                                    f"The semantics of the section \"# --- Incorrect Code ---\" must be in line with the following description:\n{problem_description}" +
-                                   """
-    Define more bounds for variables. Reduce the number of temporary variables.
-    Return your answer in the format
-    ´´´python
-    # --- Incorrect Code ---
-    <corrected code>
-    ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.
-                                   """,
+                                   """Define more bounds for variables. Reduce the number of temporary variables.
+Return your answer in the format
+´´´python
+# --- Incorrect Code ---
+<corrected code>
+´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.""",
                             max_tokens=3000
                         ))
                         nr_unsat_error += 1
@@ -298,6 +318,7 @@ class AlgoPolish:
                                    "Add the missing function calls to the code with the correct parameters. Do not return exactly the given code snippet.",
                             max_tokens=3000))
                         continue
+
                     model.state = State.CORRECT
                     return new_encoding
 
@@ -317,6 +338,12 @@ class AlgoPolish:
         return ""
 
     def _validate_model(self, model: PolishModel, solution_model):
+        """
+        Validate the solution model
+        Args:
+            model (PolishModel): polished model (for constant-extraction required for validation)
+            solution_model (PolishModel): the solution model for model
+        """
         # Validate minizinc solution
         task = {}
         if model.constants:

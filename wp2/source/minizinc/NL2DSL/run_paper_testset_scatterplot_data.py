@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     # Get results for those 20 instances for the handcrafted formulation
     handcrafted_objective_values, handcrafted_solve_times = apply_handcrafted(
-        "../problem_descriptions/testset_paper_2D-BPP_CLASS/", object_types_are_fixed=False)
+        "../problem_descriptions/experiment_2D-BPP_CLASS_flex_shapes/", object_types_are_fixed=False)
 
     # Create csv file for scatterplot
     extract_solve_time_scatterplot_data(tree_collection_path,

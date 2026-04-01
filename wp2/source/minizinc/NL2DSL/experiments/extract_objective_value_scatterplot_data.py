@@ -171,8 +171,8 @@ def extract_solve_times_cum_graph(directory: str, handcrafted_solvetime: list, h
 
 
 if __name__ == '__main__':
-    directory = "testset_paper_2D-BPP_CLASS"
-    # handcrafted_objective_values, handcrafted_solve_times = apply_handcrafted("../problem_descriptions/testset_paper_2D-BPP_CLASS/", object_types_are_fixed=False)
+    directory = "experiment_2D-BPP_CLASS_flex_shapes"
+    # handcrafted_objective_values, handcrafted_solve_times = apply_handcrafted("../problem_descriptions/experiment_2D-BPP_CLASS_flex_shapes/", object_types_are_fixed=False)
     # handcrafted_objective_values, handcrafted_solve_times = apply_handcrafted("../problem_descriptions/testset_fixed_objects_2D-BPP_CLASS/", object_types_are_fixed=True)
 
     # paper testset and result extraction
@@ -191,6 +191,6 @@ if __name__ == '__main__':
     #                                    [6, 1, 1, 4, 7, 1, 5, 1, 1, 6, 7, 4, 7, 5, 13, 16, 9, 3, 5, 5])
 
     # fixed-shapes testset and result extraction
-    extract_solve_times_cum_graph("experiment_2026-03-09_15-41",
+    extract_solve_times_cum_graph("experiment_2D-BPP_CLASS_fixed_shapes",
                                   [0.265, 0.2, 5.398999999999999, 0.21799999999999997, 0.253, 0.14700000000000002, 0.265, 0.348, 0.944, 1.1889999999999998, 34.32, 0.262, 0.573, 0.539, 9.159, 149.922, 0.29000000000000004, 0.155, 0.20500000000000002, 0.6910000000000001],
                                   [6, 1, 1, 4, 7, 1, 5, 1, 1, 6, 7, 4, 7, 5, 13, 16, 9, 3, 5, 5])

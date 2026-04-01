@@ -10,12 +10,13 @@ from structures_utils import split_at_outer_equals, \
 
 class InputReader:
 
-    """
-    Problem description is read from file and later passed to LLM (full model formulation by LLM)#
-    If specification is given containing fields like "variable" and "objects", random value generation is supported
-    """
+
     @staticmethod
     def read_problem_description_from_file(input_var_file_path: str , problem_file_path: str, input_mode):
+        """
+        Problem description is read from file and later passed to LLM (full model formulation by LLM)
+        If specification is given containing fields like "variable" and "objects", random value generation is supported
+        """
         with open(input_var_file_path, "r", encoding="utf-8") as f:
             input_data = json.load(f)
         if input_mode == "flex_objects_flex_input_values" and "input_variables" not in input_data:
@@ -38,11 +39,13 @@ class InputReader:
         problem_description.extend(problem_description_data["subproblems"])
         return problem_description
 
-    """
-    Generate random input data for full model formulation by LLM
-    """
     @staticmethod
     def generate_data(input_data: dict):
+        """
+        Generate input specification for llm, by setting given values for the variables, importing data from a file or generating random values
+        Args:
+            input_data (dict): specification given by user (objects/shapes, input vars, output vars)
+        """
         if "input_variables" not in input_data:
             raise ValueError("Invalid input data file: Variables must defined in a field \"variables\": {...}.")
         generated_input_data = {}
@@ -83,12 +86,21 @@ class InputReader:
         return generated_input_data
 
 
-    '''
-        Problem description is read from file and constants are hard-coded into dsl (partial model formulation by LLM)#
-        Specification must be given containing fields like "input-variable" and "objects", random value generation is supported
-    '''
     @staticmethod
     def read_problem_description_and_generateDSLcode_from_file(input_var_file_path: str, problem_file_path: str, input_mode):
+        '''
+            Depending on input_mode, the problem specification (by user) is read from file and
+            one more of the following parts are hard-coded into dsl (partial model formulation by LLM/script)
+                > object types / shapes
+                > constants
+                > decision variables
+            Specification must be given containing fields like "input-variables", "output-variables" and "objects"
+            Args:
+                input_var_file_path (str): path to file containing user-given object type/ input variables/ output variables specification
+                problem_file_path (str):  path to file containing user-given problem specification
+                input_mode (str): input mode, indicates of DSL-code generation is done for
+                                  object types and/or input variables and/or output variables
+        '''
         with open(input_var_file_path, "r", encoding="utf-8") as f:
             input_data = json.load(f)
 
@@ -106,7 +118,7 @@ class InputReader:
             input_mode == "fixed_objects_fixed_inoutput_values") and "objects" not in input_data:
             raise ValueError("Invalid instance input file for chose mode: There must be a field \"objects\"")
 
-        # Generate DSL code templates and instances according to specification
+        # Generate DSL code according to specification (templates and instances - reusability)
         objects = None
         input_variables = None
         output_variables = None
@@ -127,11 +139,16 @@ class InputReader:
         problem_description.extend(problem_description_data["subproblems"])
         return objects, input_variables, output_variables, problem_description
 
-    """
-    Generate DSL code for object type definition
-    """
+
     @staticmethod
     def generate_objects_as_DSL_code(input_data: dict):
+        """
+        Generate DSL code for object type definition
+        Args:
+            input_data (dict): full user-given specification
+        Returns:
+            list: object type declaration as OptDSL code
+        """
         objects = {}
         for object_name, meta in input_data.items():
             boundaries = []
@@ -151,11 +168,17 @@ class InputReader:
             objects.update({object_name: objects_code.format(*boundaries)})
         return objects
 
-    """
-        Generate DSL code for decision variables declaration (output variables)
-    """
     @staticmethod
     def generate_output_data_as_DSL_code(output_data: dict):
+        """
+        Generate DSL code for decision variables declaration (output variables)
+        Args:
+            input_data (dict): full user-given specification
+        Returns:
+            list: variable specifications usable by LLM-Formulation-Generation Framework, each includes:
+                  variable_name, variable type, current instance-value, code-template for variable initialization,
+                  filled initialization-code template with current instance-value)
+        """
         variables = []
         for variable, meta in output_data.items():
             if "type" not in meta:
@@ -196,11 +219,19 @@ class InputReader:
             })
         return variables
 
-    """
-        Generate DSL code for constants declaration and initialization (input variables)
-    """
+
     @staticmethod
     def generate_input_data_as_DSL_code(input_data: dict, input_objects: dict):
+        """
+        Generate DSL code for constants declaration and initialization (input variables)
+        Args:
+            input_data (dict): full user-given specification
+            input_objects (dict): user-given input objects specification
+        Returns:
+            list: variable specifications usable by LLM-Formulation-Generation Framework, each includes:
+                  variable_name, variable type, current instance-value, code-template for variable initialization,
+                  filled initialization-code template with current instance-value)
+        """
         variables = []
         for variable, meta in input_data.items():
             if "value" not in meta:
@@ -254,13 +285,14 @@ class InputReader:
             })
         return variables
 
-    """
-    Takes a list of variable specifications and a new model instance.
-    New values are generated and inserted into the template of the variable specifications.
-    Return: updated variable spec by model instance
-    """
+
     @staticmethod
     def update_data_by_instance(variables, new_instance, input_objects: dict, is_decision_var: bool = False):
+        """
+        Takes a list of variable specifications and a 2d bin packing instance.
+        New values are generated or user-given and inserted into the template of each variable specification.
+        Return: updated variable spec by model instance.
+        """
         for i, variable in enumerate(variables):
             if is_decision_var:
                 new_values = InputReader.generate_values_for_template(new_instance[variable["variable_name"]],
@@ -276,13 +308,14 @@ class InputReader:
                 print(f"Invalid new instance: Probably lower/upper bound of new instance and reused model for the constant {variable["variable_name"]} do not match.")
         return variables
 
-    """
-    Creates values for respective template to be inserted into:
-    > constants: [list-length, (lower_bound, upper_bound), value, list-length]
-    > decision variables: [lower_bound, upper_bound, list-length]
-    """
+
     @staticmethod
     def generate_values_for_template(meta: dict, input_objects, is_decision_var: bool = False):
+        """
+        Creates random values/Gets user-given values for respective template to be inserted into:
+        > constants: [list-length, (lower_bound, upper_bound), value, list-length]
+        > decision variables: [lower_bound, upper_bound, list-length]
+        """
         if "type" not in meta:
             raise ValueError("Invalid input data file: Variables must define a type and a value.")
 
@@ -396,6 +429,18 @@ class InputReader:
 
     @staticmethod
     def generate_value(type: str, value, lower_bound, upper_bound, input_objects: dict):
+        """
+        Generate random value according to type, lower_bound, upper_bound OR
+        get user-given value, check bound-comformity, convert to correct type
+        Args:
+            type (str): Type of variable
+            value (str): Value of variable, can be "random" or a user-given value
+            lower_bound (int): Lower bound of value
+            upper_bound (int): Upper bound of value
+            input_objects (dict): Dictionary of user-given object types
+        Returns:
+            A value conform to type and bounds
+        """
         match type:
             case "int" | "integer":
                 if value is not None and value != "random":
@@ -403,6 +448,7 @@ class InputReader:
                     if lower_bound is not None and upper_bound is not None:
                         assert lower_bound <= value <= upper_bound, f"Given value violates specified lower or upper bound: {value}"
                 else:
+                    # value = random
                     lower_bound = lower_bound if lower_bound is not None else 1
                     upper_bound = upper_bound if upper_bound is not None else RANDOM_SEED
                     value = random.randint(lower_bound, upper_bound)

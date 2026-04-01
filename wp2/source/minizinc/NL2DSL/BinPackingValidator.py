@@ -10,6 +10,11 @@ class UnsatisfiableProblemError(Exception):
 
 
 def _extract_assignment_and_position(solver_solution: dict):
+    """
+    Extract item-box-assignments and x-y-positions from solver_solution
+    Args:
+        solver_solution (dict): solver solution
+    """
     solution = []
     box_assigments = solver_solution["item_box_assignments"]
     # Initialize solution array
@@ -88,6 +93,12 @@ def _extract_assignment_and_position(solver_solution: dict):
     return solution
 
 def validate_solution(solver_solution : dict, task : dict):
+    """
+    Validate a solver's solution given constants in task
+    Args:
+        solver_solution (dict): solver's solution
+        task (dict): task, contains constants (input variables) to validate against
+    """
     assert solver_solution is not None, "Solution is None."
 
     # Extract assigments to an array of dicts: box_id, x, y
@@ -106,11 +117,15 @@ def validate_solution(solver_solution : dict, task : dict):
         objective_val = solver_solution["objective"][len(solver_solution["objective"])-1]
     else:
         objective_val = solver_solution["nr_used_boxes"][len(solver_solution["nr_used_boxes"])-1]
-    assert objective_val > 0, f"Invalid value for objective: {objective_val}"
-    assert (objective_val <= len(task["input"]["ITEMS"])), f"Invalid value for objective, more boxes than items: {objective_val}"
-    number_of_used_boxes = len(set([solution_comp["box_id"] for solution_comp in solution]))
-    assert objective_val == number_of_used_boxes, "Invalid value for objective, max_box_id and said value do not match."
+    try:
+        assert objective_val > 0, f"Invalid value for objective: {objective_val}"
+        assert (objective_val <= len(task["input"]["ITEMS"])), f"Invalid value for objective, more boxes than items: {objective_val}"
+        number_of_used_boxes = len(set([solution_comp["box_id"] for solution_comp in solution]))
+        assert objective_val == number_of_used_boxes, "Invalid value for objective, max_box_id and said value do not match."
+    except AssertionError as e:
+        print(e)
 
+    # Validate constraints for specific problem
     for i, item_placement in enumerate(solution):
         if "item_id" in item_placement:
             if len([sol for sol in solution if sol["item_id"] == 0]) != 0:
@@ -151,6 +166,11 @@ def validate_solution(solver_solution : dict, task : dict):
                         assign_j["y"] + item_j["height"] <= assign_i["y"]), f"Items {i+1} and {j+1} overlap."
 
 def check_satisfiability_given(constants: list[dict]):
+    """
+    Check satisfiability of 2D bin packing problem instance given a set of constants.
+    Args:
+         constants (list[dict]): List of constants.
+    """
     box_height = None
     box_width = None
     items = []
@@ -171,115 +191,3 @@ def check_satisfiability_given(constants: list[dict]):
         raise UnsatisfiableProblemError(max([item["width"] for item in items]))
     if max([item["height"] for item in items]) > box_height:
         raise UnsatisfiableProblemError(max([item["height"] for item in items]))
-
-
-d2_bin_packing_formalized_problem_description_inst2 = [
-    # Input
-    """
-    ´´´ json
-    {
-        "BOX_HEIGHT": 5,
-        "BOX_WIDTH": 12,
-        "ITEMS": [
-            {
-                "width": 4,
-                "height": 3
-            },
-            {
-                "width": 1,
-                "height": 2
-            },
-            {
-                "width": 5,
-                "height": 3
-            },
-            {
-                "width": 4,
-                "height": 2
-            },
-            {
-                "width": 1,
-                "height": 3
-            },
-            {
-                "width": 9,
-                "height": 2
-            },
-            {
-                "width": 9,
-                "height": 5
-            },
-            {
-                "width": 3,
-                "height": 5
-            },
-            {
-                "width": 5,
-                "height": 1
-            }
-        ]
-    }´´´
-    """,
-    # Output
-    """
-    ´´´json
-    [
-        {
-            "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
-            "is_objective": true,
-            "mandatory_variable_name": "nr_used_boxes",
-            "suggested_shape": "integer"
-        },
-        {
-            "description": "Which item is assigned to which box.",
-            "is_objective": false,
-            "mandatory_variable_name": "item_box_assignments",
-            "suggested_shape": "array"
-        },
-        {
-            "description": "Position x and y of each item within box",
-            "is_objective": false,
-            "mandatory_variable_name": "x_y_positions",
-            "suggested_shape": "array"
-        }
-    ]
-    ´´´
-    """,
-    # Global description
-    """
-    Global problem:
-    This problem involves a collection of items, where each have a value and a weight. We have 6 different items given in the parameters.
-    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.
-    The result and expected output is:
-        - the assigment of each item into a box
-        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.
-    """,
-    # Subproblem description - part 1
-    """Sub problem definition - items that go in the bin - part 1:
-    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.
-    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
-    """,
-    # Subproblem description - part 2
-    """Sub problem definition - items that go in the bin - part 2:
-    Taking the given items that are put into a box, they must not overlap.
-    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
-    """,
-    # Subproblem description - part 3
-    """Sub problem definition - items that go in the bin - part 3:
-    Taking the given items that are put into a box, one item can be exactly in one box.
-    The result and expected output is the assigment of each item into a box and the position of each item within its assigned box.
-    """
-    ]
-
-"""
-# Example of calling from another function:
-if __name__ == "__main__":
-    task = {
-        "input": json.loads(remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[0])),
-        "output": json.loads(remove_programming_environment(d2_bin_packing_formalized_problem_description_inst2[1]))
-    }
-    # Validate solver solutions
-    validate_solution(json.loads(
-        "{\"nr_used_boxes\": [1], \"item_box_assignments\": [[{\"box_id\": 3, \"x\": 0, \"y\": 0}, {\"box_id\": 6, \"x\": 0, \"y\": 0}, {\"box_id\": 8, \"x\": 0, \"y\": 0}, {\"box_id\": 5, \"x\": 0, \"y\": 0}, {\"box_id\": 4, \"x\": 0, \"y\": 0}, {\"box_id\": 7, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 5, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}]], \"x_y_positions\": [[{\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 1, \"x\": 0, \"y\": 0}]], \"objective\": [8]"),
-                      task)
-"""

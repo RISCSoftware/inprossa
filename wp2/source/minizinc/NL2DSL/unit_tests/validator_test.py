@@ -164,10 +164,10 @@ class TestValidator(unittest.TestCase):
                 }
             ])
 
-    def test_unsatisfiability_of_constants_with_tree(self):
+    def test_unsatisfiability_of_constants_in_tree(self):
         objects, intput_variable_spec, output_variable_spec, problem_description = InputReader.read_problem_description_and_generateDSLcode_from_file(
-            "problem_descriptions/2d_bin_packing_unsat_constants.json",
-           "problem_descriptions/2d_bin_packing_inst_1_without_inoutput.json",
+            "problem_descriptions/testset_unittests/2d_bin_packing_unsat_constants.json",
+           "problem_descriptions/2d_bin_packing_without_inoutput.json",
             "fixed_objects_fixed_inoutput_values")
         tree = DfsTree(None,
                 problem_description=problem_description,
@@ -298,7 +298,7 @@ class TestValidator(unittest.TestCase):
             "{\"objective\": [0, 1, 1, 2], \"nr_used_boxes\": [1], \"item_box_assignments\": [[1, 2, 2]], \"x_y_positions\": [[{\"box_id\": 1, \"item_id\": 1, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 2, \"x\": 0, \"y\": 0}, {\"box_id\": 2, \"item_id\": 3, \"x\": 3, \"y\": 0}]]}"),
             task)
 
-    def test_case1(self):
+    def valid_test_case1(self):
         d2_bin_packing_formalized_problem_description_inst2 = [
             # Input
             """
@@ -388,7 +388,7 @@ class TestValidator(unittest.TestCase):
         except Exception as e:
             raise AssertionError(e)
 
-    def test_case2(self):
+    def valid_test_case2(self):
         d2_bin_packing_formalized_problem_description_inst2 = [
             # Input
             """
@@ -458,7 +458,7 @@ class TestValidator(unittest.TestCase):
         except Exception as e:
             raise AssertionError(e)
 
-    def test_case3(self):
+    def valid_test_case3(self):
         d2_bin_packing_formalized_problem_description_inst2 = [
             # Input
             """
@@ -528,7 +528,7 @@ class TestValidator(unittest.TestCase):
         except Exception as e:
             raise AssertionError(e)
 
-    def test_case4(self):
+    def valid_test_case4(self):
         d2_bin_packing_formalized_problem_description_inst2 = [
             # Input
             """
@@ -662,7 +662,7 @@ class TestValidator(unittest.TestCase):
         except Exception as e:
             raise AssertionError(e)
 
-    def test_case5(self):
+    def valid_test_case5(self):
         d2_bin_packing_formalized_problem_description_inst2 = [
             # Input
             """

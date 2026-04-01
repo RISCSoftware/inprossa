@@ -29,12 +29,9 @@ def move_all_model_files_into_folder(destination_folder: str):
         print("logs file needs to be moved, if existent.")
 
 def paper_20_CLASS_tot_runs():
-    directory = "problem_descriptions/testset_paper_2D-BPP_CLASS/"
+    directory = "problem_descriptions/experiment_2D-BPP_CLASS_flex_shapes/"
     formatted = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    #files = sorted(
-    #    os.listdir(directory),
-    #    key=lambda name: int(name.rsplit("_", 1)[-1].split(".")[0])
-    #)
+
     for i in range(5):
         for filename in os.listdir(directory):
             if (not filename.endswith(".json")):
@@ -47,7 +44,7 @@ def paper_20_CLASS_tot_runs():
                                      "--problem_instance",
                                      filepath,
                                      "--problem_description",
-                                     "problem_descriptions/2d_bin_packing_inst_1_without_input.json",
+                                     "problem_descriptions/2d_bin_packing_without_input.json",
                                      "-m",
                                      "flex_objects_fixed_input_values"])
             try:
@@ -80,7 +77,7 @@ def bot_without_semantic_feedback_20_bot_runs():
                                      "--problem_instance",
                                      filepath,
                                      "--problem_description",
-                                     "problem_descriptions/2d_bin_packing_inst_1_without_input.json",
+                                     "problem_descriptions/2d_bin_packing_without_input.json",
                                      "-m",
                                      "flex_objects_fixed_input_values"])
             try:
@@ -110,7 +107,7 @@ def CLASS_tot_with_semantic_feedback():
                              "--problem_instance",
                              filepath,
                              "--problem_description",
-                             "problem_descriptions/2d_bin_packing_inst_1_without_inoutput.json",
+                             "problem_descriptions/2d_bin_packing_without_inoutput.json",
                              "-m",
                              "fixed_objects_fixed_inoutput_values"])
     try:
@@ -128,7 +125,6 @@ def CLASS_tot_with_semantic_feedback():
     os.makedirs(f"experiments/experiment_{formatted}", exist_ok=True)
     move_all_model_files_into_folder(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_reusable_model")
     reuse_model(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_reusable_model/", files, directory)
-    #reuse_model(f"experiments/experiment_2026-03-09_09-15/20_inst_2D-BPP_CLASS_reusable_model/", files, directory)
 
     handcrafted_objective_values, handcrafted_solve_times = apply_handcrafted(
         directory + "/", object_types_are_fixed=True)

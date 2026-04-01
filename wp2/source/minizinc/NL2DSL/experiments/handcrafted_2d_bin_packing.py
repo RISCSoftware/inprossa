@@ -104,5 +104,5 @@ solve_times : {solve_times}
 """)
     return objective_values, solve_times
 
-# apply_handcrafted("../problem_descriptions/testset_paper_2D-BPP_CLASS/", object_types_are_fixed=False)
+# apply_handcrafted("../problem_descriptions/experiment_2D-BPP_CLASS_flex_shapes/", object_types_are_fixed=False)
 # apply_handcrafted("../problem_descriptions/testset_paper_2D-BPP_CLASS_fixed_objects/", object_types_are_fixed=True)

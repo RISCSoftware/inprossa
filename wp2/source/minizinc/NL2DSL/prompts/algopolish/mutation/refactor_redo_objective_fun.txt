@@ -8,8 +8,9 @@
 
 [Task]
 Perform the following three steps:
-1. Remove the code within "# --- Objective ---" section in [Code] completely.
-2. Encode the full description of the {}. approach from [Objective_approaches] as valid OptDSL formulation into section "# --- Objective ---" in [Code]. Follow the description in [Objective_approaches]. Update the assignment to "objective" variable accordingly. Note in a comment the name of the chosen approach. Do not return the same code as in previous "# --- Objective ---".
+1. Remove the code within section "# --- Objective ---" in [Code] completely.
+2. Encode the full description of the {}. approach from [Objective_approaches] as valid OptDSL formulation into section "# --- Objective ---" in [Code]. Update the assignment to "objective" variable accordingly. Update affected decision variable constraints accordingly. Note in a comment the name of the chosen approach. Do not return the same code as in previous "# --- Objective ---".
+3. After refactoring, list each decision variable and enumerate all constraints that apply to it. Confirm that none are missing according to [Problem].
 
 Fulfill the following rules:
 - Do not use list comprehension or any list multiplication operator. Code like `[1] * 5` and `[True for _ in range(1, 5)]` is illegal.
@@ -18,6 +19,11 @@ Fulfill the following rules:
 - Use minimal necessary temporary variables.
 - Encode the function in the most efficient way and with minimal necessary number of lines.
 - Make sure there is a variable "objective".
+- Check that all decision variables from [Decision_variables] are integrated in assert-constraints. Add missing semantic constraints.
+- For every decision variable, ensure that:
+    - All its original constraints, bounds, and relationships are defined according to [Problem].
+    - No variable becomes unconstrained
+    - If constraints are rewritten, they must be logically equivalent
 - Provide your answer as valid OptDSL code enclosed with python codeblock in the following format:
 ```python
 # --- Objective ---
@@ -25,7 +31,7 @@ Fulfill the following rules:
 objective = <objective_function>(...)
 <optimize>(objective)
 
-<decision_variable_constraint_update>
+<missing_decision_variable_constraint_update>
 
 # --- Constraints ---
 <constraints>

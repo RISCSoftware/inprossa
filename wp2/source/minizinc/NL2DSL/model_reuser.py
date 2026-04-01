@@ -49,7 +49,7 @@ class ModelReuser():
         updated_models_filename = f'optDSL_models_reused_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.json' #
         with open(os.path.join(os.path.dirname(os.path.dirname(models_file_path)), updated_models_filename), "w", encoding="utf-8") as f:
             json.dump(updated_models, f, indent=4)
-        return updated_models_filename
+        return os.path.join(os.path.dirname(os.path.dirname(models_file_path)), updated_models_filename)
 
     @staticmethod
     def _update_and_validate_model_with_new_instance(objects, input_variables, output_variables, model,

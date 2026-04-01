@@ -806,8 +806,8 @@ d2_bin_packing_formalized_problem_description_inst2 = InputReader.read_problem_d
         "problem_descriptions/2d_bin_packing_inst_1.json") # 2
 '''
 d2_bin_packing_formalized_problem_description_inst2 = InputReader.read_problem_description_from_file(
-        "problem_descriptions/2d_bin_packing_input_inst_3.json",
-        "problem_descriptions/2d_bin_packing_inst_1.json") # 3
+    "problem_descriptions/testset_unittests/2d_bin_packing_input_inst_3.json",
+    "problem_descriptions/testset_unittests/2d_bin_packing_inst_1.json") # 3
 '''
 d2_bin_packing_formalized_problem_description_inst2 = InputReader.read_problem_description_from_file(
         "problem_descriptions/2d_bin_packing_input_inst_4.json",

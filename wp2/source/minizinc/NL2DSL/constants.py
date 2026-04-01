@@ -22,15 +22,15 @@ LLM = None
 # **************** CUSTOMIZABLE SETTINGS ******************
 
 DEBUG_MODE_ON = True
-SOLVE_TIME_TIMEOUT = 1000
+SOLVE_TIME_TIMEOUT = 150000
 RANDOM_SEED = 20
 RANDOM_STRING_LENGTH = 10
 
 # DFS Tree of Thought
-NR_MAX_CHILDREN = 4
-CONSTRAINT_NODES = False
-SAVE_NODES = False
-SAVE_MODEL = True
+NR_MAX_CHILDREN = 4 # Maximum of children per node in ToT
+CONSTRAINT_NODES = False # default: false. Splits each subproblem into individual node, save formulations for all subproblems into one node
+SAVE_NODES = False # Saves whole tree: each node in correct nested folder structure
+SAVE_MODEL = True # Saves the valid model formulations resulting from the tree
 SOLVER = "chuffed"
 
 # AlgoPolish
@@ -46,5 +46,5 @@ def get_LLM_client():
         #     api_key="local",
         #     model_name="Qwen2.5-Coder-7B-Q8_0-GGUF"
         # )
-        LLM = AwsClient(model_id="qwen.qwen3-coder-480b-a35b-v1:0")                 # does well syntax-wise for iterative build-up and all-at-once, timeout
+        LLM = AwsClient(model_id="qwen.qwen3-coder-480b-a35b-v1:0")
     return LLM

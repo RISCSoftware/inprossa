@@ -49,4 +49,4 @@ def average(nums):
     return sum(nums) / len(nums) if nums else 0
 
 if __name__ == '__main__':
-    collect_correctness_results(["testset_paper_2D-BPP_CLASS"])
+    collect_correctness_results(["experiment_2D-BPP_CLASS_flex_shapes"])
