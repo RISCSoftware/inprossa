@@ -21,7 +21,7 @@ Fulfill the following rules:
 - Make sure there is a variable "objective".
 - Check that all decision variables from [Decision_variables] are integrated in assert-constraints. Add missing semantic constraints.
 - For every decision variable, ensure that:
-    - All its original constraints, bounds, and relationships are defined according to [Problem].
+    - All its original constraints, bounds, and relationships are defined according to [Problem]. Constrain every decision variable with at least one other decision variable.
     - No variable becomes unconstrained
     - If constraints are rewritten, they must be logically equivalent
 - Provide your answer as valid OptDSL code enclosed with python codeblock in the following format:

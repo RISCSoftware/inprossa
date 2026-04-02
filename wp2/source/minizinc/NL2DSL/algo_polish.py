@@ -100,7 +100,7 @@ class AlgoPolish:
                 if new_model is None: continue
 
                 # Check fitness
-                mutated_model.calculate_and_set_fitness()
+                #mutated_model.calculate_and_set_fitness()
                 if mutated_model.state == State.CORRECT: mutated_models.append(mutated_model)
 
 #             # Mutation (redundancy-removement, experiment)
@@ -374,7 +374,7 @@ Return your answer in the format
 
 def main():
     # Read problem description
-    problem_filepath = "problem_descriptions/2d_bin_packing_inst_1_without_inoutput"
+    problem_filepath = "problem_descriptions/2d_bin_packing_without_inoutput"
     with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
         problem_description_data = json.load(f)
     problem_description = ""
