@@ -11,12 +11,8 @@ def move_all_model_files_into_folder(destination_folder: str):
     os.makedirs(destination_folder, exist_ok=True)
     # move resulting ToT models
     for filename in os.listdir():
-        if filename.startswith("optDSL_models_") and filename.endswith(".json"):
-            src = os.path.join(os.getcwd(), filename)
-            dst = os.path.join(destination_folder, filename)
-            if os.name == "nt":
-                dst = dst.replace("/", "\\")
-            os.rename(src, dst)
+        if filename.startswith("optDSL_models_") and ((filename.endswith(".json")) or filename == "correctness_results.txt"):
+            move_file(destination_folder, filename)
 
     # move log file
     src = os.path.join(os.getcwd(), "run_logs.log")
@@ -28,10 +24,18 @@ def move_all_model_files_into_folder(destination_folder: str):
     except Exception:
         print("logs file needs to be moved, if existent.")
 
+def move_file(destination_folder: str, filename: str):
+    src = os.path.join(os.getcwd(), filename)
+    dst = os.path.join(destination_folder, filename)
+    if os.name == "nt":
+        dst = dst.replace("/", "\\")
+    os.rename(src, dst)
+
 def paper_20_CLASS_tot_runs():
-    directory = "problem_descriptions/experiment_2D-BPP_CLASS_flex_shapes/"
+    directory = "problem_descriptions/testset_paper_2D-BPP_CLASS/"
     formatted = datetime.now().strftime("%Y-%m-%d_%H-%M")
 
+    # generate 5 ToT per instances
     for i in range(5):
         for filename in os.listdir(directory):
             if (not filename.endswith(".json")):
@@ -59,7 +63,8 @@ def paper_20_CLASS_tot_runs():
             finally:
                 proc.terminate()
         move_all_model_files_into_folder(f"experiments/experiment_{formatted}/20_inst_2D-BPP_CLASS_run{i}/")
-        return f"experiment_{formatted}"
+    move_file(f"experiments/experiment_{formatted}/", "correctness_results.txt")
+    return f"experiment_{formatted}"
 
 def bot_without_semantic_feedback_20_bot_runs():
     directory = "problem_descriptions/"
@@ -135,32 +140,33 @@ def CLASS_tot_with_semantic_feedback():
 
 def reuse_model(reusable_model_file_path: str, files: list[str], directory: str):
     reusable_model_file= [file for file in os.listdir(reusable_model_file_path) if file.endswith(".json")][0]
-    files = files[1:]
-    for filename in files:
-        filepath = os.path.join(directory, filename)
-        print(f"""----------------------------------------------------------------------------
-                Starting run for writing reused model for instance {filename}: """)
-        proc = subprocess.Popen([sys.executable,
-                                 "tree_search_dfs.py",
-                                 "--reusable_model_file_path",
-                                 os.path.join(reusable_model_file_path, reusable_model_file),
-                                 "--new_instance_filename",
-                                 filepath,
-                                 "-m",
-                                 "reuse_model_fixed_inoutput_values"])
-        try:
-            proc.wait()  # wait up to 90 minutes
-        except subprocess.TimeoutExpired:
-            print("Timeout — killing process")
-            proc.kill()
-            proc.wait()  # ensure it’s dead
-        except KeyboardInterrupt as e:
-            # do nothing
-            m = 1
-        finally:
-            proc.terminate()
+    for i in range(5):
+        for filename in files:
+            filepath = os.path.join(directory, filename)
+            print(f"""----------------------------------------------------------------------------
+Starting run for writing reused model for instance {filename}: """)
+            proc = subprocess.Popen([sys.executable,
+                                     "tree_search_dfs.py",
+                                     "--reusable_model_file_path",
+                                     os.path.join(reusable_model_file_path, reusable_model_file),
+                                     "--new_instance_filename",
+                                     filepath,
+                                     "-m",
+                                     "reuse_model_fixed_inoutput_values"])
+            try:
+                proc.wait()  # wait up to 90 minutes
+            except subprocess.TimeoutExpired:
+                print("Timeout — killing process")
+                proc.kill()
+                proc.wait()  # ensure it’s dead
+            except KeyboardInterrupt as e:
+                # do nothing
+                m = 1
+            finally:
+                proc.terminate()
+
 
 if __name__ == '__main__':
-    # paper_20_CLASS_tot_runs()
+    paper_20_CLASS_tot_runs()
     # bot_without_semantic_feedback_20_bot_runs()
-    CLASS_tot_with_semantic_feedback()
+    # CLASS_tot_with_semantic_feedback()

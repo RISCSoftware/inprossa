@@ -1,5 +1,5 @@
 Assume at some point we want to encode the problem in [Problem] in an optimization solver modeling language similar to MiniZinc.
-Describe all valid algorithms for formulating the objective function to reach the optimization goal of the problem in [Problem] as markdown text. Nothing else.
+Describe numerous valid algorithms for formulating the objective function to reach the optimization goal of the problem in [Problem] as markdown text. Nothing else.
 Describe everything that is necessary to fulfill the optimization goal, not the subproblems.
 Do not use concrete values or any variables at all, just pure textual descriptions.
 Do not hallucinate additional attributes or extend the problem artificially.

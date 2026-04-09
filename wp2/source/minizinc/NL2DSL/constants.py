@@ -27,10 +27,10 @@ RANDOM_SEED = 20
 RANDOM_STRING_LENGTH = 10
 
 # DFS Tree of Thought
-NR_MAX_CHILDREN = 4 # Maximum of children per node in ToT
-CONSTRAINT_NODES = False # default: false. Splits each subproblem into individual node, save formulations for all subproblems into one node
-SAVE_NODES = False # Saves whole tree: each node in correct nested folder structure
-SAVE_MODEL = True # Saves the valid model formulations resulting from the tree
+NR_MAX_CHILDREN = 2         # Maximum of children per node in ToT
+CONSTRAINT_NODES = False    # default: false. Splits each subproblem into individual node, save formulations for all subproblems into one node
+SAVE_NODES = False          # Saves whole tree: each node in correct nested folder structure
+SAVE_MODEL = True           # Saves the valid model formulations resulting from the tree
 SOLVER = "chuffed"
 
 # AlgoPolish
@@ -48,3 +48,4 @@ def get_LLM_client():
         # )
         LLM = AwsClient(model_id="qwen.qwen3-coder-480b-a35b-v1:0")
     return LLM
+

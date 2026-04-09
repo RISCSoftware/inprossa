@@ -3,6 +3,8 @@ import json
 import boto3
 import os
 
+from botocore.exceptions import ClientError
+
 import constants
 
 
@@ -162,9 +164,13 @@ class AwsClient:
                             'temperature': self.temperature if temperature is None else temperature
                         }
                     )
-        except Exception as e:
-            print(e)
-            return ""
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'AccessDeniedException':
+                print(e.response["Error"]["Message"])
+                raise e
+            else:
+                print(f"Unexpected error: {e}")
 
 
         # Print the response

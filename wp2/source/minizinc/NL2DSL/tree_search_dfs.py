@@ -21,8 +21,8 @@ class DfsTree(TreeBase):
                (cur_node.level == 0 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
                cur_node.level == 1 and self.input_variable_spec and self.output_variable_spec and len(cur_node.get_correct_children()) < 1 or
                (cur_node.level == 1 and (not self.input_variable_spec or not self.output_variable_spec) and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or
-               (cur_node.level == 2 and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or #get_correct_children()
-               (cur_node.level >= 3 and len(cur_node.get_correct_children()) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN)):
+               (cur_node.level == 2 and len(cur_node.children) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN) or #get_correct_children()
+               (cur_node.level >= 3 and len(cur_node.children) < DfsTree.NR_MIN_VALID_CHILDREN and len(cur_node.children) < DfsTree.NR_MAX_CHILDREN)):
             if DEBUG_MODE_ON: print(f"""
 .....................................................
 Given:
@@ -55,7 +55,7 @@ Create {len(cur_node.get_correct_children())}. node at level {cur_node.level+1}
     def create_full_tree_with_dfs(self):
         self.dfs(self.root)
         print(f"""
-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*
 Nr. syntactically invalid formulations: {self.nr_syntactically_invalid_leaves}
 Nr. sematically invalid formulations: {self.nr_semantically_invalid_leaves}
 Nr. valid formulations: {self.nr_valid_leaves}
@@ -63,7 +63,11 @@ Nr. valid formulations: {self.nr_valid_leaves}
 Objective val: {self.best_child.objective_val}
 Solve time: {self.best_child.solve_time}
 Encoding: {initial_clean_up(self.best_child.partial_formulation_up_until_now)}
-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*""")
+*-*-*-*-*-*-*-*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*""")
+
+        # Write correctness results to file
+        self._save_correctness_results()
+
         return self.root
 
 

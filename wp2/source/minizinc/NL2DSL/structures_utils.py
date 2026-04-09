@@ -536,8 +536,10 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
                 return "Do not use None."
             elif "ValueError - Unsupported statement: Pass()" in exc_msg:
                 return "Constraints/Objective FormatError"
-            elif "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in exc_msg:
-                return "Do not use list comprehension or any list multiplication operator. Do not use function calls append() and extend() for DSList."
+            elif ("type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in exc_msg or
+                  "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in exc_msg or
+                  "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of int' and right-hand side type `int'" in exc_msg):
+                return "Do not use list comprehension. Do not use any list multiplication operator on arrays. Code like `[1] * 5` and `[True for _ in range(1, 5)]` is illegal. Do not use function calls append() and extend() for DSList."
             return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
         return str(e)
 
@@ -814,7 +816,7 @@ def decompose_full_polished_definition (full_definition: str):
 
         for line in full_definition.splitlines():
             # Detect a block header, e.g. "--- Objects ---"
-            m = re.match(r'^\s*#\s*---\s*(\w+(?:\s+\w+)*)\s*---', line)
+            m = re.match(r'(?:^\s*)#\s*--+\s*(\w+(?:\s+\w+)*)\s*--+', line)
             if m:
                 if not ((m.group(1).strip().lower() == "constraints" or m.group(1).strip().lower() == "auxiliary variables")
                     and (current_key == "constraints" or current_key == "auxiliary variables")):

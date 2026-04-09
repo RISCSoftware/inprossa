@@ -28,6 +28,7 @@ class TreeBase:
         self.input_variable_spec = input_variable_spec
         self.output_variable_spec = output_variable_spec
         self.objects_spec = objects_spec
+        self.correctness_result_file = f'correctness_results.txt'
         self.result_models_file = f'optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json'
         self.for_each_constraint_one_node = for_each_constraint_one_node
         self.semantic_feedback_enabled = semantic_feedback_enabled
@@ -277,3 +278,7 @@ Semantic validation: {validation_res}
 
     def increment_nr_valid_leaves(self):
         self.nr_valid_leaves += 1
+
+    def _save_correctness_results(self):
+        with open(self.correctness_result_file, "a", encoding="utf-8") as f:
+            f.write(f"{self.nr_syntactically_invalid_leaves} syntactically invalid, {self.nr_semantically_invalid_leaves} semantically invalid, {self.nr_valid_leaves} valid" + "\n")

@@ -9,21 +9,24 @@
 [Task]
 Perform the following three steps:
 1. Remove the code within section "# --- Objective ---" in [Code] completely.
-2. Encode the full description of the {}. approach from [Objective_approaches] as valid OptDSL formulation into section "# --- Objective ---" in [Code]. Update the assignment to "objective" variable accordingly. Update affected decision variable constraints accordingly. Note in a comment the name of the chosen approach. Do not return the same code as in previous "# --- Objective ---".
+2. Encode exactly the full description of the {}. approach from [Objective_approaches] as valid OptDSL formulation into section "# --- Objective ---" in [Code]. Update the assignment to "objective" variable accordingly. Update affected decision variable constraints accordingly. Note in a comment the name of the chosen approach. Do not return the old code in section "# --- Objective ---".
 3. After refactoring, list each decision variable and enumerate all constraints that apply to it. Confirm that none are missing according to [Problem].
 
 Fulfill the following rules:
 - Do not use list comprehension or any list multiplication operator. Code like `[1] * 5` and `[True for _ in range(1, 5)]` is illegal.
-- Do not use floating-point division.
+- Do not use floating-point division. Do not define constants (upper-case variables) within functions. Use lower-case variables instead.
 - Assume every list element is automatically initialized at runtime, e.g. the list elements of a list of booleans are automatically set to false.
+- Do not initialize decision-variable-list-elements with default values. Set a decision-variable-list-element only when it not 0, 0.0 and False.
 - Use minimal necessary temporary variables.
 - Encode the function in the most efficient way and with minimal necessary number of lines.
 - Make sure there is a variable "objective".
 - Check that all decision variables from [Decision_variables] are integrated in assert-constraints. Add missing semantic constraints.
+- Constrain every decision variable with at least one other decision variable.
 - For every decision variable, ensure that:
-    - All its original constraints, bounds, and relationships are defined according to [Problem]. Constrain every decision variable with at least one other decision variable.
+    - All its original constraints, bounds, and relationships are defined according to [Problem].
     - No variable becomes unconstrained
     - If constraints are rewritten, they must be logically equivalent
+- Do not return explanations or markdown code.
 - Provide your answer as valid OptDSL code enclosed with python codeblock in the following format:
 ```python
 # --- Objective ---

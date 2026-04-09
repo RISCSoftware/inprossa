@@ -50,7 +50,7 @@ class MiniZincSolver:
             try:
                 if not last_in_progress:
                     result = subprocess.Popen(
-                        ["minizinc",
+                        ["/home/kat/programs/minizinc/bin/minizinc",
                                     "--solver", constants.SOLVER,
                                      "--statistics",
                                      "--output-mode", "item",
@@ -62,7 +62,7 @@ class MiniZincSolver:
                     )
                 else:
                     result = subprocess.Popen(
-                        ["minizinc",
+                        ["/home/kat/programs/minizinc/bin/minizinc",
                          "--solver", constants.SOLVER,
                          "--statistics",
                          "--output-mode", "item",

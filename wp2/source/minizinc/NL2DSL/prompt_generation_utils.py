@@ -207,6 +207,9 @@ def enter_feedback_loop(node, raw_formulation, llm, full_problem_description: li
                 execution_error = check_executability(node, raw_formulation)
             # Handle execution error
             if execution_error is not None:
+                # Execution error occured and end of loop-of-doom-retries reached -> switch model
+                if i == LOOP_OF_DOOM_MAX_IT-1: continue
+
                 if "type error" in execution_error and "\\/" in execution_error:
                     execution_error = "Incompatible types used in one of the or-expressions in the code beneath \"# --- Incorrect Code ---\". Check and correct the or-expressions, only boolean can be used with or-expressions."
                 elif "type error" in execution_error and "/\\" in execution_error:
@@ -403,7 +406,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                                                            full_problem_description: list[str] = None,
                                                            subproblem_description: str = None):
     """
-    Creates and sends prompt for partial formulation generation, given execution message,
+    Creates and sends prompt for partial formulation, given execution message,
     node.get_partial_formulation_up_until_now, and problem formulation, depending on node.level
     Args:
          node (TreeNode): current node of formulation
@@ -445,14 +448,11 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                 "Given the problem below:\n" +
                 "------------\n" +
                 # Input variables (constants) problem description
-                full_problem_description[0] + "\n" +
                 # Output variables (decision variables) - problem description
-                full_problem_description[1] + "\n" +
                 # Global problem description
-                full_problem_description[2] + "\n" +
-                # Sub problem description
-                full_problem_description[3] +
-                "------------\n" +
+                # Sub problem descriptions
+                "\n".join([full_problem_description for full_problem_description in full_problem_description]) +
+                "\n------------\n" +
                 # Component specific instr.: object types, data types
                 f"Task: {load_sp_file("sp_objects.txt")}"
                 , max_tokens=1000
@@ -488,9 +488,9 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                 full_problem_description[0] + "\n" +
                 "------------\n" +
                 # Given object types
-                f"""Given the following python code snippet containing object types:
-                    ´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}
-                    {node.get_partial_formulation_up_until_now()}´´´\n""" +
+                f"Given the following python code snippet containing object types:\n" +
+                f"´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
+                f"{node.get_partial_formulation_up_until_now()}´´´\n" +
                 # Component specific instr.: constants
                 # f"\nTask:Take this text description of required constants for an optimization problem: {text_representation}",
                 f"\nYour priority is to fulfill this task: {load_sp_file("sp_constants.txt")}\n"
@@ -506,9 +506,9 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                 full_problem_description[1] +
                 "------------\n" +
                 # Given object types, constants:
-                f"""Given the following python code snippet containing datatypes, constants:
-                ´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}
-                {node.get_partial_formulation_up_until_now()}´´´\n""" +
+                f"Given the following python code snippet containing datatypes, constants:\n" +
+                f"´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
+                f"{node.get_partial_formulation_up_until_now()}´´´\n" +
                 # Component specific instr.: decision variables
                 f"\nYour priority is to fulfill this task: {load_sp_file("sp_decision_variables.txt")}\n"
                 , max_tokens=1500
@@ -524,9 +524,9 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
             full_problem_description[2] + "\n" +
             "------------\n" +
             # "Given following constants and decision variables:\n" +
-            f"""Given the following python code snippet containing datatypes, constants, decision variables and objective func.:
-    ´´´python {"form z3 import *" if not USE_OPTDSL else ""}
-    {node.get_partial_formulation_up_until_now()}´´´\n""" +
+            f"Given the following python code snippet containing datatypes, constants, decision variables and objective func.:\n" +
+            f"´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
+            f"{node.get_partial_formulation_up_until_now()}´´´\n" +
             # json.dumps(constants_variables_node.get_as_codeblock()) + "\n" +
             # Component specific instr.: obj. function
             f"\nYour priority is to fulfill this task: :\n{load_sp_file("sp_obj_function.txt")}\n"
@@ -545,8 +545,9 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
             # Sub problem description
             subproblem_description +
             "------------\n" +
-            f"""Given the following python code snippet containing datatypes, constants, decision variables and objective func.:
-                ´´´python\n{node.get_partial_formulation_up_until_now()}´´´\n""" +
+            f"Given the following python code snippet containing datatypes, constants, decision variables and objective func.:\n" +
+            f"´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
+            f"{node.get_partial_formulation_up_until_now()}´´´\n" +
             f"\nTask:\n{load_sp_file("sp_constraints.txt")}\nNever return an empty answer!"
             , max_tokens=1000
         )
@@ -620,19 +621,21 @@ Learn from it its syntax and semantics of OptDSL. Apply the syntax knowledge in 
             prompt=prompt,
             max_tokens=1)
 
-def send_polish_feedback(old_encoding: str, refactored_encoding: str, llm):
+def send_polish_feedback(encoding_1: str, encoding_2: str, encoding_1_time: float, encoding_2_time: float, llm):
     if DEBUG_MODE_ON: print("Sending feedback for a partial job well done.")
     _ = llm.send_prompt(
         prompt=
         f"""The following is an example for a syntactically valid refactoring from [Old code] to [Refactored code]. Nevertheless, try different approaches in the future.
-[Old code]
+[Snippet_1]
 ´´´ python
-{old_encoding}
+{encoding_1}
 ´´´
-[Refactored code]
+
+[Snippet_2]
 ´´´ python
-{refactored_encoding}
-´´´""",
+{encoding_2}
+´´´
+[Snippet_1] requires {encoding_1_time} and [Snippet_2] requires {encoding_2_time} ms to solve. Compare the encodings and learn unique coding characteristics from the faster one ({"[Snippet_1]" if encoding_1_time > encoding_2_time else "[Snippet_2]"}). Process the information what characteristics improved the solving speed. In the future improve your own answers according to the learned characteristics.""",
         max_tokens=1)
 
 def _get_icl():

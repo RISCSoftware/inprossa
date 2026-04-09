@@ -21,7 +21,7 @@ class PolishModel:
 
     @staticmethod
     def calculate_fitness(objective_val: float, solve_time: float, objective: str, constraints: str) -> float:
-        return objective_val + solve_time/60 + ((len(objective) + len(constraints)) / 100000)
+        return objective_val + solve_time #+ ((len(objective) + len(constraints)) / 100000)
 
     def __init__(self, model: dict, id: int = 0, save_model:bool = False):
         self.model = model
@@ -65,27 +65,35 @@ class PolishModel:
         }
 
     def calculate_and_set_fitness(self):
-        self._test_on_training_set()
+        self._test_on_testing_set()
         if self.state == State.FAILED:
             return
         self.fitness = PolishModel.calculate_fitness(self.objective_val, self.solve_time, self.objective, self.constraints)
 
-    def _test_on_training_set(self):
-        testset_objective_vals = []
-        testset_solve_times = []
+    def _test_on_testing_set(self):
         test_instances = os.listdir(constants.ALGOPOLISH_TESTSET_PATH)
         test_instances.sort()
-        for test_instance in test_instances:
-            model = ModelReuser.use_given_model_with_input(self.get_as_dict(), os.path.join(constants.ALGOPOLISH_TESTSET_PATH, test_instance))
-            if model["state"] == State.FAILED:
-                self.objective_val = None
-                self.solve_time = None
-                self.state = State.FAILED
-                return
-            testset_objective_vals.append(model["objective_val"])
-            testset_solve_times.append(model["solve_time"])
-        self.objective_val = sum(testset_objective_vals) / len(testset_objective_vals)
-        self.solve_time = sum(testset_solve_times) / len(testset_solve_times)
+        repeat_testing_set = len(test_instances)//2
+        testset_objective_vals = [[] for _ in range(repeat_testing_set)]
+        testset_solve_times = [[] for _ in range(repeat_testing_set)]
+        for i in range(repeat_testing_set):
+            for test_instance in test_instances:
+                model = ModelReuser.use_given_model_with_input(self.get_as_dict(),
+                                                               os.path.join(constants.ALGOPOLISH_TESTSET_PATH,
+                                                                            test_instance))
+                if model["state"] == State.FAILED:
+                    self.objective_val = None
+                    self.solve_time = None
+                    self.state = State.FAILED
+                    return
+                testset_objective_vals[i].append(model["objective_val"])
+                testset_solve_times[i].append(model["solve_time"])
+        #print(f"Testset (20 inst.) 10 runs - objectives: {testset_objective_vals}")
+        #print(f"Testset (20 inst.) 10 runs - solvetimes: {testset_solve_times}")
+        self.objective_val = sum([(sum(run_sum) / len(run_sum)) for run_sum in testset_objective_vals]) / len(
+            testset_objective_vals)
+        self.solve_time = sum([(sum(run_sum) / len(run_sum)) for run_sum in testset_solve_times]) / len(
+            testset_solve_times)
 
     def save_model_to_file(self, final_evaluation_result, filename: str = f'mutated_optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H")}.json'):
         data = {
@@ -137,8 +145,10 @@ class PolishModel:
             if self.state == State.UNINITIALIZED: self.state = State.CORRECT
 
 def check_executability_for_polish(raw_code : str, model: PolishModel):
-    if "Annotated[list[" in raw_code and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', raw_code):
-        return f"Error: {raw_code}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le). Demonstration example for a list of integers: Annotated[list[Annotated[int, Field(lb=-10,ub=10)]], Len(2,2)]"
+    m = re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]',
+              raw_code)
+    if "Annotated[list[" in raw_code and m:
+        return f"Error: for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool: {m.group(0)}\nE.g.: Annotated[list[int], Len(5, 5)]"
 
     # Safety check: no json has be returned instead of code
     if is_valid_json(raw_code) or raw_code.startswith("{") or raw_code.startswith("["):

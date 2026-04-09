@@ -101,71 +101,35 @@ def validate_solution(solver_solution : dict, task : dict):
     """
     assert solver_solution is not None, "Solution is None."
 
-    # Extract assigments to an array of dicts: box_id, x, y
-    solution : list[dict] = _extract_assignment_and_position(solver_solution)
-    given_items = task["input"]["ITEMS"]
-    box_height = task["input"]["BOX_HEIGHT"]
-    box_width = task["input"]["BOX_WIDTH"]
-    if isinstance(given_items, str):
-        given_items = json.loads(given_items.replace("'", "\""))
-        box_height = int(box_height)
-        box_width = int(box_width)
-    assert len(solution) == len(given_items), f"Incorrect number of assignments of items: {len(solution)}"
+    # Extract solution
+    cut_positions = solver_solution["cut_positions"]
+    cut_items: list[int] = solver_solution["cut_items"]
+    assignments = solver_solution["assignments"]
+    assert len(cut_positions) == task["NITEMS"], f"Invalid number of cuts: {len(cut_positions)}"
+    assert len(cut_items) == len(assignments) == task["NITEMS"]*2, f"Incorrect number of assignments for {len(cut_items)} items"
 
     # Validate objective
-    try:
-        if "objective" in solver_solution:
-            objective_val = solver_solution["nr_used_boxes"][len(solver_solution["nr_used_boxes"])-1]
-        else:
-            objective_val = solver_solution["objective"][len(solver_solution["objective"])-1]
-        assert objective_val > 0, f"Invalid value for objective: {objective_val}"
-        assert (objective_val <= len(task["input"]["ITEMS"])), f"Invalid value for objective, more boxes than items: {objective_val}"
-        number_of_used_boxes = len(set([solution_comp["box_id"] for solution_comp in solution]))
-        assert objective_val == number_of_used_boxes, "Invalid value for objective, max_box_id and said value do not match."
-    except AssertionError as e:
-        print(e)
-    except ValueError as e:
-        print(e)
+    if "total_cost" not in solver_solution:
+        objective_val = solver_solution["total_cost"]
+    else:
+        objective_val = solver_solution["objective"]
+    assert objective_val > 0, f"Invalid value for objective: {objective_val}"
+    assert objective_val == sum(1 for x in cut_items if x != 0) + len(set(assignments)) * 3, f"Invalid value for objective, number of cuts + number of used boxes do not accumulate to resulting cost: {sum(1 for x in cut_items if x != 0) + len(set(assignments)) * 3}"
 
-    # Validate constraints for specific problem
-    for i, item_placement in enumerate(solution):
-        if "item_id" in item_placement:
-            if len([sol for sol in solution if sol["item_id"] == 0]) != 0:
-                item = given_items[item_placement["item_id"]]
-            else:
-                item = given_items[item_placement["item_id"] - 1]
-        else:
-            item = given_items[i]
+    # Validate cut does not exceed item boundaries and cut items are valid after being cut
+    for i, cut in enumerate(cut_positions):
+        assert 0 <= cut < task["ITEM_LENGTHS"][i], f"Invalid cut position for item {i}: {cut}"
 
-        # Validate items do not exceed box boundaries
-        assert item_placement["x"] + item["width"] <= box_width, f"Placement of Item {i} at {item_placement["x"] + item["width"]} exceeds box width {box_width}"
-        assert item_placement["y"] + item["height"] <= box_height, f"Placement of Item {i} at {item_placement["y"] + item["height"]} exceeds box height {box_height}"
-        if "item_id" in item_placement:
-            assert item_placement["item_id"] >= 0, f"Invalid value for item_id: {item_placement["item_id"]}"
-            assert item_placement["item_id"] <= len(given_items), f"Invalid value for item_id: {item_placement["item_id"]}"
-        if "box_id" in item_placement:
-            assert item_placement["box_id"] >= 0, f"Invalid value for box_id: {item_placement["box_id"]}"
-            assert item_placement["box_id"] <= len(given_items), f"Invalid value for box_id, more boxes than items: {item_placement["box_id"]}"
+        assert 0 <= cut_positions[2 * i - 1] < task["ITEM_LENGTHS"][i], f"Invalid length of left part of cut item: {cut_items[2 * i - 1]}"
+        assert 0 <= cut_positions[2 * i] < task["ITEM_LENGTHS"][i], f"Invalid length of right part of cut item: {cut_items[2 * i]}"
+        assert cut_items[2 * i] == cut_positions[i], f"Invalid length of left part of cut item: {cut_items[2 * i - 1]}"
+        assert cut_items[2 * i + 1] == task["ITEM_LENGTHS"][i] - cut_positions[i], f"Invalid length of right part of cut item: {cut_items[2 * i]}"
 
-        # Validate items do not overlap
-        for j in range(i + 1, len(solution)):
-            item_i: dict = given_items[i]
-            item_j: dict = given_items[j]
-            assign_i: dict = item_placement
-            assign_j: dict = solution[j]
-
-            # Check if items are in the same box
-            if assign_i["box_id"] == assign_j["box_id"]:
-
-                # Check for non-overlapping
-                        # item j is on the right-hand-side of item i
-                assert (assign_i["x"] + item_i["width"] <= assign_j["x"] or
-                        # item i is on the right-hand-side of item j
-                        assign_j["x"] + item_j["width"] <= assign_i["x"] or
-                        # item j is on the above of item i
-                        assign_i["y"] + item_i["height"] <= assign_j["y"] or
-                        # item i is on the above of item j
-                        assign_j["y"] + item_j["height"] <= assign_i["y"]), f"Items {i+1} and {j+1} overlap."
+    capacities = [] * task["NBOXES"]
+    for i, assignment in enumerate(assignments):
+        capacities[assignment-1] += cut_items[i]
+    for i, capacity in enumerate(capacities):
+        assert 0 <= capacity <= task["BOX_CAPACITIES"][i]
 
 def check_satisfiability_given(constants: list[dict]):
     """

@@ -1,6 +1,7 @@
 import os
 import re
 
+SAMPLE_NAMES_FLEX_TESTSET = ['01_020_05.json', '02_020_07.json', '02_020_10.json', '03_020_05.json', '03_020_10.json', '04_020_08.json', '05_020_08.json', '06_020_06.json', '06_020_10.json', '07_020_05.json', '07_020_08.json', '07_020_10.json', '08_020_04.json', '08_020_08.json', '09_020_02.json', '09_020_05.json', '09_020_07.json', '10_020_02.json', '10_020_04.json', '10_020_09.json']
 
 def collect_correctness_results(directories: list[str]):
     collected_results = {}
@@ -15,9 +16,13 @@ def collect_correctness_results(directories: list[str]):
             with open(filepath, "r", encoding="utf-8") as f:
                 text = f.read()
             results = []
-            for line in text.splitlines():
-                sample_name = line.split(":")[0]
-                parts = line.split(":")[1]  # after filename
+            for i, line in enumerate(text.splitlines()):
+                if ":" not in line: # Format of line: 01_020_05.json: 1 syntactically invalid, 0 semantically invalid, 0 valid, 15 optimal
+                    sample_name = SAMPLE_NAMES_FLEX_TESTSET[i]
+                    parts = line
+                else: # Format of line: 1 syntactically invalid, 0 semantically invalid, 0 valid, 15 optimal
+                    sample_name = line.split(":")[0]
+                    parts = line.split(":")[1]  # after filename
                 nums = [int(p) for p in re.findall(r"\d+", parts)]
                 results.append(nums)
                 if line.split(":")[0] in collected_results.keys():
