@@ -5,14 +5,13 @@
 
 [Task]
 I have a valid OptDSL formulation in [Code], which works correctly but is not very efficient.
-Drastically refactor the constraints and objective function in [Code] to improve efficiency.
-Completely restructure and change the algorithm.
+Completely rewrite the constraints and objective function in [Code] with maximum efficiency. Be innovative!
 Do not refactor or change the code in sections "# --- Objects ---", "# --- Constants ---" and "# --- Decision Variables ---" in [Code]. Use the given objects, constants or decision variables in [Code] in the constraints and objective function. Everything else in [Code] can be changed freely.
 Keep the overall number of temporary variables to a minimum.
 You may also merge the objective function with the constraints, in that case put in section "# --- Objective --- \n minimize(<variable>)". Try different approaches every time.
-Ensure the final functionality and output remain identical to the purpose of the 2d bin packing problem in [Problem].
+Ensure the final functionality and output remain identical to the purpose of the problem in [Problem].
 Provide the code from [Code] including all improvements as valid OptDSL code and enclose your code with python codeblock:
-```python
+```
 # --- Objective ---
 <objective_function>
 # --- Constraints ---

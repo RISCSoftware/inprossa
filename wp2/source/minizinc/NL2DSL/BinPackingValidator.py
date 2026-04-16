@@ -92,7 +92,7 @@ def _extract_assignment_and_position(solver_solution: dict):
     if solution[0] == {}: raise ValueError("Unreadable format of solver solution for validation.")
     return solution
 
-def validate_solution(solver_solution : dict, task : dict):
+def validate_solution(solver_solution : dict, task : dict, model = None):
     """
     Validate a solver's solution given constants in task
     Args:
@@ -113,19 +113,17 @@ def validate_solution(solver_solution : dict, task : dict):
     assert len(solution) == len(given_items), f"Incorrect number of assignments of items: {len(solution)}"
 
     # Validate objective
-    try:
-        if "objective" in solver_solution:
-            objective_val = solver_solution["nr_used_boxes"][len(solver_solution["nr_used_boxes"])-1]
-        else:
-            objective_val = solver_solution["objective"][len(solver_solution["objective"])-1]
-        assert objective_val > 0, f"Invalid value for objective: {objective_val}"
-        assert (objective_val <= len(task["input"]["ITEMS"])), f"Invalid value for objective, more boxes than items: {objective_val}"
-        number_of_used_boxes = len(set([solution_comp["box_id"] for solution_comp in solution]))
-        assert objective_val == number_of_used_boxes, "Invalid value for objective, max_box_id and said value do not match."
-    except AssertionError as e:
-        print(e)
-    except ValueError as e:
-        print(e)
+    objective_val = -1
+    # if "objective" in solver_solution:
+    #     objective_val = solver_solution["objective"][len(solver_solution["objective"])-1]
+    if "nr_used_boxes" in solver_solution:
+        objective_val = solver_solution["nr_used_boxes"][len(solver_solution["nr_used_boxes"])-1]
+        if model is not None: model.objective_val = objective_val
+
+    assert objective_val > 0, f"Invalid value for nr_used_boxes: {objective_val}"
+    assert (objective_val <= len(task["input"]["ITEMS"])), f"Invalid value for nr_used_boxes, more boxes than items: {objective_val}"
+    number_of_used_boxes = len(set([solution_comp["box_id"] for solution_comp in solution]))
+    assert objective_val == number_of_used_boxes, "Invalid value for nr_used_boxes, nr_used_boxes does not reflect the number of used boxes."
 
     # Validate constraints for specific problem
     for i, item_placement in enumerate(solution):

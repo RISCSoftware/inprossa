@@ -1,3 +1,4 @@
+import ast
 from datetime import datetime
 import json
 import math
@@ -477,7 +478,18 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
             model = MiniZincTranslator(variable_block).unroll_translation()
             try:
                 # Semantic CHECK
-                if include_solver_execution: return check_solver_executability(model, node)
+                if include_solver_execution:
+                    solution = check_solver_executability(model, node)
+                    if solution is None: return solution
+                    if ("type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in solution or
+                        "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in solution or
+                        "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of int' and right-hand side type `int'" in solution):
+                        return "Do not use list comprehension. Do not use any list multiplication operator on arrays. Code like `[1] * 5` and `[True for _ in range(1, 5)]` is illegal. Do not use function calls append() and extend() for DSList. Do not set default values."
+                    if "Error" in solution:
+                        return solution.split("\n")[0]
+                    if "result of evaluation is undefined: parameter out of range: declared domain of `ITEMS[20].width' is 1..10, but assigned value is 49" in solution:
+                        m=1
+                    return solution
             except Exception as e:
                 return str(e)
         else:
@@ -492,6 +504,7 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
             return f"Constraints/Objective FormatError"
         exc_type, exc_value, exc_tb = sys.exc_info()
         stack_trace_str = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
+
         # Filter error for z3
         m = re.search(r'(?s).*?(File\s+"<string>",\s*line\s*\d+)(?!.*File\s+"<string>",\s*line\s*\d+)', stack_trace_str)
         error_message = str(e)
@@ -529,17 +542,15 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
             elif "ValueError: Variable" in exc_msg and "has incompatible types in if-else branches:" in exc_msg:
                 return "Do not extract assert-expression into temporary variables, but inline the expression within assert directly."
             elif "ListComp" in exc_msg:
-                return "Do not use list comprehension or any list multiplication operator. Do not use function calls append() and extend() for DSList. Set every list element exactly once."
+                return "Do not use list comprehension or any list multiplication operator. Do not use function calls append() and extend() for DSList."
             elif "Unsupported statement: Break()" in exc_msg:
                 return "Do not use break statement."
             elif "undefined identifier `None" in exc_msg:
                 return "Do not use None."
-            elif "ValueError - Unsupported statement: Pass()" in exc_msg:
+            elif "Unsupported statement: Pass()" in exc_msg:
                 return "Constraints/Objective FormatError"
-            elif ("type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in exc_msg or
-                  "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in exc_msg or
-                  "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of int' and right-hand side type `int'" in exc_msg):
-                return "Do not use list comprehension. Do not use any list multiplication operator on arrays. Code like `[1] * 5` and `[True for _ in range(1, 5)]` is illegal. Do not use function calls append() and extend() for DSList."
+            elif "Subscript(value=Name(id='Annotated', ctx=Load())," in exc_msg:
+                return "Use typing.Annotated with pydantic.Field of type int, float, int or one of the given object types in \"--- Objects ---\", or complex type list as typing.Annotated of typing. E.g. Annotated[list[int, Field(strict=True)], Len(20, 20)]"
             return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
         return str(e)
 
@@ -570,17 +581,14 @@ def check_solver_executability(model: str, node):
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable."
     else:
-        if "objective" in solution:
-            node.objective_val = solution["objective"][len(solution["objective"])-1]
-            node.solve_time = solve_time
-            node.solution_model = solution
-            print(f"Solution for objective is: {solution["objective"]}")
-        else:
-            if "nr_used_boxes" in solution:
-                node.objective_val = solution["nr_used_boxes"][len(solution["nr_used_boxes"])-1]
-            node.solve_time = solve_time
-            node.solution_model = solution
-            print("Solver succeeded, but no _objective is available.")
+        # if "objective" in solution:
+        #     node.objective_val = solution["objective"][len(solution["objective"])-1]
+        #     print(f"Solution for objective is: {solution["objective"]}")
+        # else:
+        if constants.OBJECTIVE_VARIABLE_NAME in solution:
+            node.objective_val = solution[constants.OBJECTIVE_VARIABLE_NAME][len(solution[constants.OBJECTIVE_VARIABLE_NAME])-1]
+        node.solve_time = solve_time
+        node.solution_model = solution
         if "unknown" in str(solution).lower():
             node.is_optimal = False
         else:
@@ -604,9 +612,9 @@ def check_solver_executability_for_plain_model(model: str):
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable.", None, None
     else:
-        if "objective" in solution:
-            print(f"Solution for objective is: {solution["objective"]}")
-            return solution["objective"][len(solution["objective"])-1], solve_time, solution
+        if constants.OBJECTIVE_VARIABLE_NAME in solution:
+            print(f"Solution for objective is: {solution[constants.OBJECTIVE_VARIABLE_NAME]}")
+            return solution[constants.OBJECTIVE_VARIABLE_NAME][len(solution[constants.OBJECTIVE_VARIABLE_NAME])-1], solve_time, solution
         else:
             print("Solver succeeded, but no _objective is available.")
         return None, None, None
@@ -882,6 +890,28 @@ def find_function_names(code_str):
     pattern = r'^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\('
     names = re.findall(pattern, code_str, flags=re.MULTILINE)
     return names
+
+def _contains_func_that_just_returns_var(func_code: str) -> bool:
+    """
+    Checks if function consists of more than one return statement of one variable using AST
+    """
+    # parse the code into an AST
+    try:
+        tree = ast.parse(func_code)
+    except SyntaxError:
+        return False
+
+    func_defs = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+    for func in func_defs:
+        # exclude docstrings and comments
+        body = [node for node in func.body
+                if not (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant))]
+
+        # check it's one statement that is a return which returns a single name (variable)
+        if len(body) == 1 and isinstance(body[0], ast.Return) and isinstance(body[0].value, ast.Name):
+            return True
+    return False
 
 
 def remove_duplicate_variables(variable_definitions, threshold: float):

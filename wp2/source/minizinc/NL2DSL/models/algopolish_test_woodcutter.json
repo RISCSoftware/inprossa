@@ -85,6 +85,14 @@
                 "variable_instance": [],
                 "variable_dslcode_template": "cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))",
                 "initialization": "cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))"
+            },
+            {
+                "description": "",
+                "variable_name": "total_cost",
+                "type": "DSInt(lb=0)",
+                "variable_instance": [],
+                "variable_dslcode_template": "cut_items: DSInt(lb=0)",
+                "initialization": "cut_items: DSInt(lb=0)"
             }
         ],
         "objective": "# --- Objective ---\ncutting_cost : DSInt(0, NITEMS)\ncut_items, cutting_cost = cutting_machine(cut_positions)\nuse_cost: DSInt(0, NITEMS * 3) = 0\nuse_cost = packing_machine(assignments, cut_items)\ntotal_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost\nminimize(total_cost)",

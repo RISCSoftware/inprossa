@@ -1,5 +1,3 @@
-from input_reader import InputReader
-import copy
 import json
 import random
 
@@ -70,79 +68,78 @@ def generate_randomvalue_input_files_for_fixed_shapes():
     Specifically, to input files for formulation generation with fixed shapes.
     """
     general_item_spec = {
-          "objects": {
-            "Item": [
-              {
-                "name": "width",
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 9
-              },
-              {
-                "name": "height",
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 9
-              }
-            ],
-            "X_Y_Position": [
-              {
-                "name": "x",
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9
-              },
-              {
-                "name": "y",
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9
-              }
-            ]
+      "objects": {
+        "Item": [
+          {
+            "name": "width",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9
           },
-          "input_variables": {
-            "BOX_HEIGHT": {
-              "type": "integer",
-              "value": 9
-            },
-            "BOX_WIDTH": {
-              "type": "integer",
-              "value": 9
-            },
-            "ITEMS": {
-              "type": {
-                "elem_type": "Item",
-                "length": 8
-              },
-              "value": "random"
-            }
+          {
+            "name": "height",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9
+          }
+        ],
+        "X_Y_Position": [
+          {
+            "name": "x",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9
           },
-          "output_variables": {
-            "nr_used_boxes": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9
-            },
-            "item_box_assignments": {
-              "type": {
-                "elem_type": "integer",
-                "minimum": 1,
-                "maximum": 9,
-                "length": 9
-              }
-            },
-            "x_y_positions": {
-              "type": {
-                "elem_type": "X_Y_Position",
-                "length": 9
-              }
-            }
+          {
+            "name": "y",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9
+          }
+        ]
+      },
+      "input_variables": {
+        "BOX_HEIGHT": {
+          "type": "integer",
+          "value": 9
+        },
+        "BOX_WIDTH": {
+          "type": "integer",
+          "value": 9
+        },
+        "ITEMS": {
+          "type": {
+            "elem_type": "Item",
+            "length": 8
+          },
+          "value": "random"
+        }
+      },
+      "output_variables": {
+        "nr_used_boxes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9
+        },
+        "item_box_assignments": {
+          "type": {
+            "elem_type": "integer",
+            "minimum": 1,
+            "maximum": 9,
+            "length": 9
+          }
+        },
+        "x_y_positions": {
+          "type": {
+            "elem_type": "X_Y_Position",
+            "length": 9
           }
         }
-
-    width = 8
-    height = 15
-    nr_items = 10
+      }
+    }
+    width = random.randint(1, 20)
+    height = random.randint(1, 20)
+    nr_items = 20
     target_path = "problem_descriptions/testset_paper_2D-BPP/"
     general_item_spec["objects"]["Item"][0]["maximum"] = width
     general_item_spec["objects"]["Item"][1]["maximum"] = height
@@ -162,3 +159,99 @@ def generate_randomvalue_input_files_for_fixed_shapes():
         general_item_spec["input_variables"]["ITEMS"]["value"] = items["ITEMS"]
         with open(target_path + f"test_inst_{i}" + ".json", "w") as f:
             json.dump(general_item_spec, f, indent=4)
+
+def generate_randomvalue_input_files_for_fixed_shapes_woodcutter():
+    """
+    Generate 2d bin packing input files with random values for LLM-prompting Framework.
+    Specifically, to input files for formulation generation with fixed shapes.
+    """
+    general_item_spec = {
+        "objects": {},
+        "input_variables": {
+            "NITEMS": {
+                "type": "integer",
+                "value": 9
+            },
+            "NBOXES": {
+                "type": "integer",
+                "value": 9
+            },
+            "ITEM_LENGTHS": {
+                "type": {
+                    "elem_type": "integer",
+                    "minimum": 1,
+                    "maximum": 9,
+                    "length": 8
+                },
+                "value": "random"
+            },
+            "BOX_CAPACITIES": {
+                "type": {
+                    "elem_type": "integer",
+                    "minimum": 1,
+                    "maximum": 9,
+                    "length": 8
+                },
+                "value": "random"
+            },
+            "MAX_ITEM_LENGTH": {
+                "type": "integer",
+                "value": 9
+            },
+        },
+        "output_variables": {
+            "assignments": {
+                "type": {
+                    "elem_type": "integer",
+                    "minimum": 1,
+                    "maximum": 9,
+                    "length": 9
+                }
+            },
+            "cut_positions": {
+                "type": {
+                    "elem_type": "integer",
+                    "minimum": 0,
+                    "maximum": 9,
+                    "length": 9
+                }
+            },
+            "cut_items": {
+                "type": {
+                    "elem_type": "integer",
+                    "minimum": 0,
+                    "maximum": 9,
+                    "length": 9,
+                }
+            },
+            "total_cost": {
+                "type": "integer",
+                "minimum": 0
+            }
+        }
+    }
+    max_item_length = random.randint(1, 30)
+    nr_items = 20
+    target_path = "problem_descriptions/testset_algopolish_woodcutter/"
+    general_item_spec["input_variables"]["NITEMS"]["value"] = nr_items
+    general_item_spec["input_variables"]["NBOXES"]["value"] = max_item_length
+    general_item_spec["input_variables"]["MAX_ITEM_LENGTH"]["value"] = nr_items
+    general_item_spec["input_variables"]["ITEM_LENGTHS"]["type"]["length"] = nr_items
+    general_item_spec["input_variables"]["ITEM_LENGTHS"]["type"]["maximum"] = max_item_length
+    general_item_spec["input_variables"]["BOX_CAPACITIES"]["type"]["length"] = nr_items
+    general_item_spec["input_variables"]["BOX_CAPACITIES"]["type"]["maximum"] = max_item_length
+    general_item_spec["output_variables"]["assignments"]["type"]["maximum"]= nr_items
+    general_item_spec["output_variables"]["assignments"]["type"]["length"]= nr_items * 2
+    general_item_spec["output_variables"]["cut_positions"]["type"]["maximum"]= max_item_length
+    general_item_spec["output_variables"]["cut_positions"]["type"]["length"]= nr_items * 2
+    general_item_spec["output_variables"]["cut_items"]["type"]["maximum"]= max_item_length
+    general_item_spec["output_variables"]["cut_items"]["type"]["length"]= nr_items * 2
+
+    for i in range(10):
+        items = InputReader.generate_data(general_item_spec)
+        general_item_spec["input_variables"]["ITEM_LENGTHS"]["value"] = items["ITEM_LENGTHS"]
+        general_item_spec["input_variables"]["BOX_CAPACITIES"]["value"] = items["BOX_CAPACITIES"]
+        with open(target_path + f"test_inst_{i}" + ".json", "w") as f:
+            json.dump(general_item_spec, f, indent=4)
+
+generate_randomvalue_input_files_for_fixed_shapes_woodcutter()

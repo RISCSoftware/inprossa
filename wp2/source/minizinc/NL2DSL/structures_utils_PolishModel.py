@@ -1,3 +1,4 @@
+import copy
 import random
 import json
 import os
@@ -20,7 +21,7 @@ class PolishModel:
     FILE_NAME = "data.json"
 
     @staticmethod
-    def calculate_fitness(objective_val: float, solve_time: float, objective: str, constraints: str) -> float:
+    def calculate_fitness(objective_val: float, solve_time: float) -> float:
         return objective_val + solve_time #+ ((len(objective) + len(constraints)) / 100000)
 
     def __init__(self, model: dict, id: int = 0, save_model:bool = False):
@@ -50,16 +51,16 @@ class PolishModel:
 
     def get_as_dict(self):
         return {
-            "problem_description": self.problem_description,
+            "problem_description": copy.deepcopy(self.problem_description),
             "llm_generated_objects": initial_clean_up(self.llm_generated_objects),
-            "script_generated_objects": self.script_generated_objects,
-            "constants": self.constants,
-            "decision_variables": self.decision_variables,
+            "script_generated_objects": copy.deepcopy(self.script_generated_objects),
+            "constants": copy.deepcopy(self.constants),
+            "decision_variables": copy.deepcopy(self.decision_variables),
             "objective": initial_clean_up(self.objective),
             "constraints": initial_clean_up(self.constraints),
             "full_formulation": self.full_formulation,
             "objective_val": self.objective_val,
-            "solution_model": self.solution_model,
+            "solution_model": {},
             "solve_time": self.solve_time,
             "final_evaluation_result": ""
         }
@@ -68,22 +69,33 @@ class PolishModel:
         self._test_on_testing_set()
         if self.state == State.FAILED:
             return
-        self.fitness = PolishModel.calculate_fitness(self.objective_val, self.solve_time, self.objective, self.constraints)
+        self.fitness = PolishModel.calculate_fitness(self.objective_val, self.solve_time)
 
     def _test_on_testing_set(self):
         test_instances = os.listdir(constants.ALGOPOLISH_TESTSET_PATH)
         test_instances.sort()
         repeat_testing_set = len(test_instances)//2
+        repeat_testing_set = repeat_testing_set if repeat_testing_set > 0 else 1
+
         testset_objective_vals = [[] for _ in range(repeat_testing_set)]
         testset_solve_times = [[] for _ in range(repeat_testing_set)]
+        test_object = self.get_as_dict()
         for i in range(repeat_testing_set):
             for test_instance in test_instances:
-                model = ModelReuser.use_given_model_with_input(self.get_as_dict(),
-                                                               os.path.join(constants.ALGOPOLISH_TESTSET_PATH,
-                                                                            test_instance))
-                if model["state"] == State.FAILED:
-                    self.objective_val = None
-                    self.solve_time = None
+                try:
+                    model = ModelReuser.use_given_model_with_input(test_object,
+                        os.path.join(constants.ALGOPOLISH_TESTSET_PATH,
+                        test_instance))
+                except Exception as e:
+                    print(e)
+                    self.objective_val = 20
+                    self.solve_time = 10000
+                    self.state = State.FAILED
+                    return
+
+                if model["state"] == State.FAILED or not model["objective_val"]:
+                    self.objective_val = 20
+                    self.solve_time = 10000
                     self.state = State.FAILED
                     return
                 testset_objective_vals[i].append(model["objective_val"])

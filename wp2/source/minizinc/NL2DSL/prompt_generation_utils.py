@@ -4,7 +4,7 @@ import re
 
 from structures_utils import load_sp_file, TreeNode, is_valid_json, \
     decompose_full_definition, check_executability, check_functions_appear_twice, VariablesConstantsNode, \
-    remove_programming_environment, initial_clean_up
+    remove_programming_environment, initial_clean_up, _contains_func_that_just_returns_var
 from constants import DEBUG_MODE_ON, USE_OPTDSL, CHOSEN_LANGUAGE
 
 LOOP_OF_DOOM_UNSAT_MAX_IT = 2
@@ -622,7 +622,7 @@ Learn from it its syntax and semantics of OptDSL. Apply the syntax knowledge in 
             max_tokens=1)
 
 def send_polish_feedback(encoding_1: str, encoding_2: str, encoding_1_time: float, encoding_2_time: float, llm):
-    if DEBUG_MODE_ON: print("Sending feedback for a partial job well done.")
+    if DEBUG_MODE_ON: print("Sending feedback for comparing one fast and one slower encoding.")
     _ = llm.send_prompt(
         prompt=
         f"""The following is an example for a syntactically valid refactoring from [Old code] to [Refactored code]. Nevertheless, try different approaches in the future.
@@ -635,7 +635,7 @@ def send_polish_feedback(encoding_1: str, encoding_2: str, encoding_1_time: floa
 ´´´ python
 {encoding_2}
 ´´´
-[Snippet_1] requires {encoding_1_time} and [Snippet_2] requires {encoding_2_time} ms to solve. Compare the encodings and learn unique coding characteristics from the faster one ({"[Snippet_1]" if encoding_1_time > encoding_2_time else "[Snippet_2]"}). Process the information what characteristics improved the solving speed. In the future improve your own answers according to the learned characteristics.""",
+[Snippet_1] requires {encoding_1_time} and [Snippet_2] requires {encoding_2_time} ms to solve. {"[Snippet_1] provides faster results than [Snippet_2]" if encoding_1_time>encoding_2_time else "[Snippet_2] provides faster results than [Snippet_1]"} Compare the encodings and learn unique coding characteristics from the faster one ({"[Snippet_1]" if encoding_1_time > encoding_2_time else "[Snippet_2]"}). Process the information, what characteristics improved the solving speed. In the future improve your own answers according to the learned characteristics. Always strive for improvement.""",
         max_tokens=1)
 
 def _get_icl():
@@ -716,25 +716,3 @@ def _get_system_prompt(key: str):
             1. "<initialization_left> = <initialization_right>" must be valid python z3py code."""
         }
         return system_prompt.get(key)
-
-def _contains_func_that_just_returns_var(func_code: str) -> bool:
-    """
-    Checks if function consists of more than one return statement of one variable using AST
-    """
-    # parse the code into an AST
-    try:
-        tree = ast.parse(func_code)
-    except SyntaxError:
-        return False
-
-    func_defs = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
-
-    for func in func_defs:
-        # exclude docstrings and comments
-        body = [node for node in func.body
-                if not (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant))]
-
-        # check it's one statement that is a return which returns a single name (variable)
-        if len(body) == 1 and isinstance(body[0], ast.Return) and isinstance(body[0].value, ast.Name):
-            return True
-    return False
