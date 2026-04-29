@@ -1,6 +1,7 @@
 import csv
 import json
 import random
+import re
 import string
 
 from constants import RANDOM_SEED, RANDOM_STRING_LENGTH
@@ -302,8 +303,14 @@ class InputReader:
                 new_values = InputReader.generate_values_for_template(new_instance[variable["variable_name"].upper()],
                                                                       input_objects)
             try:
-                variables[i].update({"variable_instance": new_values})
-                variables[i].update({"initialization": variable["variable_dslcode_template"].format(*new_values)})
+                # In case DSList's length is a constant
+                if "DSList" in variable["type"] and len(re.findall(r'{}', variable["variable_dslcode_template"])) == 1:
+                    variables[i].update({"variable_instance": new_values[1]})
+                    variables[i].update(
+                        {"initialization": variable["variable_dslcode_template"].format(new_values[1])})
+                else:
+                    variables[i].update({"variable_instance": new_values})
+                    variables[i].update({"initialization": variable["variable_dslcode_template"].format(*new_values)})
             except IndexError:
                 print(f"Invalid new instance: Probably lower/upper bound of new instance and reused model for the constant {variable["variable_name"]} do not match.")
         return variables

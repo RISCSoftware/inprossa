@@ -93,15 +93,13 @@ class PolishModel:
                     self.state = State.FAILED
                     return
 
-                if model["state"] == State.FAILED or not model["objective_val"]:
+                if model["state"] == State.FAILED:
                     self.objective_val = 20
                     self.solve_time = 10000
                     self.state = State.FAILED
                     return
                 testset_objective_vals[i].append(model["objective_val"])
                 testset_solve_times[i].append(model["solve_time"])
-        #print(f"Testset (20 inst.) 10 runs - objectives: {testset_objective_vals}")
-        #print(f"Testset (20 inst.) 10 runs - solvetimes: {testset_solve_times}")
         self.objective_val = sum([(sum(run_sum) / len(run_sum)) for run_sum in testset_objective_vals]) / len(
             testset_objective_vals)
         self.solve_time = sum([(sum(run_sum) / len(run_sum)) for run_sum in testset_solve_times]) / len(
@@ -157,10 +155,10 @@ class PolishModel:
             if self.state == State.UNINITIALIZED: self.state = State.CORRECT
 
 def check_executability_for_polish(raw_code : str, model: PolishModel):
-    m = re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]',
-              raw_code)
-    if "Annotated[list[" in raw_code and m:
-        return f"Error: for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool: {m.group(0)}\nE.g.: Annotated[list[int], Len(5, 5)]"
+    #m = re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]',
+    #          raw_code)
+    #if "Annotated[list[" in raw_code and m:
+    #    return f"Error: for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool: {m.group(0)}\nE.g.: Annotated[list[int], Len(5, 5)]"
 
     # Safety check: no json has be returned instead of code
     if is_valid_json(raw_code) or raw_code.startswith("{") or raw_code.startswith("["):

@@ -366,6 +366,7 @@ Return your answer in the format
                                        f"In line {j} a decision variable DSInt is not initialized incorrectly. Correct the initialization to lb <= {var} <= ub, {line}\n"
                                 , max_tokens=(800 if node.level == 4 else 500)
                             ))
+                            continue
 
                 # Safety check: Prevent false-positive exec-run-through by sneakily never calling function
                 if node.level == 4:
@@ -385,6 +386,7 @@ Return your answer in the format
                                    "Add the missing function calls to the code with the correct parameters. Do not return exactly the given code snippet.",
                             max_tokens=(800 if node.level == 4 else 500)
                         ))
+                        execution_error = None
                         continue
                 return raw_formulation
 

@@ -180,7 +180,7 @@ def generate_randomvalue_input_files_for_fixed_shapes_woodcutter():
                 "type": {
                     "elem_type": "integer",
                     "minimum": 1,
-                    "maximum": 9,
+                    "maximum": 10,
                     "length": 8
                 },
                 "value": "random"
@@ -189,14 +189,14 @@ def generate_randomvalue_input_files_for_fixed_shapes_woodcutter():
                 "type": {
                     "elem_type": "integer",
                     "minimum": 1,
-                    "maximum": 9,
+                    "maximum": 10,
                     "length": 8
                 },
                 "value": "random"
             },
             "MAX_ITEM_LENGTH": {
                 "type": "integer",
-                "value": 9
+                "value": 10
             },
         },
         "output_variables": {
@@ -230,12 +230,12 @@ def generate_randomvalue_input_files_for_fixed_shapes_woodcutter():
             }
         }
     }
-    max_item_length = random.randint(1, 30)
-    nr_items = 20
+    max_item_length = random.randint(1, 20)
+    nr_items = 6
     target_path = "problem_descriptions/testset_algopolish_woodcutter/"
     general_item_spec["input_variables"]["NITEMS"]["value"] = nr_items
-    general_item_spec["input_variables"]["NBOXES"]["value"] = max_item_length
-    general_item_spec["input_variables"]["MAX_ITEM_LENGTH"]["value"] = nr_items
+    general_item_spec["input_variables"]["NBOXES"]["value"] = nr_items
+    general_item_spec["input_variables"]["MAX_ITEM_LENGTH"]["value"] = max_item_length
     general_item_spec["input_variables"]["ITEM_LENGTHS"]["type"]["length"] = nr_items
     general_item_spec["input_variables"]["ITEM_LENGTHS"]["type"]["maximum"] = max_item_length
     general_item_spec["input_variables"]["BOX_CAPACITIES"]["type"]["length"] = nr_items
@@ -248,9 +248,15 @@ def generate_randomvalue_input_files_for_fixed_shapes_woodcutter():
     general_item_spec["output_variables"]["cut_items"]["type"]["length"]= nr_items * 2
 
     for i in range(10):
-        items = InputReader.generate_data(general_item_spec)
-        general_item_spec["input_variables"]["ITEM_LENGTHS"]["value"] = items["ITEM_LENGTHS"]
-        general_item_spec["input_variables"]["BOX_CAPACITIES"]["value"] = items["BOX_CAPACITIES"]
+        # super-simple capacities and lengths; tweak as needed
+        box_capacities = []
+        item_lengths = []
+        for _ in range(nr_items):
+            box_capacity = random.randint(1, max_item_length)
+            box_capacities.append(box_capacity)
+            item_lengths.append(random.randint(1, box_capacity))
+        general_item_spec["input_variables"]["ITEM_LENGTHS"]["value"] = item_lengths
+        general_item_spec["input_variables"]["BOX_CAPACITIES"]["value"] = box_capacities
         with open(target_path + f"test_inst_{i}" + ".json", "w") as f:
             json.dump(general_item_spec, f, indent=4)
 

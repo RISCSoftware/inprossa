@@ -8,7 +8,7 @@ Apply following rules:
 6.	Indices in a list start at 1, not 0. Consequently, when iterating with a variable through a list use "LIST_LEN = <constant length of list> + 1" for for-loops "i in range(1, LIST_LEN)" for a list in typing.Annotated, where LIST_LEN is a expression of constants or one constant.
 7.  List as typing.Annotated is a fixed-size list, in the form of "list_x : Annotated[list[<element_type>], Len(<list_length>, <list_length>)]". For the field elem_type do not inline DSRecords, but use defined object types. But do not inline other DS types (e.g. Annotated[<type>, Field(<optional_properties>)]). List as typing.Annotated does not support functions append(), replace() and extend().
 8.  Do not use list comprehension or list multiplication (or sequence repetition) operator. Code like `[1] * 5` and `[True for _ in range(1, 5)]` is invalid.
-9.  Do not use python's len(), max(), min(), all() or any() functions. Do not use while-loop, continue, pass or break statements. Do not use any() or all() out site of assert. Do not use conditional expression. Do not use type "dict" or set for variables. For loops with range() only use constants and integers and the second parameter must contain a constant as expression or just the constant.
+9.  Do not use python's len(), sum(), max(), min(), all() or any() functions. Do not use while-loop, continue, pass or break statements. Do not use any() or all() out site of assert. Do not use conditional expression. Do not use type "dict" or set for variables. For loops with range() only use constants and integers and the second parameter must contain a constant as expression or just the constant.
 10.	Constraints are defined within a python function. Define input parameter. There must at least be one input parameter. Define all decision variables and auxiliary variables as input parameters, that are required for constraint formulation and are defined at root. Constants (variables in upper-case letters only) can be accessed everywhere and do not have to be given as input parameter. Either do not call return or only return names or tuple of names. Do not call "return None". Do not call "return" without any names or tuples.
 11.	After each function definition, immediately call that function with the correct input parameters.
 12.	Constraints are defined as asserts, like in a test. For constraint definition use equality, inequality and relation expressions. Use of the python-built-in function any() and all() in combination with assert. Equality, inequality and relation expressions may only be used within assert. Equality, inequality, relation expressions and required calculations can not be assigned to a temporary variable.
@@ -213,18 +213,18 @@ ITEM5.weight = 12
 ITEM6 : Item
 ITEM6.value = 25
 ITEM6.weight = 5
-ITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
+ITEMS : Annotated[list[Annotated[int, Field(strict=True)]], Len(6,6)] = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
 N_ITEMS : int = 6
 MAX_WEIGHT : int = 110
 
 # --- Decision Variables ---
-chosen_items : DSList(length=6, elem_type=DSBool())
-accumulated_value : DSInt(lb=0)
-accumulated_weight : DSInt(lb=0, ub=MAX_WEIGHT)
+chosen_items : Annotated[list[Annotated[bool, Field(strict=True)]], Len(6,6)]
+accumulated_value : Annotated[int, Field(strict=True, ge=0)]
+accumulated_weight : Annotated[int, Field(strict=True, ge=0, le=MAX_WEIGHT)]
 
 # --- Constraints ---
-def pack_item(items: DSList(length=6, elem_type=Item),
-                chosen_items: DSList(length=6, elem_type=DSBool())):
+def pack_item(items: Annotated[list[Annotated[int, Field(strict=True)]], Len(6,6)],
+                chosen_items: Annotated[list[Annotated[bool, Field(strict=True)]], Len(6,6)]):
     accumulated_weight: int = 0
     accumulated_value: int = 0
     for i in range(1, N_ITEMS + 1):

@@ -15,50 +15,50 @@
                 "variable_name": "NITEMS",
                 "type": "int",
                 "variable_instance": [
-                    10
+                    6
                 ],
                 "variable_dslcode_template": "NITEMS : int = {}",
-                "initialization": "NITEMS : int = 10"
+                "initialization": "NITEMS : int = 6"
             },
             {
                 "description": "",
                 "variable_name": "NBOXES",
                 "type": "int",
                 "variable_instance": [
-                    10
+                    6
                 ],
                 "variable_dslcode_template": "NBOXES : int = {}",
-                "initialization": "NBOXES : int = 10"
+                "initialization": "NBOXES : int = 6"
             },
             {
                 "description": "",
                 "variable_name": "BOX_CAPACITIES",
                 "type": "DSList(NBOXES, DSInt())",
                 "variable_instance": [
-                    [21,31,5,2,32,4,23,12,22,7]
+                    [21,31,5,2,32,4]
                 ],
-                "variable_dslcode_template": "BOX_CAPACITIES : DSList(NBOXES, DSInt()) = {}",
-                "initialization": "BOX_CAPACITIES : DSList(NBOXES, DSInt()) = [21,31,5,2,32,4,23,12,22,7]"
+                "variable_dslcode_template": "BOX_CAPACITIES : DSList(length=NBOXES, elem_type=DSInt()) = {}",
+                "initialization": "BOX_CAPACITIES : DSList(length=NBOXES, elem_type=DSInt()) = [21,31,5,2,32,4,23,12,22,7]"
             },
             {
                 "description": "",
                 "variable_name": "ITEM_LENGTHS",
                 "type": "DSList(NITEMS, DSInt())",
                 "variable_instance": [
-                    [4,11,9,14,2,21,7,18,3,3]
+                    [4,11,9,14,2,21]
                 ],
-                "variable_dslcode_template": "ITEM_LENGTHS : DSList(NITEMS, DSInt()) = {}",
-                "initialization": "ITEM_LENGTHS : DSList(NITEMS, DSInt()) = [4,11,9,14,2,21,7,18,3,3]"
+                "variable_dslcode_template": "ITEM_LENGTHS : DSList(length=NITEMS, elem_type=DSInt()) = {}",
+                "initialization": "ITEM_LENGTHS : DSList(length=NITEMS, elem_type=DSInt()) = [4,11,9,14,2,21,7,18,3,3]"
             },
             {
                 "description": "",
                 "variable_name": "MAX_ITEM_LENGTH",
                 "type": "int",
                 "variable_instance": [
-                    21
+                    32
                 ],
                 "variable_dslcode_template": "MAX_ITEM_LENGTH : int = {}",
-                "initialization": "MAX_ITEM_LENGTH : int = 21"
+                "initialization": "MAX_ITEM_LENGTH : int = 32"
             }
         ],
         "decision_variables": [
@@ -67,37 +67,37 @@
                 "variable_name": "assignments",
                 "type": "DSList(NITEMS * 2, DSInt(1, NBOXES))",
                 "variable_instance": [],
-                "variable_dslcode_template": "assignments: DSList(NITEMS * 2, DSInt(1, NBOXES))",
-                "initialization": "assignments: DSList(NITEMS * 2, DSInt(1, NBOXES))"
+                "variable_dslcode_template": "assignments: DSList(length=NITEMS * 2, elem_type=DSInt(1, NBOXES))",
+                "initialization": "assignments: DSList(length=NITEMS * 2, elem_type=DSInt(1, NBOXES))"
             },
             {
                 "description": "",
                 "variable_name": "cut_positions",
                 "type": "DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))",
                 "variable_instance": [],
-                "variable_dslcode_template": "cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))",
-                "initialization": "cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))"
+                "variable_dslcode_template": "cut_positions: DSList(length=NITEMS, elem_type=DSInt(0, MAX_ITEM_LENGTH))",
+                "initialization": "cut_positions: DSList(length=NITEMS, elem_type=DSInt(0, MAX_ITEM_LENGTH))"
             },
             {
                 "description": "",
                 "variable_name": "cut_items",
                 "type": "DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))",
                 "variable_instance": [],
-                "variable_dslcode_template": "cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))",
-                "initialization": "cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))"
+                "variable_dslcode_template": "cut_items: DSList(length=NITEMS * 2, elem_type=DSInt(0, MAX_ITEM_LENGTH))",
+                "initialization": "cut_items: DSList(length=NITEMS * 2, elem_type=DSInt(0, MAX_ITEM_LENGTH))"
             },
             {
                 "description": "",
                 "variable_name": "total_cost",
                 "type": "DSInt(lb=0)",
                 "variable_instance": [],
-                "variable_dslcode_template": "cut_items: DSInt(lb=0)",
-                "initialization": "cut_items: DSInt(lb=0)"
+                "variable_dslcode_template": "total_cost: DSInt(lb=0)",
+                "initialization": "total_cost: DSInt(lb=0)"
             }
         ],
         "objective": "# --- Objective ---\ncutting_cost : DSInt(0, NITEMS)\ncut_items, cutting_cost = cutting_machine(cut_positions)\nuse_cost: DSInt(0, NITEMS * 3) = 0\nuse_cost = packing_machine(assignments, cut_items)\ntotal_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost\nminimize(total_cost)",
         "constraints": "# --- Constraints ---\ndef cutting_machine(\n    cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))\n    ):\n    cutting_cost: DSInt(0, NITEMS) = 0\n    cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))\n    for n_item in range(1, NITEMS + 1):\n        cut_items[2 * n_item] = ITEM_LENGTHS[n_item] - cut_positions[n_item]\n        cut_items[2 * n_item - 1] = cut_positions[n_item]\n        if cut_positions[n_item] != 0:\n            # A cut is made\n            cutting_cost = cutting_cost + 1\n\n    return cut_items, cutting_cost\n\n\ndef packing_machine(\n    assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),\n    cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))\n    ):\n    use_cost: DSInt(0, NITEMS * 3) = 0\n    cap: DSList(NBOXES, DSInt(0, sum(ITEM_LENGTHS)))\n    for i in range(1, NBOXES + 1):\n        cap[i] = 0\n        for j in range(1, NITEMS * 2 + 1):\n            if assignments[j] == i:\n                cap[i] = cap[i] + cut_items[j]\n\n        assert cap[i] <= BOX_CAPACITIES[i]\n        if cap[i] > 0:\n            use_cost = use_cost + 3\n    return use_cost",
-        "full_formulation": "# --- Objects ---\n\n# --- Constants and Decision Variables ---\nNBOXES : int = 10\nNITEMS : int = 10\n\nBOX_CAPACITIES : DSList(NITEMS, DSInt()) = [21,31,5,2,32,4,23,12,22,7]\nITEM_LENGTHS : DSList(NITEMS, DSInt()) = [4,11,9,14,2,21,7,18,3,3]\nMAX_ITEM_LENGTH : int = 21\n\nassignments: DSList(NITEMS * 2, DSInt(1, NBOXES))\ncut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))\ncut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))\n\n\n# --- Constraints ---\ndef cutting_machine(\n    cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))\n    ):\n    cutting_cost: DSInt(0, NITEMS) = 0\n    cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))\n    for n_item in range(1, NITEMS + 1):\n        cut_items[2 * n_item] = ITEM_LENGTHS[n_item] - cut_positions[n_item]\n        cut_items[2 * n_item - 1] = cut_positions[n_item]\n        if cut_positions[n_item] != 0:\n            # A cut is made\n            cutting_cost = cutting_cost + 1\n\n    return cut_items, cutting_cost\n\n\ndef packing_machine(\n    assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),\n    cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))\n    ):\n    use_cost: DSInt(0, NITEMS * 3) = 0\n    cap: DSList(NBOXES, DSInt(0, sum(ITEM_LENGTHS)))\n    for i in range(1, NBOXES + 1):\n        cap[i] = 0\n        for j in range(1, NITEMS * 2 + 1):\n            if assignments[j] == i:\n                cap[i] = cap[i] + cut_items[j]\n\n        assert cap[i] <= BOX_CAPACITIES[i]\n        if cap[i] > 0:\n            use_cost = use_cost + 3\n    return use_cost\n\t\n# --- Objective ---\ncutting_cost : DSInt(0, NITEMS)\ncut_items, cutting_cost = cutting_machine(cut_positions)\nuse_cost: DSInt(0, NITEMS * 3) = 0\nuse_cost = packing_machine(assignments, cut_items)\ntotal_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost\nminimize(total_cost)",
+        "full_formulation": "# --- Objects ---\n\n# --- Constants and Decision Variables ---\nNBOXES : int = 6\nNITEMS : int = 6\n\nBOX_CAPACITIES : DSList(NITEMS, DSInt()) = [21,31,5,2,32,4]\nITEM_LENGTHS : DSList(NITEMS, DSInt()) = [4,11,9,14,2,21]\nMAX_ITEM_LENGTH : int = 32\n\nassignments: DSList(NITEMS * 2, DSInt(1, NBOXES))\ncut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))\ncut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))\n\n\n# --- Constraints ---\ndef cutting_machine(\n    cut_positions: DSList(NITEMS, DSInt(0, MAX_ITEM_LENGTH))\n    ):\n    cutting_cost: DSInt(0, NITEMS) = 0\n    cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))\n    for n_item in range(1, NITEMS + 1):\n        cut_items[2 * n_item] = ITEM_LENGTHS[n_item] - cut_positions[n_item]\n        cut_items[2 * n_item - 1] = cut_positions[n_item]\n        if cut_positions[n_item] != 0:\n            # A cut is made\n            cutting_cost = cutting_cost + 1\n\n    return cut_items, cutting_cost\n\n\ndef packing_machine(\n    assignments: DSList(NITEMS * 2, DSInt(1, NBOXES)),\n    cut_items: DSList(NITEMS * 2, DSInt(0, MAX_ITEM_LENGTH))\n    ):\n    use_cost: DSInt(0, NITEMS * 3) = 0\n    cap: DSList(NBOXES, DSInt(0, sum(ITEM_LENGTHS)))\n    for i in range(1, NBOXES + 1):\n        cap[i] = 0\n        for j in range(1, NITEMS * 2 + 1):\n            if assignments[j] == i:\n                cap[i] = cap[i] + cut_items[j]\n\n        assert cap[i] <= BOX_CAPACITIES[i]\n        if cap[i] > 0:\n            use_cost = use_cost + 3\n    return use_cost\n\t\n# --- Objective ---\ncutting_cost : DSInt(0, NITEMS)\ncut_items, cutting_cost = cutting_machine(cut_positions)\nuse_cost: DSInt(0, NITEMS * 3) = 0\nuse_cost = packing_machine(assignments, cut_items)\ntotal_cost: DSInt(0, NITEMS * 4) = cutting_cost + use_cost\nminimize(total_cost)",
         "objective_val": 6,
         "solution_model": {},
         "solve_time": 0.269,

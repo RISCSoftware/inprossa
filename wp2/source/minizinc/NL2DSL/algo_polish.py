@@ -5,7 +5,6 @@ import re
 
 import constants
 
-from BinPackingValidator import validate_solution
 from prompt_generation_utils import send_prompt_with_system_prompt, send_polish_feedback, _get_system_prompt, _get_icl, \
     send_prompt_without_system_prompt
 from structures_utils import (initial_clean_up, \
@@ -21,7 +20,7 @@ N_FAILED_GENERATIONS = 0
 FAILED_GENERATIONS = []  # problem desc. indices of failed generation steps
 
 class AlgoPolish:
-    POLISHING_ITERATIONS = 5
+    POLISHING_ITERATIONS = 3
     POLISHING_MUTATION_TYPES = ["mutation/refactor_experiment.txt", "mutation/refactor_redundancies.txt"]
 
     def __init__(self, file_path: str = None, models: list[dict] = None):
@@ -35,7 +34,8 @@ class AlgoPolish:
         assert models is not None, "Either file_path or models must be given."
 
         # Convert from OptDSL to pydantic for Mutation by LLM
-        precomputed_fitness = [5.58076, 29.90574, 4.66428, 5.57684] # [5.588419999999999, 29.90156, 4.66216, 5.5805]
+        precomputed_fitness = [5.58076, 29.90574, 4.66428, 5.57684] # algopolish_test_smoll
+        precomputed_fitness = [8.68274] # algopolish_test_woodcutter
         for i, model in enumerate(models):
             model_to_be_polished = PolishModel(model)
             model_to_be_polished.objective = initial_clean_up(model_to_be_polished.objective, to_typing=True)
@@ -432,6 +432,7 @@ Return your answer in the format
 ´´´, where <corrected code> is the section \"# --- Incorrect Code ---\" with the corrections.""",
                             max_tokens=3000
                         ))
+                        execution_error = None
 
                     # Safety check: there must be a difference to old_encoding
                     if (old_encoding_comp["objective"] == "\n".join(line for line in new_encoding_comp["objective"].splitlines() if "# Approach" not in line ) and
@@ -499,7 +500,7 @@ Return your answer in the format
                                      0].strip()})
             task.update({"input": vars})
         try:
-            validate_solution(solution_model, task, model)
+            constants.VALIDATE_SOLUTION(solution_model, task, model)
         except AssertionError as e:
             validation_res = f"Failed to validate solution: {e}"
             model.validated = False
@@ -518,7 +519,7 @@ Return your answer in the format
 
 
 def main():
-    constants.SOLVE_TIME_TIMEOUT = 10000
+    constants.SOLVE_TIME_TIMEOUT = 15000
 
     # 2D Bin Packing
     # problem_filepath = "problem_descriptions/2d_bin_packing_without_inoutput"

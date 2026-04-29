@@ -115,7 +115,7 @@ class MiniZincSolver:
                 return solver_output, None
         if errs:
             print("Errors:\\n", errs)
-            return f"Error: {errs}", None
+            return f"{errs}", None
         return None, None
 
     '''

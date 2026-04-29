@@ -1,4 +1,5 @@
-
+import BinPackingValidator
+import WoodCutterValidator
 from LLM_Client.AwsClient import AwsClient
 
 # ***************** NON-CUSTOMIZABLE SETTINGS ******************
@@ -25,7 +26,6 @@ DEBUG_MODE_ON = True
 SOLVE_TIME_TIMEOUT = 150000
 RANDOM_SEED = 20
 RANDOM_STRING_LENGTH = 10
-OBJECTIVE_VARIABLE_NAME = "nr_used_boxes"
 
 # DFS Tree of Thought
 NR_MAX_CHILDREN = 2         # Maximum of children per node in ToT
@@ -35,9 +35,14 @@ SAVE_MODEL = True           # Saves the valid model formulations resulting from 
 SOLVER = "chuffed"
 
 # AlgoPolish
+ALGOPOLISH_ACTIVE = True
 # ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_2D-BPP_CLASS_XS"
 ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_woodcutter"
 CODE_LENGTH_PENALTY = 0.25
+VALIDATE_SOLUTION = BinPackingValidator.validate_solution
+VALIDATE_SOLUTION = WoodCutterValidator.validate_solution
+# OBJECTIVE_VARIABLE_NAME = "nr_used_boxes"
+OBJECTIVE_VARIABLE_NAME = "total_cost"
 
 # LLM Client
 def get_LLM_client():

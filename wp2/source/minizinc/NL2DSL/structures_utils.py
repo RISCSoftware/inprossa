@@ -410,8 +410,8 @@ The structure must fulfill following requirements:
                         item.get("variable_name", "").islower()]
         if raw_code == "": return "Error - Invalid result: Result is empty."
         for definition in raw_code:
-            if "Annotated[list[" in definition["type"] and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', definition["type"]):
-                return f"Error: {definition["type"]}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le). Demonstration example for a list of integers: Annotated[list[Annotated[int, Field(lb=-10,ub=10)]], Len(2,2)]"
+            #if "Annotated[list[" in definition["type"] and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', definition["type"]):
+            #    return f"Error: {definition["type"]}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le). Demonstration example for a list of integers: Annotated[list[Annotated[int, Field(lb=-10,ub=10)]], Len(2,2)]"
             variable_block += f"{definition["initialization"]}\n"
     elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
     # Prepare raw obj. function or constraints and add to partial formulation (up until now)
@@ -454,7 +454,7 @@ objective = calculate_objective(...)
 minimize(objective)
 ´´´ replace <solution> with the code. <solution> must not be empty. And replace decision_variable with a given decision variable, which represents the objective"""
             if "objective =" not in raw_code and "objective :" not in raw_code:
-                return "Add the assigment \"objective = <variable>\", replace <variable> with the decision variable that represents the objective."
+                return "Add the assigment \"objective = <variable>\", replace <variable> with the decision variable that represents the objective, nothing else."
 
         # Safety check: check that there are no non-constants in range
         m = re.search(r"(.*)(range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\))", raw_code)
@@ -534,7 +534,7 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
             elif "attr='append', ctx=Load())," in exc_msg:
                 return f"Error - Do not use function calls append() and extend() for DSList."
             elif "Only returning names or tuple of names is supported." in exc_msg:
-                return f"Error - Functions support returning names or tuple of names only. Either do not call return at all, or only return names or tuple of names. Do not return calculation expressions. Do not use \"\\n return\\n\". Do not use \"\\n return <bool>\\n\", where <bool> is True or False."
+                return f"Error - Functions support returning names or tuple of names only. Either do not call return at all, or only return names or tuple of names. Do not return calculation expressions. Do not use \"return\\n\". Do not use \"\\n return <bool>\\n\", where <bool> is True or False."
             elif "tuple[" in exc_msg:
                 return "Tuple is not supported. Use typing.Annotated with pydantic.Field of type int, float, int or one of the given object types in \"--- Objects ---\", or complex type list as typing.Annotated of typing."
             elif "incompatible types" in exc_msg:
@@ -550,7 +550,13 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
             elif "Unsupported statement: Pass()" in exc_msg:
                 return "Constraints/Objective FormatError"
             elif "Subscript(value=Name(id='Annotated', ctx=Load())," in exc_msg:
-                return "Use typing.Annotated with pydantic.Field of type int, float, int or one of the given object types in \"--- Objects ---\", or complex type list as typing.Annotated of typing. E.g. Annotated[list[int, Field(strict=True)], Len(20, 20)]"
+                return "Use typing.Annotated with pydantic.Field of type int, float, int or one of the given object types in \"--- Objects ---\", or complex type list as typing.Annotated of typing. E.g. Annotated[list[Annotated[int, Field(strict=True)]], Len(5,5)]"
+            elif "Unknown type string:" in exc_msg:
+                return f"Do not use non-existent variables or object types: {exc_msg}."
+            elif "not defined in variable table" in exc_msg:
+                return f"Check if variable exists at root level at all and if in function, check if has been passed as parameter: {exc_msg}."
+            elif "Error processing statement:" in exc_msg:
+                return f"{exc_msg}"
             return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
         return str(e)
 
@@ -585,8 +591,13 @@ def check_solver_executability(model: str, node):
         #     node.objective_val = solution["objective"][len(solution["objective"])-1]
         #     print(f"Solution for objective is: {solution["objective"]}")
         # else:
-        if constants.OBJECTIVE_VARIABLE_NAME in solution:
+        if constants.ALGOPOLISH_ACTIVE and constants.OBJECTIVE_VARIABLE_NAME in solution:
             node.objective_val = solution[constants.OBJECTIVE_VARIABLE_NAME][len(solution[constants.OBJECTIVE_VARIABLE_NAME])-1]
+        elif "objective" in solution:
+            print(f"Solution for objective is: {solution["objective"]}")
+            return solution["objective"][
+                len(solution["objective"]) - 1], solve_time, solution
+
         node.solve_time = solve_time
         node.solution_model = solution
         if "unknown" in str(solution).lower():
@@ -612,12 +623,16 @@ def check_solver_executability_for_plain_model(model: str):
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable.", None, None
     else:
-        if constants.OBJECTIVE_VARIABLE_NAME in solution:
+        if constants.ALGOPOLISH_ACTIVE and constants.OBJECTIVE_VARIABLE_NAME in solution:
             print(f"Solution for objective is: {solution[constants.OBJECTIVE_VARIABLE_NAME]}")
             return solution[constants.OBJECTIVE_VARIABLE_NAME][len(solution[constants.OBJECTIVE_VARIABLE_NAME])-1], solve_time, solution
+        elif "objective" in solution:
+            print(f"Solution for objective is: {solution["objective"]}")
+            return solution["objective"][
+                len(solution["objective"]) - 1], solve_time, solution
         else:
             print("Solver succeeded, but no _objective is available.")
-        return None, None, None
+        return None, solve_time, solution
 
 
 # ----------- HELPERS -----------
@@ -674,7 +689,10 @@ def convert_typing_to_OptDSL(code: str, nested: bool = False) -> str:
     if nested:
         regex = r"Annotated\[list\[(?P<elem_type>[^\]]+\],\s*Len\(\d+,\s*\d+\)])],\s*Len\(\d+,\s*(?P<max>\d+)\)"
     else:
-        regex = r"Annotated\[list\[(?P<elem_type>[^\]]+?)\],\s*Len\(\d+,\s*(?P<max>\d+)\)\]"
+        # Replace all Annotated[list] with pydantic.Field
+        code = re.sub(re.compile(r"Annotated\[list\[(?P<elem_type>[^\]]+?)\],\s*Len\(\s*[^,]+\s*,\s*(?P<max>[^\)]+)\s*\)\]", re.VERBOSE), convert_to_DSList, code)
+        # Replace all Annotated[list] with DS-types
+        regex = r"Annotated\[list\[(?P<elem_type>(?:[^\[\]]+|\[[^\[\]]*\])*)\],\s*Len\(\d+,\s*(?P<max>\d+)\)\]"
     pattern = re.compile(
         regex,
         re.VERBOSE
@@ -707,9 +725,10 @@ def convert_object_type_ref_to_DS(match: re.Match) -> str:
 def convert_pydantic_to_OptDSL(code: str) -> str:
     # Convert to DSBool()
     code = code.replace("Annotated[bool, Field()]", "DSBool()")
+    code = code.replace("Annotated[bool, Field(strict=True)]", "DSBool()")
 
     # Convert to DSInt() and DSFloat()
-    pattern = re.compile(r"Annotated\[\s*(?P<type>int|float)\s*,\s*Field\(\s*(?:strict\s*=\s*True\s*\s*)?(?:\s*, \s*)?(?:ge\s*=(?P<ge>-?\d+(?:\.\d+)?))?(?:(?:\s*,\s*)?le\s*=(?P<le>-?\d+(?:\.\d+)?))?\s*\)\s*]", re.VERBOSE)
+    pattern = re.compile(r"Annotated\[\s*(?P<type>int|float)\s*,\s*Field\(\s*(?:strict\s*=\s*True\s*)?(?:\s*,\s*)?(?:ge\s*=\s*(?P<ge>(?:[^,\(\)]+|\([^\(\)]*\))+))?(?:(?:\s*,\s*)?le\s*=\s*(?P<le>(?:[^,\(\)]+|\([^\(\)]*\))+))?\s*\)\s*\]", re.VERBOSE)
     code = re.sub(pattern, convert_to_DSInt_DSFloat, code)
 
     # Convert nested Annotated Lists to DSList()
@@ -771,28 +790,29 @@ def convert_to_pydantic_int_float(match: re.Match) -> str:
 def convert_OptDSL_to_pydantic(code: str) -> str:
     # Convert to Annotated[bool..]
     code = code.replace("DSBool()", "Annotated[bool, Field()]")
+    code = code.replace("DSBool()", "Annotated[bool, Field(strict=True)]")
 
     # Convert from pydantic int / float to DSInt() and DSFloat()
     pattern = re.compile(
-        r"(?P<type>DSInt|DSFloat)\((?:lb\s*=(?P<lb>-?\d+(?:\.\d+)?)(?:\s*,\s*)?)?(?:ub\s*=(?P<ub>-?\d+(?:\.\d+)?)(?:\s*,\s*)?)?\s*\)",
+        r"(?P<type>DSInt|DSFloat)\((?:lb\s*=\s*(?P<lb>[^,\)]+)(?:\s*,\s*)?)?(?:ub\s*=\s*(?P<ub>[^,\)]+)(?:\s*,\s*)?)?\s*\)",
         re.VERBOSE)
     code = re.sub(pattern, convert_to_pydantic_int_float, code)
 
     # Convert nested DSList() to Annotated Lists
     code = convert_OptDSList_to_typing_list(
-        r"DSList\(\s*length\s*=\s*(?P<length>\d+)\s*,\s*elem_type\s*=(?P<elem_type>DSList[^]\r\n]+\]\))\)", code)
+        r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=(?P<elem_type>DSList[^]\r\n]+\]\))\)", code)
     code = convert_OptDSList_to_typing_list(
-        r"DSList\(\s*length\s*=\s*(?P<length>\d+)\s*,\s*elem_type\s*=(?P<elem_type>DSList[^)\r\n]+\))\)", code)
+        r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=(?P<elem_type>DSList[^)\r\n]+\))\)", code)
 
     # Convert non-nested DSList() to Annotated Lists
     code = convert_OptDSList_to_typing_list(
-        r"DSList\(\s*length\s*=\s*(?P<length>\d+)\s*,\s*elem_type\s*=\s*(?P<elem_type>[^]\r\n]+\])\)", code)
+        r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=\s*(?P<elem_type>[^]\r\n]+\])\)", code)
     code = convert_OptDSList_to_typing_list(
-        r"DSList\(\s*length\s*=\s*(?P<length>\d+)\s*,\s*elem_type\s*=\s*(?P<elem_type>[^]\r\n]+)\)", code)
+        r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=\s*(?P<elem_type>.+?)\s*\)", code)
 
     # Convert non-nested DSList() with object-type to Annotated
     pattern = re.compile(
-        r"DSList\(\s*length\s*=\s*(?P<length>\d+)\s*,\s*elem_type\s*=\s*(?P<elem_type>[^)]+)\)",
+        r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=\s*(?P<elem_type>[^)]+)\)",
         re.VERBOSE
     )
     code = re.sub(pattern, convert_object_OptDSList_to_typing_list, code)
