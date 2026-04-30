@@ -1,7 +1,10 @@
+import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import constants
 from experiments.handcrafted_2d_bin_packing import apply_handcrafted
@@ -31,15 +34,18 @@ def move_file(destination_folder: str, filename: str):
         dst = dst.replace("/", "\\")
     os.rename(src, dst)
 
-def paper_20_CLASS_tot_runs():
-    directory = "problem_descriptions/testset_paper_2D-BPP_CLASS/"
+def paper_20_CLASS_5_tot_flex_shapes():
+    directory = constants.GENERATION_INST_DIR
     formatted = datetime.now().strftime("%Y-%m-%d_%H-%M")
 
     # generate 5 ToT per instances
-    for i in range(5):
+    for i in range(2):
         for filename in os.listdir(directory):
             if (not filename.endswith(".json")):
                 continue
+
+            with open("correctness_results.txt", "a", encoding="utf-8") as f:
+                f.write(f"{filename}: ")
             filepath = os.path.join(directory, filename)
             print(f"""----------------------------------------------------------------------------
             Starting run for {filename}: """)
@@ -66,38 +72,63 @@ def paper_20_CLASS_tot_runs():
     move_file(f"experiments/experiment_{formatted}/", "correctness_results.txt")
     return f"experiment_{formatted}"
 
-def bot_without_semantic_feedback_20_bot_runs():
-    directory = "problem_descriptions/"
-    input_instance_files = ["2d_bin_packing_input_inst_1.json", "2d_bin_packing_input_inst_2.json", "2d_bin_packing_input_inst_3.json", "2d_bin_packing_input_inst_4.json"]
-    constants.NR_MAX_CHILDREN = 1
-    for _ in range(20):
-        for filename in input_instance_files:
-            if (not filename.endswith(".json")):
-                continue
-            filepath = os.path.join(directory, filename)
-            print(f"""----------------------------------------------------------------------------
-            Starting run for {filename}: """)
-            proc = subprocess.Popen([sys.executable,
-                                     "tree_search_dfs.py",
-                                     "--problem_instance",
-                                     filepath,
-                                     "--problem_description",
-                                     "problem_descriptions/2d_bin_packing_without_input.json",
-                                     "-m",
-                                     "flex_objects_fixed_input_values"])
-            try:
-                proc.wait()  # wait up to 90 minutes
-            except subprocess.TimeoutExpired:
-                print("Timeout — killing process")
-                proc.kill()
-                proc.wait()  # ensure it’s dead
-            except KeyboardInterrupt as e:
-                # do nothing
-                m = 1
-            finally:
-                proc.terminate()
+def updateTreeCollectionCorrectnessResultsWithObjective(tree_collection_path: str, handcrafted_objective_values: list):
+    for subdir in Path(tree_collection_path).iterdir():
+        correctness_results = readCorrectnessResults(str(subdir.joinpath("correctness_results.txt")))
 
-def CLASS_tot_with_semantic_feedback():
+        for i, json_file in enumerate(subdir.glob("*.json")):
+            print(f"  Reading file: {json_file.name}")
+
+            with open(json_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Handle different JSON structures safely
+            if isinstance(data, list):
+                optimals = 0
+                valids = 0
+                for formulation in data:
+                    if bool(formulation["validated"]):
+                        if int(formulation["objective_val"]) == handcrafted_objective_values[i]:
+                            optimals += 1
+                        else:
+                            valids += 1
+                correctness_results[i]["optimal"] = optimals
+                correctness_results[i]["valid"] = valids
+            else:
+                print(f"Failed to update correctness results in {subdir.name}-{json_file.name}")
+        updateCorrectnessResultsFile(str(subdir.joinpath("correctness_results.txt")), correctness_results)
+
+def readCorrectnessResults(correctness_results_file_path: str):
+    extracted_data = []
+    pattern = re.compile(
+        r"(\d+_\d+\.json):\s*"
+        r"(\d+)\s+syntactically invalid,\s*"
+        r"(\d+)\s+semantically invalid,\s*"
+        r"(\d+)\s+valid"
+    )
+    with open(correctness_results_file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            match = pattern.search(line)
+            if match:
+                file = match.group(1)
+                syn_invalid = int(match.group(2))
+                sem_invalid = int(match.group(3))
+                valid = int(match.group(4))
+
+                extracted_data.append({
+                    "file": file,
+                    "syn_invalid": syn_invalid,
+                    "sem_invalid": sem_invalid,
+                    "valid": valid
+                })
+    return extracted_data
+
+def updateCorrectnessResultsFile(correctness_results_file_path: str, correctness_results: list):
+    with open(correctness_results_file_path, "w", encoding="utf-8") as f:
+        for c in correctness_results:
+            f.write(f"{c["file"]}: {c["syn_invalid"]} syntactically invalid, {c["sem_invalid"]} semantically invalid, {c["valid"]} valid, {c["optimal"]} optimal" + "\n")
+
+def paper_20_CLASS_1_tot_fixed_shapes():
     directory = "problem_descriptions/testset_paper_2D-BPP_CLASS_fixed_objects/"
     formatted = datetime.now().strftime("%Y-%m-%d_%H-%M")
     files = os.listdir(directory)
@@ -166,7 +197,6 @@ Starting run for writing reused model for instance {filename}: """)
                 proc.terminate()
 
 
-if __name__ == '__main__':
-    paper_20_CLASS_tot_runs()
-    # bot_without_semantic_feedback_20_bot_runs()
-    # CLASS_tot_with_semantic_feedback()
+#if __name__ == '__main__':
+    #paper_20_CLASS_5_tot_flex_shapes()
+    #paper_20_CLASS_1_tot_fixed_shapes()

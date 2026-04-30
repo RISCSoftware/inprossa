@@ -33,6 +33,7 @@ CONSTRAINT_NODES = False    # default: false. Splits each subproblem into indivi
 SAVE_NODES = False          # Saves whole tree: each node in correct nested folder structure
 SAVE_MODEL = True           # Saves the valid model formulations resulting from the tree
 SOLVER = "chuffed"
+GENERATION_INST_DIR = "problem_descriptions/testset_paper_2D-BPP_CLASS_XS/"
 
 # AlgoPolish
 ALGOPOLISH_ACTIVE = True

@@ -2,7 +2,7 @@ import json
 import os
 
 import pandas as pd
-from handcrafted_2d_bin_packing import apply_handcrafted
+from experiments.handcrafted_2d_bin_packing import apply_handcrafted
 
 scatterplot_folder_path = "scatterplot_data_handcrafted_vs_ToT"
 cum_graph_folder_path = "cum_graph_data_handcrafted_vs_ToT"

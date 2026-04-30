@@ -595,8 +595,8 @@ def check_solver_executability(model: str, node):
             node.objective_val = solution[constants.OBJECTIVE_VARIABLE_NAME][len(solution[constants.OBJECTIVE_VARIABLE_NAME])-1]
         elif "objective" in solution:
             print(f"Solution for objective is: {solution["objective"]}")
-            return solution["objective"][
-                len(solution["objective"]) - 1], solve_time, solution
+            node.objective_val = solution["objective"][
+                len(solution["objective"]) - 1]
 
         node.solve_time = solve_time
         node.solution_model = solution
