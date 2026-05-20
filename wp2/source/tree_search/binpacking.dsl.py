@@ -15,7 +15,9 @@ ITEM_WEIGHTS : DSList(5, DSInt()) = [4, 2, 5, 3, 1]
 NBOXES : int = 4
 NITEMS : int = 5
 
-assignments: DSList(NITEMS, DSInt(0, NBOXES)) = [1] * (NITEMS)
+assignments: DSList(NITEMS, DSInt(0, NBOXES)) 
+
+#= [None] * (NITEMS)
 
 
 def not_exceed(assignments: DSList(NITEMS, DSInt(0, NBOXES))):
