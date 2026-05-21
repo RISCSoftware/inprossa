@@ -26,6 +26,7 @@ DEBUG_MODE_ON = True
 SOLVE_TIME_TIMEOUT = 150000
 RANDOM_SEED = 20
 RANDOM_STRING_LENGTH = 10
+ALGOPOLISH_ACTIVE = False
 
 # DFS Tree of Thought
 NR_MAX_CHILDREN = 2         # Maximum of children per node in ToT
@@ -36,14 +37,15 @@ SOLVER = "chuffed"
 GENERATION_INST_DIR = "problem_descriptions/testset_paper_2D-BPP_CLASS_XS/"
 
 # AlgoPolish
-ALGOPOLISH_ACTIVE = True
-# ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_2D-BPP_CLASS_XS"
-ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_woodcutter"
+ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_2D-BPP_CLASS_XS"
+# ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_woodcutter"
 CODE_LENGTH_PENALTY = 0.25
+NR_MERGED_MODELS = 5
+POLISHING_ITERATIONS = 5
 VALIDATE_SOLUTION = BinPackingValidator.validate_solution
-VALIDATE_SOLUTION = WoodCutterValidator.validate_solution
-# OBJECTIVE_VARIABLE_NAME = "nr_used_boxes"
-OBJECTIVE_VARIABLE_NAME = "total_cost"
+# VALIDATE_SOLUTION = WoodCutterValidator.validate_solution
+OBJECTIVE_VARIABLE_NAME = "nr_used_boxes"
+# OBJECTIVE_VARIABLE_NAME = "total_cost"
 
 # LLM Client
 def get_LLM_client():

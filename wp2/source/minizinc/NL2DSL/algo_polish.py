@@ -1,4 +1,5 @@
 import copy
+import datetime
 import json
 import random
 import re
@@ -20,7 +21,7 @@ N_FAILED_GENERATIONS = 0
 FAILED_GENERATIONS = []  # problem desc. indices of failed generation steps
 
 class AlgoPolish:
-    POLISHING_ITERATIONS = 3
+    POLISHING_ITERATIONS = constants.POLISHING_ITERATIONS
     POLISHING_MUTATION_TYPES = ["mutation/refactor_experiment.txt", "mutation/refactor_redundancies.txt"]
 
     def __init__(self, file_path: str = None, models: list[dict] = None):
@@ -34,20 +35,22 @@ class AlgoPolish:
         assert models is not None, "Either file_path or models must be given."
 
         # Convert from OptDSL to pydantic for Mutation by LLM
-        precomputed_fitness = [5.58076, 29.90574, 4.66428, 5.57684] # algopolish_test_smoll
-        precomputed_fitness = [8.68274] # algopolish_test_woodcutter
+        precomputed_fitness = [5.5318, 34.90602, 4.65142, 5.54194, 4.61002, 4.61865, 34.82209, 4.51746, 18.59694, 15.86168, 18.59819, 18.59865, 5.538309999999999, 5.52716, 6.454650000000001, 4.6564] # algopolish_test
+        # precomputed_fitness = [5.58076, 29.90574, 4.66428, 5.57684]  # algopolish_test_smoll
+        # precomputed_fitness = [8.68274] # algopolish_test_woodcutter
         for i, model in enumerate(models):
             model_to_be_polished = PolishModel(model)
             model_to_be_polished.objective = initial_clean_up(model_to_be_polished.objective, to_typing=True)
             model_to_be_polished.constraints = initial_clean_up(model_to_be_polished.constraints, to_typing=True)
-            # model_to_be_polished.fitness = precomputed_fitness[i]
-            model_to_be_polished.calculate_and_set_fitness()
+            model_to_be_polished.fitness = precomputed_fitness[i]
+            # model_to_be_polished.calculate_and_set_fitness()
             self.models.append(model_to_be_polished)
         fitness_vals = [model.fitness for model in self.models]
         self.cur_avg_fitness = sum(fitness_vals) / len(fitness_vals)
-        self.min_objective_val = min([model.objective_val for model in self.models])
+        #self.min_objective_val = min([model.objective_val for model in self.models])
+        self.elites = self._get_elites(self.models, 10)
+        constants.ALGOPOLISH_ACTIVE = True
         print(f"Given models' fitness: {[model_to_be_polished.fitness for model_to_be_polished in self.models]}")
-        self.elites = self._get_elites()
 
 
     def polish (self, problem_description: str):
@@ -58,25 +61,38 @@ class AlgoPolish:
             (self.models: Models to be polished)
         """
         if not problem_description: raise ValueError("Problem description cannot be None or empty.")
-        improved_models = self.models
+        improved_models = self.elites
 
         for m_index in range(AlgoPolish.POLISHING_ITERATIONS):
             # Biased Crossover
-            # merged_models = []
-            # for elite in self.elites:
-            #     for model in [x for x in self.models if x not in self.elites]:
-            #         if model != elite:
-            #             elite_encoding = elite.objective + "\n\n" + elite.constraints
-            #             non_elite_encoding = model.objective + "\n\n" + model.constraints
-            #             encoding = send_prompt_with_system_prompt(
-            #                 load_algopolish_mutation_file("crossover/crossover_biased_80%.txt").format(elite_encoding,
-            #                                                                                            non_elite_encoding,
-            #                                                                                            80,
-            #                                                                                            20),
-            #                 self.llm)
-            #             new_model = self._execute_and_validate_model(encoding, copy.deepcopy(elite))
-            #             if new_model is None: continue
-            #             merged_models.append(new_model)
+            merged_models = set()
+            non_elite_models = [x for x in self.models if x not in self.elites]
+            while len(merged_models) < constants.NR_MERGED_MODELS:
+                elite = random.choice(self.elites)
+                non_elite_model = random.choice(non_elite_models)
+                elite_encoding = elite.objective + "\n\n" + elite.constraints
+                non_elite_encoding = non_elite_model.objective + "\n\n" + non_elite_model.constraints
+                encoding = send_prompt_with_system_prompt(
+                    load_algopolish_mutation_file("crossover/crossover_biased_80%.txt").format(elite_encoding,
+                                                                                               non_elite_encoding,
+                                                                                               60,
+                                                                                               40),
+                    self.llm)
+                new_model = self._execute_and_validate_model(
+                    copy.deepcopy(elite),
+                    encoding,
+                    elite.full_formulation,
+                    problem_description)
+                if new_model is None: continue
+
+                # Check fitness
+                new_model.calculate_and_set_fitness()
+                if new_model.state == State.CORRECT:
+                    merged_models.add(new_model)
+                else:
+                    print(f"Merged model faulty - do nothing.")
+
+            print(f"Merged models fitness: {[merged_model.fitness for merged_model in merged_models]}")
 
             # Mutation options generated by LLM
             mutated_models = set()
@@ -94,7 +110,7 @@ class AlgoPolish:
                 # Mutation - redefine objective function
                 old_objective = unmutated_model.objective
                 unmutated_model.objective = "# --- Objective ---\n"
-                mutated_models.update(self._create_prompt_and_refactor(
+                mutated_models.add(self._create_prompt_and_refactor(
                     prompt_file="mutation/refactor_redo_objective_fun.txt",
                     unmutated_model=unmutated_model,
                     problem_description=problem_description,
@@ -104,7 +120,7 @@ class AlgoPolish:
                 print(f"Mutated models fitness: {[mutated_model.fitness for mutated_model in mutated_models]}")
 
                 # Mutation - self-suggested improvement
-                mutated_models.update(self._create_prompt_and_refactor(
+                mutated_models.add(self._create_prompt_and_refactor(
                     prompt_file="mutation/refactor_self_suggested_improvement.txt",
                     unmutated_model=unmutated_model,
                     problem_description=problem_description,
@@ -112,15 +128,21 @@ class AlgoPolish:
                 )
                 print(f"Mutated models fitness: {[mutated_model.fitness for mutated_model in mutated_models]}")
 
-                # Mutation (redundancy-removement, experiment, add-bounds)
-                mutated_models.update(self._create_prompt_and_refactor(
+                # Mutation (redundancy-removement, experiment)
+                mutated_models.add(self._create_prompt_and_refactor(
                     prompt_file=AlgoPolish.POLISHING_MUTATION_TYPES[m_index%2],
                     unmutated_model=unmutated_model,
                     problem_description=problem_description,
                     m_index=m_index%2)
                 )
                 print(f"Mutated models fitness: {[mutated_model.fitness for mutated_model in mutated_models]}")
-            improved_models = list(mutated_models)
+            merged_models = list(merged_models)
+            merged_models.extend(list(mutated_models))
+            self.models = merged_models
+            self.elites = self._get_elites(list(self.models), 10)
+            improved_models = self.elites
+            self.cur_avg_fitness = sum([model.fitness for model in self.models]) / len([model.fitness for model in self.models])
+            print(f"Improved models fitness: {[improved_model.fitness for improved_model in improved_models]}")
         return improved_models
 
     def _create_prompt_and_refactor(self,
@@ -142,7 +164,6 @@ class AlgoPolish:
         if refactoring_options is None and m_index is None:
             raise ValueError("Invalid prompt generation, refactoring_options and refactoring-prompt-file-ID are None.")
 
-        mutated_models = []
         mutated_model = copy.deepcopy(unmutated_model)
         mutated_model.set_type(Type.MUTATED)
         mutated_model.fitness = 0
@@ -175,11 +196,12 @@ class AlgoPolish:
             if mutated_model.state == State.CORRECT and mutated_model.fitness - unmutated_model.fitness < 0.2:
                 if mutated_model.fitness < unmutated_model.fitness:
                     print(f"Found formulation with less solvetime: {mutated_model.fitness} < {unmutated_model.fitness}")
-                    mutated_models.append(mutated_model)
-                    return mutated_models
-            print(f"Mutated model faulty or less fit, keep original model.")
-        if unmutated_model not in mutated_models: mutated_models.append(unmutated_model)
-        return mutated_models
+                    return mutated_model
+                else:
+                    print(f"Mutated model less fit, keep original model.")
+                    return unmutated_model
+            print(f"Mutated model faulty, keep original model.")
+        return unmutated_model
 
     def _create_prompt(self,
                        prompt_file: str,
@@ -512,9 +534,9 @@ Return your answer in the format
             model.validated = True
         return validation_res
 
-    def _get_elites(self, top_n: int = 10):
-        elites = [model for model in self.models if model.objective_val <= self.min_objective_val+4]
-        if top_n is not None: elites = self.elites[:top_n]
+    def _get_elites(self, models: list[PolishModel], top_n: int = 10):
+        elites = sorted(models, key=lambda m: m.fitness) # [model for model in models if model.objective_val <= self.min_objective_val+4
+        if top_n is not None and len(elites) > top_n: elites = elites[:top_n]
         return elites
 
 
@@ -522,29 +544,29 @@ def main():
     constants.SOLVE_TIME_TIMEOUT = 15000
 
     # 2D Bin Packing
-    # problem_filepath = "problem_descriptions/2d_bin_packing_without_inoutput"
-    # with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
-    #     problem_description_data = json.load(f)
-    # problem_description = ""
-    # for description_part in problem_description_data.values():
-    #     if isinstance(description_part, dict): continue
-    #     problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
-    #
-    # polishSomething = AlgoPolish(file_path="models/algopolish_test_smoll.json")
-    # improved_models = polishSomething.polish(problem_description)
-    # print(f"Found models' fitness: {[improved_model.fitness for improved_model in improved_models]}")
-
-    # Woodcutter
-    problem_filepath = "problem_descriptions/woodcutter_without_inoutput"
+    problem_filepath = "problem_descriptions/2d_bin_packing_without_inoutput"
     with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
         problem_description_data = json.load(f)
     problem_description = ""
     for description_part in problem_description_data.values():
         if isinstance(description_part, dict): continue
         problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
-    polishSomething = AlgoPolish(file_path="models/algopolish_test_woodcutter.json")
+
+    polishSomething = AlgoPolish(file_path="models/algopolish_test.json")
     improved_models = polishSomething.polish(problem_description)
-    print(f"Found models: {[improved_model.fitness for improved_model in improved_models]}")
+    print(f"Found models' fitness: {[improved_model.fitness for improved_model in improved_models]}")
+
+    # Woodcutter
+    # problem_filepath = "problem_descriptions/woodcutter_without_inoutput"
+    # with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
+    #     problem_description_data = json.load(f)
+    # problem_description = ""
+    # for description_part in problem_description_data.values():
+    #     if isinstance(description_part, dict): continue
+    #     problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
+    # polishSomething = AlgoPolish(file_path="models/algopolish_test_woodcutter.json")
+    # improved_models = polishSomething.polish(problem_description)
+    # print(f"Found models: {[improved_model.fitness for improved_model in improved_models]}")
 
     for improved_model in improved_models:
         print(f"""
@@ -552,7 +574,12 @@ Code:
 {improved_model.full_formulation}
 Objective value: {improved_model.objective_val}
 Solver time: {improved_model.solve_time}""")
+
+    with open(f"algo_polish_resulting_models_{datetime.datetime}.json", "w", encoding="utf-8") as f:
+        json.dump([improved_model.get_as_dict() for improved_model in improved_models], f, indent=4)
+
     constants.SOLVE_TIME_TIMEOUT = 150000
+    constants.ALGOPOLISH_ACTIVE = False
 
 if __name__ == "__main__":
     main()

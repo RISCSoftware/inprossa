@@ -1,4 +1,4 @@
-Add constants, according to given parameters, to the given OptDSL python code snippet and pack them into a Json. Nothing else.
+Add constants, according to given parameters, the given OptDSL python code snippet and pack them into a Json. Nothing else.
 Following requirements must be fulfilled:
     1. The result must be minimal but most of all, semantically correct in respect to the description.
     2. Names for constants are in capital letters only.

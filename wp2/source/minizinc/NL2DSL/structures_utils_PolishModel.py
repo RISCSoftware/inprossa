@@ -74,7 +74,7 @@ class PolishModel:
     def _test_on_testing_set(self):
         test_instances = os.listdir(constants.ALGOPOLISH_TESTSET_PATH)
         test_instances.sort()
-        repeat_testing_set = len(test_instances)//2
+        repeat_testing_set = 10 # len(test_instances)//2
         repeat_testing_set = repeat_testing_set if repeat_testing_set > 0 else 1
 
         testset_objective_vals = [[] for _ in range(repeat_testing_set)]
@@ -89,15 +89,19 @@ class PolishModel:
                 except Exception as e:
                     print(e)
                     self.objective_val = 20
-                    self.solve_time = 10000
+                    self.solve_time = constants.SOLVE_TIME_TIMEOUT
                     self.state = State.FAILED
                     return
 
-                if model["state"] == State.FAILED:
-                    self.objective_val = 20
-                    self.solve_time = 10000
-                    self.state = State.FAILED
-                    return
+                if (model["state"] == State.FAILED or
+                    model["objective_val"] is None or
+                    model["solve_time"] is None or
+                    (constants.ALGOPOLISH_ACTIVE and
+                     sum(solve_time > (constants.SOLVE_TIME_TIMEOUT/1000 - 1) for solve_time in testset_solve_times[i]) > 5)):
+                        self.objective_val = 20
+                        self.solve_time = constants.SOLVE_TIME_TIMEOUT
+                        self.state = State.FAILED
+                        return
                 testset_objective_vals[i].append(model["objective_val"])
                 testset_solve_times[i].append(model["solve_time"])
         self.objective_val = sum([(sum(run_sum) / len(run_sum)) for run_sum in testset_objective_vals]) / len(

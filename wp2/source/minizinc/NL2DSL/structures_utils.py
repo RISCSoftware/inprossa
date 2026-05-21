@@ -591,12 +591,12 @@ def check_solver_executability(model: str, node):
         #     node.objective_val = solution["objective"][len(solution["objective"])-1]
         #     print(f"Solution for objective is: {solution["objective"]}")
         # else:
-        if constants.ALGOPOLISH_ACTIVE and constants.OBJECTIVE_VARIABLE_NAME in solution:
+        if "objective" in solution:
+                    print(f"Solution for objective is: {solution["objective"]}")
+                    node.objective_val = solution["objective"][
+                        len(solution["objective"]) - 1]
+        elif constants.ALGOPOLISH_ACTIVE and constants.OBJECTIVE_VARIABLE_NAME in solution:
             node.objective_val = solution[constants.OBJECTIVE_VARIABLE_NAME][len(solution[constants.OBJECTIVE_VARIABLE_NAME])-1]
-        elif "objective" in solution:
-            print(f"Solution for objective is: {solution["objective"]}")
-            node.objective_val = solution["objective"][
-                len(solution["objective"]) - 1]
 
         node.solve_time = solve_time
         node.solution_model = solution

@@ -491,7 +491,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                 "------------\n" +
                 # Given object types
                 f"Given the following python code snippet containing object types:\n" +
-                f"´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
+                f"´´´\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
                 f"{node.get_partial_formulation_up_until_now()}´´´\n" +
                 # Component specific instr.: constants
                 # f"\nTask:Take this text description of required constants for an optimization problem: {text_representation}",
@@ -509,7 +509,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
                 "------------\n" +
                 # Given object types, constants:
                 f"Given the following python code snippet containing datatypes, constants:\n" +
-                f"´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
+                f"´´´\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
                 f"{node.get_partial_formulation_up_until_now()}´´´\n" +
                 # Component specific instr.: decision variables
                 f"\nYour priority is to fulfill this task: {load_sp_file("sp_decision_variables.txt")}\n"
@@ -527,7 +527,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
             "------------\n" +
             # "Given following constants and decision variables:\n" +
             f"Given the following python code snippet containing datatypes, constants, decision variables and objective func.:\n" +
-            f"´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
+            f"´´´\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
             f"{node.get_partial_formulation_up_until_now()}´´´\n" +
             # json.dumps(constants_variables_node.get_as_codeblock()) + "\n" +
             # Component specific instr.: obj. function
@@ -548,7 +548,7 @@ def create_and_send_prompt_for_strictly_iterative_approach(node: TreeNode,
             subproblem_description +
             "------------\n" +
             f"Given the following python code snippet containing datatypes, constants, decision variables and objective func.:\n" +
-            f"´´´python\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
+            f"´´´\n{"form z3 import *" if not USE_OPTDSL else ""}\n" +
             f"{node.get_partial_formulation_up_until_now()}´´´\n" +
             f"\nTask:\n{load_sp_file("sp_constraints.txt")}\nNever return an empty answer!"
             , max_tokens=1000

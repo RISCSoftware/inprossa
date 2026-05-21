@@ -1,4 +1,4 @@
-Add the objective. Minimizing and maximizing the objective is achieved by calling the built-in methods \"minimize\" or "\maximize"\ with the respective decision variable as agrument. Your priority is to write a function "calculate_objective".
+Add the objective calculation as valid OptDSL code. Minimizing and maximizing the objective is achieved by calling the built-in methods \"minimize\" or "\maximize"\ with the respective decision variable as agrument. Your priority is to write a function "calculate_objective".
     1. Do not return \"NTD\".
     2. Must not contain given constants declarations.
     3. Must not contain given decision variable declarations.
