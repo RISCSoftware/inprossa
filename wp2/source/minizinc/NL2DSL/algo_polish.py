@@ -270,9 +270,16 @@ class AlgoPolish:
         encoding_components = decompose_full_polished_definition(new_encoding)
         if encoding_components and any("objective" in item.lower() for item in encoding_components):
             model.objective = "#--- Objective ---\n" + next((code for section, code in encoding_components.items() if "objective" in section.lower()), None)
+        if encoding_components and "auxiliary variables" in encoding_components and any("auxiliary variables" in item.lower() for item in encoding_components):
+            auxiliary_vars_block = "#--- Auxiliary Variables ---\n" + next(
+                (code for section, code in encoding_components.items() if "auxiliary" in section.lower()), None)
+            if len(auxiliary_vars_block) > 1:
+                model.constraints = auxiliary_vars_block
+            else:
+                model.constraints = ""
         if encoding_components and any("constraints" in item.lower() for item in encoding_components):
             constraints_block = "#--- Constraints ---\n" + next((code for section, code in encoding_components.items() if "constraints" in section.lower()), None)
-            if len(constraints_block) > 1: model.constraints = constraints_block
+            if len(constraints_block) > 1: model.constraints += constraints_block
         model.full_formulation = model.get_variables_codeblock() + "\n\n" + model.objective + "\n\n" + model.constraints
         validation_result = self._validate_model(model, model.solution_model)
         # Fix semantic validation error with feedback loop:
@@ -321,8 +328,14 @@ class AlgoPolish:
                 else:
                     if any("objective" in item.lower() for item in encoding_components):
                         model.objective = "#--- Objective ---\n" + next((code for section, code in encoding_components.items() if "objective" in section.lower()), None)
+                    if "auxiliary variables" in encoding_components and any("auxiliary variables" in item.lower() for item in encoding_components):
+                        model.constraints = "#--- Auxiliary Variables ---\n" + next((code for section, code in encoding_components.items() if "auxiliary" in section.lower()), None)
+                    else:
+                        model.constraints = ""
                     if any("constraints" in item.lower() for item in encoding_components):
-                        model.constraints = "#--- Constraints ---\n" + next((code for section, code in encoding_components.items() if "constraints" in section.lower()), None)
+                        model.constraints += "#--- Constraints ---\n" + next(
+                            (code for section, code in encoding_components.items() if "constraints" in section.lower()),
+                            None)
                     new_encoding = model.get_variables_codeblock() + \
                                     "\n\n" + model.objective + \
                                     "\n\n" + model.constraints
@@ -428,15 +441,15 @@ Return your answer in the format
                         ))
                     execution_error = None
                 else:
-                    # Safety check: there must be a variable "objective"
-                    if "objective =" not in new_encoding and "objective :" not in new_encoding:
-                        execution_error = "Add the assigment \"objective = <variable>\", replace <variable> with the decision variable that represents the objective, nothing else."
                     # Safety check: there must be an optimization goal
                     if "minimize(" not in new_encoding and "maximize(" not in new_encoding:
                         execution_error = "Add the fitting optimization: maximize(<objective>) or minimize(<objective>), where you replace <objective> with \"objective\" or the decision variable that represents the objective, nothing else."
 
                     old_encoding_comp = decompose_full_polished_definition(old_encoding)
                     new_encoding_comp = decompose_full_polished_definition(new_encoding)
+                    if "objective" not in new_encoding_comp and "constraints" not in new_encoding_comp:
+                        execution_error = "Constraints/Objective FormatError"
+                        continue
                     # Safety check: function does not consist only of a return of a variable
                     if _contains_func_that_just_returns_var(new_encoding_comp["objective"]):
                         execution_error = "Error: The function within this code does not include any calculation, but only returns an unmodified input variable. Encode the calculation of the objective function mentioned in the last prompt."
@@ -457,8 +470,8 @@ Return your answer in the format
                         execution_error = None
 
                     # Safety check: there must be a difference to old_encoding
-                    if (old_encoding_comp["objective"] == "\n".join(line for line in new_encoding_comp["objective"].splitlines() if "# Approach" not in line ) and
-                        old_encoding_comp["constraints"] == "\n".join(line for line in new_encoding_comp["constraints"].splitlines() if "# Approach" not in line)):
+                    if (("objective" not in new_encoding_comp or ("objective" in new_encoding_comp and (old_encoding_comp["objective"] == "\n".join(line for line in new_encoding_comp["objective"].splitlines() if "# Approach" not in line )))) and
+                        ("constraints" not in new_encoding_comp or ("constraints" in new_encoding_comp and old_encoding_comp["constraints"] == "\n".join(line for line in new_encoding_comp["constraints"].splitlines() if "# Approach" not in line)))):
                         new_encoding = model.get_variables_codeblock() + send_prompt_with_system_prompt(
                             self.current_prompt,
                             self.llm)

@@ -87,7 +87,7 @@ class PolishModel:
                         os.path.join(constants.ALGOPOLISH_TESTSET_PATH,
                         test_instance))
                 except Exception as e:
-                    print(e)
+                    print("Exception during testing: " + str(e))
                     self.objective_val = 20
                     self.solve_time = constants.SOLVE_TIME_TIMEOUT
                     self.state = State.FAILED

@@ -20,14 +20,15 @@ Fulfill the following rules:
 - Do not use floating-point division. Do not define constants (upper-case variables) within functions. Use lower-case variables instead.
 - Do not initialize list-elements of decision variables manually!
 - Encode the function in the most efficient way and with minimal necessary number of lines. If constraints remain unchanged, write them again.
+- Put newly introduced variables als into the section "# --- Constraints ---", if you introduce new variables.
 - Add a variable "objective", if not existing, and that it is linked to the problem.
 - Check that all decision variables from [Decision_variables] are integrated in assert-constraints. Add missing semantic constraints.
 - Constrain every decision variable with at least one other decision variable.
 - For every decision variable, ensure that:
-    - All its original constraints, bounds, and relationships are defined according to [Problem].
+    - All its original constraints, bounds, and relationships are defined and reflect their meaning according to [Problem].
     - No variable becomes unconstrained.
     - If constraints are rewritten, they must be logically equivalent
-    - every decision variable is linked with at least one other according to [Problem].
+    - Every decision variable is linked with at least one other according to [Problem].
 - Do not return explanations or markdown code.
 - Provide your answer as valid OptDSL code enclosed with codeblock in the following format:
 ```

@@ -453,8 +453,8 @@ objective = calculate_objective(...)
 <decision_variable> = objective
 minimize(objective)
 ´´´ replace <solution> with the code. <solution> must not be empty. And replace decision_variable with a given decision variable, which represents the objective"""
-            if "objective =" not in raw_code and "objective :" not in raw_code:
-                return "Add the assigment \"objective = <variable>\", replace <variable> with the decision variable that represents the objective, nothing else."
+            if not constants.ALGOPOLISH_ACTIVE and "objective =" not in raw_code and "objective :" not in raw_code:
+                return "Add the assignment \"objective = <variable>\", replace <variable> with the decision variable that represents the objective, nothing else."
 
         # Safety check: check that there are no non-constants in range
         m = re.search(r"(.*)(range\(\s*(?=[^,]+[a-z])[^,]+,\s*[^)]+|range\(\s*[^,]+,\s*(?=[^) ]+[a-z])[^)]+\))", raw_code)

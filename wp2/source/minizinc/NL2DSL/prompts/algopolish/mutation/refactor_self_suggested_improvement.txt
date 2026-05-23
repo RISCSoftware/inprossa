@@ -24,11 +24,13 @@ Fulfill the following rules:
 - Constrain every decision variable with at least one other decision variable.
 - Make sure there is a variable "objective" for the optimization goal.
 - Do not return explanations or any markdown code.
+- Put newly introduced variables into a section "# --- Constraints ---", if you introduce new variables.
 - No matter what the approach says, for every decision variable, ensure that:
     - All its original constraints, bounds, and relationships are defined according to [Problem].
     - No variable becomes unconstrained
     - If constraints are rewritten, they must be logically equivalent
     - they are sufficiently constrained according to their relationship to each other
+    - every decision variable represents its meaning in the described problem
 - Provide your answer as valid OptDSL code enclosed with codeblock in the following format:
 ```
 ...
