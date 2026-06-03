@@ -22,6 +22,12 @@ class PolishModel:
 
     @staticmethod
     def calculate_fitness(objective_val: float, solve_time: float) -> float:
+        """
+        Calculates the algopolish heuristic to determine how fit a formulation is. A low value is desirable.
+        Args:
+            objective_val (float): The objective value of the formulation.
+            solve_time (float): The solve time of the formulation.
+        """
         return objective_val + solve_time #+ ((len(objective) + len(constraints)) / 100000)
 
     def __init__(self, model: dict, id: int = 0, save_model:bool = False):
@@ -72,9 +78,13 @@ class PolishModel:
         self.fitness = PolishModel.calculate_fitness(self.objective_val, self.solve_time)
 
     def _test_on_testing_set(self):
+        """
+        To determine fitness of a formulation, test it on a separate test set and
+        repeat 10x to consider the solver's variability in solvetime.
+        """
         test_instances = os.listdir(constants.ALGOPOLISH_TESTSET_PATH)
         test_instances.sort()
-        repeat_testing_set = 10 # len(test_instances)//2
+        repeat_testing_set = 10
         repeat_testing_set = repeat_testing_set if repeat_testing_set > 0 else 1
 
         testset_objective_vals = [[] for _ in range(repeat_testing_set)]
@@ -93,7 +103,7 @@ class PolishModel:
                     self.state = State.FAILED
                     return
 
-                if (model["state"] == State.FAILED or
+                if (model["state"] == State.FAILED.value or
                     model["objective_val"] is None or
                     model["solve_time"] is None or
                     (constants.ALGOPOLISH_ACTIVE and
@@ -136,6 +146,9 @@ class PolishModel:
             json.dump(existing_data, f, indent=4)
 
     def get_variables_codeblock(self):
+        """
+        Return formulation code block containing Object types and Constants with Decision Variables
+        """
         block = "# --- Objects ---\n"
         block += f"{self.llm_generated_objects}\n"
         for object_name, object_spec in self.script_generated_objects.items():

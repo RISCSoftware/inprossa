@@ -1,9 +1,10 @@
 import copy
-import datetime
 import json
 import random
 import re
+from datetime import datetime
 
+import WoodCutterValidator
 import constants
 
 from prompt_generation_utils import send_prompt_with_system_prompt, send_polish_feedback, _get_system_prompt, _get_icl, \
@@ -36,6 +37,7 @@ class AlgoPolish:
 
         # Convert from OptDSL to pydantic for Mutation by LLM
         precomputed_fitness = [5.5318, 34.90602, 4.65142, 5.54194, 4.61002, 4.61865, 34.82209, 4.51746, 18.59694, 15.86168, 18.59819, 18.59865, 5.538309999999999, 5.52716, 6.454650000000001, 4.6564] # algopolish_test
+        m =                   [4.51668, 4.51673, 4.51694, 4.51738, 4.51746, 4.5175399999999994, 4.51765, 4.51811, 4.51834, 4.53716]
         # precomputed_fitness = [5.58076, 29.90574, 4.66428, 5.57684]  # algopolish_test_smoll
         # precomputed_fitness = [8.68274] # algopolish_test_woodcutter
         for i, model in enumerate(models):
@@ -67,7 +69,8 @@ class AlgoPolish:
             # Biased Crossover
             merged_models = set()
             non_elite_models = [x for x in self.models if x not in self.elites]
-            while len(merged_models) < constants.NR_MERGED_MODELS:
+            merge_it = 0
+            while len(merged_models) < constants.NR_MERGED_MODELS and merge_it < constants.NR_MERGED_MODELS*2:
                 elite = random.choice(self.elites)
                 non_elite_model = random.choice(non_elite_models)
                 elite_encoding = elite.objective + "\n\n" + elite.constraints
@@ -91,6 +94,7 @@ class AlgoPolish:
                     merged_models.add(new_model)
                 else:
                     print(f"Merged model faulty - do nothing.")
+                merge_it += 1
 
             print(f"Merged models fitness: {[merged_model.fitness for merged_model in merged_models]}")
 
@@ -186,8 +190,7 @@ class AlgoPolish:
                                                          old_encoding,
                                                          problem_description)
         # Send comparison between old and new model
-        if (mutated_model is not None and
-            PolishModel.calculate_fitness(mutated_model.objective_val, mutated_model.solve_time) <= self.cur_avg_fitness):
+        if mutated_model is not None and mutated_model.solve_time < (constants.SOLVE_TIME_TIMEOUT / 1000 - 1):
             send_polish_feedback(old_encoding, initial_clean_up(mutated_model.full_formulation, to_typing=True),
                                  unmutated_model.fitness, mutated_model.fitness, self.llm)
 
@@ -200,7 +203,7 @@ class AlgoPolish:
                 else:
                     print(f"Mutated model less fit, keep original model.")
                     return unmutated_model
-            print(f"Mutated model faulty, keep original model.")
+        print(f"Mutated model faulty, keep original model.")
         return unmutated_model
 
     def _create_prompt(self,
@@ -268,17 +271,20 @@ class AlgoPolish:
             print("Refactoring failed, despite feedback loop.")
             return None
         encoding_components = decompose_full_polished_definition(new_encoding)
+        if "objective_function" not in encoding_components and "constraints" not in encoding_components:
+            print("Refactoring failed, despite feedback loop.")
+            return None
+
         if encoding_components and any("objective" in item.lower() for item in encoding_components):
             model.objective = "#--- Objective ---\n" + next((code for section, code in encoding_components.items() if "objective" in section.lower()), None)
-        if encoding_components and "auxiliary variables" in encoding_components and any("auxiliary variables" in item.lower() for item in encoding_components):
+        model.constraints = "#--- Constraints ---\n"
+        if encoding_components and "auxiliary variables" in encoding_components and any("auxiliary variables" in item.lower() for item in encoding_components.keys()):
             auxiliary_vars_block = "#--- Auxiliary Variables ---\n" + next(
                 (code for section, code in encoding_components.items() if "auxiliary" in section.lower()), None)
             if len(auxiliary_vars_block) > 1:
-                model.constraints = auxiliary_vars_block
-            else:
-                model.constraints = ""
-        if encoding_components and any("constraints" in item.lower() for item in encoding_components):
-            constraints_block = "#--- Constraints ---\n" + next((code for section, code in encoding_components.items() if "constraints" in section.lower()), None)
+                model.constraints += auxiliary_vars_block
+        if encoding_components and any("constraints" in item.lower() for item in encoding_components.keys()):
+            constraints_block = next((code for section, code in encoding_components.items() if "constraints" in section.lower()), None)
             if len(constraints_block) > 1: model.constraints += constraints_block
         model.full_formulation = model.get_variables_codeblock() + "\n\n" + model.objective + "\n\n" + model.constraints
         validation_result = self._validate_model(model, model.solution_model)
@@ -328,11 +334,11 @@ class AlgoPolish:
                 else:
                     if any("objective" in item.lower() for item in encoding_components):
                         model.objective = "#--- Objective ---\n" + next((code for section, code in encoding_components.items() if "objective" in section.lower()), None)
-                    if "auxiliary variables" in encoding_components and any("auxiliary variables" in item.lower() for item in encoding_components):
+                    if "auxiliary variables" in encoding_components and any("auxiliary variables" in item.lower() for item in encoding_components.keys()):
                         model.constraints = "#--- Auxiliary Variables ---\n" + next((code for section, code in encoding_components.items() if "auxiliary" in section.lower()), None)
                     else:
                         model.constraints = ""
-                    if any("constraints" in item.lower() for item in encoding_components):
+                    if any("constraints" in item.lower() for item in encoding_components.keys()):
                         model.constraints += "#--- Constraints ---\n" + next(
                             (code for section, code in encoding_components.items() if "constraints" in section.lower()),
                             None)
@@ -470,8 +476,10 @@ Return your answer in the format
                         execution_error = None
 
                     # Safety check: there must be a difference to old_encoding
-                    if (("objective" not in new_encoding_comp or ("objective" in new_encoding_comp and (old_encoding_comp["objective"] == "\n".join(line for line in new_encoding_comp["objective"].splitlines() if "# Approach" not in line )))) and
-                        ("constraints" not in new_encoding_comp or ("constraints" in new_encoding_comp and old_encoding_comp["constraints"] == "\n".join(line for line in new_encoding_comp["constraints"].splitlines() if "# Approach" not in line)))):
+                    if (("objective" not in new_encoding_comp or
+                         ("objective" in new_encoding_comp and "objective" in old_encoding_comp and self._strip_comments(new_encoding_comp["objective"]) == self._strip_comments(old_encoding_comp["objective"]))) and
+                        ("constraints" not in new_encoding_comp or
+                         ("constraints" in new_encoding_comp and "constraints" in old_encoding_comp and self._strip_comments(new_encoding_comp["constraints"]) == self._strip_comments(old_encoding_comp["constraints"])))):
                         new_encoding = model.get_variables_codeblock() + send_prompt_with_system_prompt(
                             self.current_prompt,
                             self.llm)
@@ -552,8 +560,11 @@ Return your answer in the format
         if top_n is not None and len(elites) > top_n: elites = elites[:top_n]
         return elites
 
+    def _strip_comments(self, code: str):
+        return "\n".join(line for line in re.sub(r'(?m)^ #.\n?', '', str(code)).split("\n") if line)
 
-def main():
+
+def main_bin_packing():
     constants.SOLVE_TIME_TIMEOUT = 15000
 
     # 2D Bin Packing
@@ -569,30 +580,54 @@ def main():
     improved_models = polishSomething.polish(problem_description)
     print(f"Found models' fitness: {[improved_model.fitness for improved_model in improved_models]}")
 
-    # Woodcutter
-    # problem_filepath = "problem_descriptions/woodcutter_without_inoutput"
-    # with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
-    #     problem_description_data = json.load(f)
-    # problem_description = ""
-    # for description_part in problem_description_data.values():
-    #     if isinstance(description_part, dict): continue
-    #     problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
-    # polishSomething = AlgoPolish(file_path="models/algopolish_test_woodcutter.json")
-    # improved_models = polishSomething.polish(problem_description)
-    # print(f"Found models: {[improved_model.fitness for improved_model in improved_models]}")
-
-    for improved_model in improved_models:
-        print(f"""
-Code:
-{improved_model.full_formulation}
-Objective value: {improved_model.objective_val}
-Solver time: {improved_model.solve_time}""")
-
-    with open(f"algo_polish_resulting_models_{datetime.datetime}.json", "w", encoding="utf-8") as f:
-        json.dump([improved_model.get_as_dict() for improved_model in improved_models], f, indent=4)
+    # Print and save results
+    print_and_save_improved_models(improved_models)
 
     constants.SOLVE_TIME_TIMEOUT = 150000
     constants.ALGOPOLISH_ACTIVE = False
 
+
+def main_woodcutter():
+    constants.SOLVE_TIME_TIMEOUT = 15000
+
+    # Woodcutter
+    constants.ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_woodcutter"
+    constants.VALIDATE_SOLUTION = WoodCutterValidator.validate_solution
+    constants.OBJECTIVE_VARIABLE_NAME = "total_cost"
+    problem_filepath = "problem_descriptions/woodcutter_without_inoutput"
+    with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
+        problem_description_data = json.load(f)
+    problem_description = ""
+    for description_part in problem_description_data.values():
+        if isinstance(description_part, dict): continue
+        problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
+    polishSomething = AlgoPolish(file_path="models/algopolish_test_woodcutter.json")
+    improved_models = polishSomething.polish(problem_description)
+    print(f"Found models: {[improved_model.fitness for improved_model in improved_models]}")
+
+    # Print and save results
+    print_and_save_improved_models(improved_models)
+
+    constants.SOLVE_TIME_TIMEOUT = 150000
+    constants.ALGOPOLISH_ACTIVE = False
+
+def print_and_save_improved_models(improved_models: list[PolishModel]):
+    for improved_model in improved_models:
+        print(f"""
+    Code:
+    {improved_model.full_formulation}
+    Objective value: {improved_model.objective_val}
+    Solver time: {improved_model.solve_time}""")
+
+    with open(f"algo_polish_resulting_models_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.json", "w",
+              encoding="utf-8") as f:
+        json.dump([improved_model.get_as_dict() for improved_model in improved_models], f, indent=4)
+
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main_bin_packing()
+            # main_woodcutter()
+            break  # normal exit
+        except Exception as e:
+            print(f"Crashed: {e}")

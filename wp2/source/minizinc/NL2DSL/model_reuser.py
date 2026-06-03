@@ -4,6 +4,8 @@ import json
 import re
 
 from datetime import datetime
+
+import constants
 from BinPackingValidator import validate_solution
 from input_reader import InputReader
 from structures_utils import initial_clean_up, check_solver_executability_for_plain_model, split_at_outer_equals, State
@@ -172,6 +174,7 @@ class ModelReuser():
         try:
             validate_solution(solution_model, task)
         except AssertionError as e:
+            if constants.DEBUG_MODE_ON: print(f"Assertion failed: {e}")
             validation_res = f"Failed to validate solution: {e}"
             model.update({"validated": False})
             model.update({"state": State.FAILED.value})
