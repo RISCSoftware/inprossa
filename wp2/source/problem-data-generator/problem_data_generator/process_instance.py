@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 import sys
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ from models.WoodCutting import WoodCutting
 
 @dataclass
 class Piece:
+    input_board_index: int
     board_id: int
     board_position: int
     start: int
@@ -31,6 +33,9 @@ class PieceStream:
         self.bad_cut_out = 0
         self.good_input_seen = 0
         self.bad_input_seen = 0
+        self.used_sequence: list[tuple[int, int, int]] = []
+        self.edge_skipped_good = 0
+        self.edge_skipped_by_board: dict[int, list[tuple[int, int]]] = collections.defaultdict(list)
 
     def _board_material_totals(self, input_board_index: int) -> tuple[int, int]:
         board = self.problem.InputBoards[input_board_index].RawBoard
@@ -97,7 +102,7 @@ class PieceStream:
                 result.append((cur, s_end))
         return [(a, b) for a, b in result if b > a]
 
-    def _load_next_board(self, min_len: int, max_shift_curved: int) -> bool:
+    def _load_next_board(self, min_len: int, max_shift_curved: int, skip_start: int, skip_end: int) -> bool:
         if self.index >= len(self.problem.InputBoards):
             return False
 
@@ -127,15 +132,34 @@ class PieceStream:
                 self.good_cut_out += length
 
         usable = self._subtract_intervals(good_intervals, curved_forbidden)
-        usable_filtered: list[tuple[int, int]] = []
+
+        # Simulator semantics: edge skip zones are unusable board margins.
+        interior_start = max(0, skip_start)
+        interior_end = min(raw.Length, raw.Length - max(0, skip_end))
+        usable_interior: list[tuple[int, int]] = []
         for begin, end in usable:
+            clipped_begin = max(begin, interior_start)
+            clipped_end = min(end, interior_end)
+            if clipped_end > clipped_begin:
+                usable_interior.append((clipped_begin, clipped_end))
+
+            # Track GOOD material skipped due to board edge margins.
+            if begin < clipped_begin:
+                self.edge_skipped_by_board[raw.Id].append((begin, clipped_begin))
+                self.edge_skipped_good += clipped_begin - begin
+            if clipped_end < end:
+                self.edge_skipped_by_board[raw.Id].append((clipped_end, end))
+                self.edge_skipped_good += end - clipped_end
+
+        usable_filtered: list[tuple[int, int]] = []
+        for begin, end in usable_interior:
             seg_len = end - begin
             if seg_len >= min_len:
                 usable_filtered.append((begin, end))
             else:
                 self.good_cut_out += seg_len
 
-        # Track GOOD material lost by cutting around curved sections.
+        # Track GOOD material lost by curved cuts; edge skips are tracked separately.
         good_before = sum(end - begin for begin, end in good_intervals)
         good_after = sum(end - begin for begin, end in usable)
         if good_before > good_after:
@@ -144,6 +168,7 @@ class PieceStream:
         for begin, end in usable_filtered:
             self.queue.append(
                 Piece(
+                    input_board_index=self.index - 1,
                     board_id=raw.Id,
                     board_position=input_board.Position,
                     start=begin,
@@ -153,18 +178,27 @@ class PieceStream:
 
         return True
 
-    def pop_next_piece(self, min_len: int, max_shift_curved: int) -> Piece | None:
+    def pop_next_piece(self, min_len: int, max_shift_curved: int, skip_start: int, skip_end: int) -> Piece | None:
         while not self.queue:
-            if not self._load_next_board(min_len=min_len, max_shift_curved=max_shift_curved):
+            if not self._load_next_board(
+                min_len=min_len,
+                max_shift_curved=max_shift_curved,
+                skip_start=skip_start,
+                skip_end=skip_end,
+            ):
                 return None
         return self.queue[0]
 
     def consume_front(self, used_len: int) -> None:
         piece = self.queue[0]
+        used_start = piece.start
+        used_end = piece.start + used_len
+        self.used_sequence.append((piece.input_board_index, used_start, used_end))
         if used_len >= piece.length:
             self.queue.pop(0)
             return
         self.queue[0] = Piece(
+            input_board_index=piece.input_board_index,
             board_id=piece.board_id,
             board_position=piece.board_position,
             start=piece.start + used_len,
@@ -240,6 +274,74 @@ def choose_non_final_cut_length(
     return None
 
 
+def generate_simulator_commands(problem: WoodCutting, stream: PieceStream) -> list[str]:
+    cfg = problem.BeamConfiguration
+    commands: list[str] = []
+
+    used_by_board: dict[int, list[tuple[int, int]]] = collections.defaultdict(list)
+    for board_index, start, end in stream.used_sequence:
+        used_by_board[board_index].append((start, end))
+
+    for board_index in range(stream.index):
+        input_board = problem.InputBoards[board_index]
+        raw = input_board.RawBoard
+        interior_start = max(0, cfg.BeamSkipStart)
+        interior_end = min(raw.Length, raw.Length - max(0, cfg.BeamSkipEnd))
+        used_intervals_raw = used_by_board.get(board_index, [])
+        used_intervals: list[tuple[int, int]] = []
+        for begin, end in used_intervals_raw:
+            clipped_begin = max(begin, interior_start)
+            clipped_end = min(end, interior_end)
+            if clipped_end > clipped_begin:
+                used_intervals.append((clipped_begin, clipped_end))
+
+        boundaries = {0, raw.Length, interior_start, interior_end}
+        for begin, end in used_intervals:
+            boundaries.add(begin)
+            boundaries.add(end)
+
+        # Every curved part needs at least one cut in its allowed shifted range.
+        for part in raw.ScanBoardParts:
+            if part.Quality.value != 3:
+                continue
+            left = max(0, part.StartPosition - cfg.MaxShiftCurvedCut)
+            right = min(raw.Length, part.EndPosition + cfg.MaxShiftCurvedCut)
+            has_cut = any(0 < cut < raw.Length and left <= cut <= right for cut in boundaries)
+            if has_cut:
+                continue
+            candidate = (left + right) // 2
+            if 0 < candidate < raw.Length:
+                boundaries.add(candidate)
+            elif 0 < left < raw.Length:
+                boundaries.add(left)
+            elif 0 < right < raw.Length:
+                boundaries.add(right)
+
+        cuts = sorted(cut for cut in boundaries if 0 < cut < raw.Length)
+        points = [0, *cuts, raw.Length]
+        used_set = set(used_intervals)
+
+        commands.append("scan")
+        commands.append("bgo")
+        if cuts:
+            commands.append("cut " + " ".join(str(cut) for cut in cuts))
+        else:
+            commands.append("cut")
+
+        for i in range(len(points) - 1):
+            segment = (points[i], points[i + 1])
+            if segment in used_set:
+                commands.append("keep")
+                commands.append("pgo")
+            else:
+                commands.append("discard")
+
+    for _board_index, _start, _end in stream.used_sequence:
+        commands.append("assemble")
+    commands.append("end")
+    return commands
+
+
 def build_solution(problem: WoodCutting) -> dict[str, Any]:
     cfg = problem.BeamConfiguration
 
@@ -270,7 +372,12 @@ def build_solution(problem: WoodCutting) -> dict[str, Any]:
 
             while filled < beam_length:
                 remaining = beam_length - filled
-                piece = stream.pop_next_piece(min_len=min_len, max_shift_curved=max_shift_curved)
+                piece = stream.pop_next_piece(
+                    min_len=min_len,
+                    max_shift_curved=max_shift_curved,
+                    skip_start=skip_start,
+                    skip_end=skip_end,
+                )
                 if piece is None:
                     failed_layers.append(
                         {
@@ -308,8 +415,6 @@ def build_solution(problem: WoodCutting) -> dict[str, Any]:
                         }
                     )
                     used_good += take
-                    if take < piece.length:
-                        stream.good_cut_out += piece.length - take
                     stream.consume_front(take)
                     filled += take
                     break
@@ -373,8 +478,24 @@ def build_solution(problem: WoodCutting) -> dict[str, Any]:
             }
         )
 
+    # Unused pieces from already processed boards are discarded by simulator commands.
+    # Mirror that behavior in statistics before computing remaining material.
+    stream.discard_all_remaining()
+
     remaining_good, remaining_bad = stream.remaining_material()
-    good_cut_out = max(0, stream.good_input_seen - used_good - remaining_good)
+    good_cut_out = stream.good_cut_out
+
+    skipped_board_margins = []
+    for board_id, intervals in stream.edge_skipped_by_board.items():
+        merged = stream._merge_intervals(intervals)
+        skipped_board_margins.append(
+            {
+                "BoardId": board_id,
+                "Intervals": [{"Start": s, "End": e} for s, e in merged],
+                "Length": sum(e - s for s, e in merged),
+            }
+        )
+    skipped_board_margins.sort(key=lambda item: int(item["BoardId"]))
 
     stats = {
         "RequiredLayers": num_beams * num_layers,
@@ -383,11 +504,14 @@ def build_solution(problem: WoodCutting) -> dict[str, Any]:
         "InputGoodSeen": stream.good_input_seen,
         "InputBadSeen": stream.bad_input_seen,
         "GoodCutOut": good_cut_out,
+        "GoodSkippedByBeamMargins": stream.edge_skipped_good,
         "BadCutOut": stream.bad_cut_out,
         "GoodUsed": used_good,
         "RemainingGood": remaining_good,
         "RemainingBad": remaining_bad,
     }
+
+    simulator_commands = generate_simulator_commands(problem, stream)
 
     return {
         "Status": "ok" if not failed_layers else "partial",
@@ -402,6 +526,8 @@ def build_solution(problem: WoodCutting) -> dict[str, Any]:
             "MaxShiftCurvedCut": max_shift_curved,
         },
         "Statistics": stats,
+        "SkippedBoardMargins": skipped_board_margins,
+        "SimulatorCommands": simulator_commands,
         "Beams": beams_output,
         "FailedLayers": failed_layers,
     }
@@ -428,6 +554,11 @@ def parse_args() -> argparse.Namespace:
         "--pretty",
         action="store_true",
         help="Pretty print output JSON.",
+    )
+    parser.add_argument(
+        "--commands-output",
+        default=None,
+        help="Optional output file for simulator commands (one command per line).",
     )
     return parser.parse_args()
 
@@ -457,6 +588,13 @@ def main() -> int:
             handle.write("\n")
     else:
         print(output_text)
+
+    if args.commands_output:
+        commands = result.get("SimulatorCommands", [])
+        with open(args.commands_output, "wt", encoding="utf-8") as handle:
+            for command in commands:
+                handle.write(str(command))
+                handle.write("\n")
     return 0
 
 

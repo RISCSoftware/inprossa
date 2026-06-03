@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import colorsys
 import json
 from pathlib import Path
@@ -8,8 +9,16 @@ from typing import Any
 
 
 def load_json(path: Path) -> dict[str, Any]:
-    with path.open("rt", encoding="utf-8") as handle:
-        return json.load(handle)
+    with open(path, "rb") as f:
+        raw = f.read()
+
+    if raw.startswith(b"\xff\xfe") or raw.startswith(b"\xfe\xff"):
+        return json.loads(raw.decode("utf-16"))
+
+    if raw.startswith(b"\xff\xfe\x00\x00") or raw.startswith(b"\x00\x00\xfe\xff"):
+        return json.loads(raw.decode("utf-32"))
+
+    return json.loads(raw.decode("utf-8"))
 
 
 def color_for_board(board_id: int) -> str:
@@ -102,6 +111,162 @@ def subtract_intervals(
     return [(a, b) for a, b in result if b > a]
 
 
+def intersect_intervals(
+    left: list[tuple[float, float]],
+    right: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    if not left or not right:
+        return []
+    result: list[tuple[float, float]] = []
+    for a0, a1 in left:
+        for b0, b1 in right:
+            start = max(a0, b0)
+            end = min(a1, b1)
+            if end > start:
+                result.append((start, end))
+    return merge_intervals(result)
+
+
+def build_good_ranges_by_board(instance: dict[str, Any] | None) -> dict[int, list[tuple[float, float]]]:
+    if instance is None:
+        return {}
+
+    result: dict[int, list[tuple[float, float]]] = {}
+    for ib in instance.get("InputBoards", []):
+        raw = ib.get("RawBoard", {})
+        board_id = int(raw.get("Id", -1))
+        parts: list[tuple[float, float]] = []
+        for part in raw.get("ScanBoardParts", []):
+            if int(part.get("Quality", 0)) != 1:
+                continue
+            start = float(part.get("StartPosition", 0))
+            end = float(part.get("EndPosition", 0))
+            if end > start:
+                parts.append((start, end))
+        result[board_id] = merge_intervals(parts)
+    return result
+
+
+def build_edge_skipped_ranges_by_board(processed: dict[str, Any]) -> dict[int, list[tuple[float, float]]]:
+    result: dict[int, list[tuple[float, float]]] = {}
+    for item in processed.get("SkippedBoardMargins", []):
+        board_id = int(item.get("BoardId", -1))
+        intervals: list[tuple[float, float]] = []
+        for interval in item.get("Intervals", []):
+            start = float(interval.get("Start", 0))
+            end = float(interval.get("End", 0))
+            if end > start:
+                intervals.append((start, end))
+        result[board_id] = merge_intervals(intervals)
+    return result
+
+
+def build_discarded_good_ranges_by_board(
+    processed: dict[str, Any],
+    instance: dict[str, Any] | None,
+    edge_skipped_by_board: dict[int, list[tuple[float, float]]] | None = None,
+) -> dict[int, list[tuple[float, float]]]:
+    if instance is None:
+        return {}
+
+    commands = processed.get("SimulatorCommands", [])
+    if not isinstance(commands, list) or not commands:
+        return {}
+
+    input_boards = list(instance.get("InputBoards", []))
+    if not input_boards:
+        return {}
+
+    good_ranges_by_board = build_good_ranges_by_board(instance)
+    discarded: dict[int, list[tuple[float, float]]] = {}
+
+    scan_index = 0
+    scanned: collections.deque[int] = collections.deque()
+    reordered: collections.deque[int] = collections.deque()
+    board_buffer: int | None = None
+    cut_pieces: collections.deque[tuple[int, float, float]] = collections.deque()
+
+    for raw_cmd in commands:
+        line = str(raw_cmd).strip()
+        if not line:
+            continue
+        parts = line.split()
+        cmd = parts[0]
+
+        if cmd == "scan":
+            if scan_index < len(input_boards):
+                scanned.append(scan_index)
+                scan_index += 1
+            continue
+
+        if cmd == "bgo":
+            if scanned:
+                reordered.append(scanned.popleft())
+            continue
+
+        if cmd == "bout":
+            if scanned:
+                board_idx = scanned.popleft()
+                if board_buffer is not None:
+                    reordered.append(board_buffer)
+                board_buffer = board_idx
+            continue
+
+        if cmd == "bin":
+            if not scanned and board_buffer is not None:
+                reordered.append(board_buffer)
+                board_buffer = None
+            continue
+
+        if cmd == "cut":
+            cut_pieces.clear()
+            if not reordered:
+                continue
+
+            board_idx = reordered.popleft()
+            raw_board = input_boards[board_idx].get("RawBoard", {})
+            board_id = int(raw_board.get("Id", -1))
+            board_len = float(raw_board.get("Length", 0))
+
+            cuts: list[float] = []
+            for token in parts[1:]:
+                try:
+                    cut = float(token)
+                except ValueError:
+                    continue
+                if 0 < cut < board_len:
+                    cuts.append(cut)
+            cuts = sorted(cuts)
+
+            points = [0.0, *cuts, board_len]
+            for i in range(len(points) - 1):
+                start = points[i]
+                end = points[i + 1]
+                if end > start:
+                    cut_pieces.append((board_id, start, end))
+            continue
+
+        if cmd in ("keep", "discard"):
+            if not cut_pieces:
+                continue
+            board_id, start, end = cut_pieces.popleft()
+            if cmd == "discard":
+                piece = [(start, end)]
+                good_in_piece = intersect_intervals(piece, good_ranges_by_board.get(board_id, []))
+                if good_in_piece:
+                    discarded.setdefault(board_id, []).extend(good_in_piece)
+            continue
+
+    merged = {board_id: merge_intervals(ranges) for board_id, ranges in discarded.items()}
+    if not edge_skipped_by_board:
+        return merged
+
+    filtered: dict[int, list[tuple[float, float]]] = {}
+    for board_id, ranges in merged.items():
+        filtered[board_id] = subtract_intervals(ranges, edge_skipped_by_board.get(board_id, []))
+    return filtered
+
+
 def build_used_ranges_by_board(
     processed: dict[str, Any],
     beam_index: int | None = None,
@@ -119,6 +284,44 @@ def build_used_ranges_by_board(
                     continue
                 used.setdefault(board_id, []).append((s, e))
     return {bid: merge_intervals(ranges) for bid, ranges in used.items()}
+
+
+def build_used_pieces_by_board(
+    processed: dict[str, Any],
+    beam_index: int,
+) -> dict[int, list[tuple[float, float]]]:
+    pieces: dict[int, list[tuple[float, float]]] = {}
+    for beam in processed.get("Beams", []):
+        if int(beam.get("BeamIndex", -1)) != beam_index:
+            continue
+        for layer in beam.get("Layers", []):
+            for placement in layer.get("Placements", []):
+                board_id = int(placement.get("SourceBoardId", -1))
+                source_start = float(placement.get("SourceStart", 0))
+                source_end = float(placement.get("SourceEnd", 0))
+                if source_end <= source_start:
+                    continue
+                pieces.setdefault(board_id, []).append((source_start, source_end))
+    return pieces
+
+
+def build_cut_points_by_board(
+    processed: dict[str, Any],
+    beam_index: int,
+) -> dict[int, list[float]]:
+    cut_points: dict[int, set[float]] = {}
+    for beam in processed.get("Beams", []):
+        if int(beam.get("BeamIndex", -1)) != beam_index:
+            continue
+        for layer in beam.get("Layers", []):
+            for placement in layer.get("Placements", []):
+                board_id = int(placement.get("SourceBoardId", -1))
+                source_start = float(placement.get("SourceStart", 0))
+                source_end = float(placement.get("SourceEnd", 0))
+                if source_end <= source_start:
+                    continue
+                cut_points.setdefault(board_id, set()).update((source_start, source_end))
+    return {board_id: sorted(points) for board_id, points in cut_points.items()}
 
 
 def quality_color(quality: int) -> str:
@@ -139,6 +342,11 @@ def quality_label(quality: int) -> str:
     if quality == 3:
         return "CURVE"
     return f"Q{quality}"
+
+
+def format_link_id(board_id: int, start: float, end: float) -> str:
+    # Use fixed precision so IDs are stable across both views.
+    return f"b{board_id}-s{start:.3f}-e{end:.3f}"
 
 
 def compute_instance_summaries(instance: dict[str, Any] | None) -> tuple[int, int, int]:
@@ -188,6 +396,7 @@ def render_html(
 
     used_good = int(stats.get("GoodUsed", 0))
     cutout_good = int(stats.get("GoodCutOut", 0))
+    skipped_margins_good = int(stats.get("GoodSkippedByBeamMargins", 0))
     remaining_good = int(stats.get("RemainingGood", 0))
     remaining_bad = int(stats.get("RemainingBad", 0))
     if used_good <= 0 and cutout_good <= 0:
@@ -220,6 +429,12 @@ def render_html(
 
     source_boards: list[dict[str, Any]] = []
     max_board_length = 1.0
+    edge_skipped_by_board = build_edge_skipped_ranges_by_board(processed)
+    discarded_good_by_board = build_discarded_good_ranges_by_board(
+        processed,
+        instance,
+        edge_skipped_by_board=edge_skipped_by_board,
+    )
     if instance is not None:
         for ib in instance.get("InputBoards", []):
             raw = ib.get("RawBoard", {})
@@ -269,14 +484,17 @@ def render_html(
                 lstart = float(p.get("LayerStart", 0))
                 lend = float(p.get("LayerEnd", 0))
                 bid = int(p.get("SourceBoardId", -1))
+                src_start = float(p.get("SourceStart", 0))
+                src_end = float(p.get("SourceEnd", 0))
                 px = margin_left + lstart * x_scale
                 pw = max(1.0, (lend - lstart) * x_scale)
+                link_id = format_link_id(bid, src_start, src_end)
                 tooltip = (
                     f"Board {bid} | layer [{int(lstart)}, {int(lend)}] | "
                     f"source [{p.get('SourceStart', '?')}, {p.get('SourceEnd', '?')}]"
                 )
                 items.append(
-                    f'<g><title>{escape_html(tooltip)}</title><rect x="{px:.2f}" y="{y + 1}" width="{pw:.2f}" height="{layer_h - 2}" fill="{color_for_board(bid)}" stroke="#152536" stroke-width="0.6" rx="3" /></g>'
+                    f'<g><title>{escape_html(tooltip)}</title><rect class="cross-part source-piece" data-board-id="{bid}" data-start="{src_start:.3f}" data-end="{src_end:.3f}" data-link-id="{link_id}" x="{px:.2f}" y="{y + 1}" width="{pw:.2f}" height="{layer_h - 2}" fill="{color_for_board(bid)}" stroke="#152536" stroke-width="0.6" rx="3" /></g>'
                 )
 
             for seam in layer.get("Seams", []):
@@ -329,9 +547,16 @@ def render_html(
             f'<text x="12" y="{board_top + 15}" font-size="13" font-weight="700" fill="#213547">Input Boards (for Beam {beam_idx})</text>'
         )
 
-        used_by_board = build_used_ranges_by_board(processed, beam_index=beam_idx)
+        used_pieces_by_board = build_used_pieces_by_board(processed, beam_index=beam_idx)
+        used_by_board = {board_id: merge_intervals(pieces) for board_id, pieces in used_pieces_by_board.items()}
+        cut_points_by_board = build_cut_points_by_board(processed, beam_index=beam_idx)
+        beam_source_boards = [
+            board
+            for board in source_boards
+            if int(board["BoardId"]) in used_by_board
+        ]
         board_y0 = board_top + 24
-        for i, board in enumerate(source_boards):
+        for i, board in enumerate(beam_source_boards):
             y = board_y0 + i * (board_row_h + board_gap)
             board_id = int(board["BoardId"])
             board_len = float(board["Length"])
@@ -352,23 +577,47 @@ def render_html(
                 pw = max(1.0, (p_end - p_start) * board_scale)
                 tt = f"Board {board_id} | {quality_label(q)} [{int(p_start)}, {int(p_end)}]"
                 board_items.append(
-                    f'<g><title>{escape_html(tt)}</title><rect x="{px:.2f}" y="{y + 1}" width="{pw:.2f}" height="{board_row_h - 2}" fill="{quality_color(q)}" fill-opacity="0.7" stroke="#34495e" stroke-width="0.4" rx="2" /></g>'
+                    f'<g><title>{escape_html(tt)}</title><rect class="cross-part board-quality" data-board-id="{board_id}" data-start="{p_start:.3f}" data-end="{p_end:.3f}" x="{px:.2f}" y="{y + 1}" width="{pw:.2f}" height="{board_row_h - 2}" fill="{quality_color(q)}" fill-opacity="0.7" stroke="#34495e" stroke-width="0.4" rx="2" /></g>'
                 )
 
-            for u_start, u_end in used_ranges:
+            for u_start, u_end in used_pieces_by_board.get(board_id, []):
                 ux = margin_left + u_start * board_scale
                 uw = max(1.0, (u_end - u_start) * board_scale)
+                link_id = format_link_id(board_id, u_start, u_end)
                 board_items.append(
-                    f'<g><title>{escape_html(f"USED in beam {beam_idx} [{int(u_start)}, {int(u_end)}]")}</title><rect x="{ux:.2f}" y="{y + 4}" width="{uw:.2f}" height="{board_row_h - 8}" fill="{color_for_board(board_id)}" fill-opacity="0.95" stroke="#0f1d2a" stroke-width="0.8" rx="2" /></g>'
+                    f'<g><title>{escape_html(f"USED in beam {beam_idx} [{int(u_start)}, {int(u_end)}]")}</title><rect class="cross-part source-piece" data-board-id="{board_id}" data-start="{u_start:.3f}" data-end="{u_end:.3f}" data-link-id="{link_id}" x="{ux:.2f}" y="{y + 4}" width="{uw:.2f}" height="{board_row_h - 8}" fill="{color_for_board(board_id)}" fill-opacity="0.95" stroke="#0f1d2a" stroke-width="0.8" rx="2" /></g>'
+                )
+
+            for cut_pos in cut_points_by_board.get(board_id, []):
+                if cut_pos <= 0 or cut_pos >= board_len:
+                    continue
+                cx = margin_left + cut_pos * board_scale
+                board_items.append(
+                    f'<g><title>{escape_html(f"CUT at {int(cut_pos)}")}</title><line x1="{cx:.2f}" y1="{y - 1}" x2="{cx:.2f}" y2="{y + board_row_h + 1}" stroke="#7a0016" stroke-width="1.1" stroke-dasharray="2 2" /></g>'
                 )
 
             good_parts = [(float(p["Start"]), float(p["End"])) for p in parts if int(p["Quality"]) == 1]
             good_unused = subtract_intervals(good_parts, used_ranges)
-            for n_start, n_end in good_unused:
+            good_unused_non_margin = subtract_intervals(good_unused, edge_skipped_by_board.get(board_id, []))
+            for n_start, n_end in good_unused_non_margin:
                 nx = margin_left + n_start * board_scale
                 nw = max(1.0, (n_end - n_start) * board_scale)
                 board_items.append(
                     f'<g><title>{escape_html(f"GOOD but not used in beam {beam_idx} [{int(n_start)}, {int(n_end)}]")}</title><rect x="{nx:.2f}" y="{y + 2}" width="{nw:.2f}" height="{board_row_h - 4}" fill="#495057" fill-opacity="0.30" stroke="#343a40" stroke-opacity="0.4" stroke-width="0.5" rx="2" /></g>'
+                )
+
+            for m_start, m_end in edge_skipped_by_board.get(board_id, []):
+                mx = margin_left + m_start * board_scale
+                mw = max(1.0, (m_end - m_start) * board_scale)
+                board_items.append(
+                    f'<g><title>{escape_html(f"SKIPPED BY BEAM MARGINS [{int(m_start)}, {int(m_end)}]")}</title><rect x="{mx:.2f}" y="{y + 3}" width="{mw:.2f}" height="{board_row_h - 6}" fill="#1f6feb" fill-opacity="0.23" stroke="#0b3d91" stroke-width="0.8" stroke-dasharray="2 2" rx="2" /></g>'
+                )
+
+            for d_start, d_end in discarded_good_by_board.get(board_id, []):
+                dx = margin_left + d_start * board_scale
+                dw = max(1.0, (d_end - d_start) * board_scale)
+                board_items.append(
+                    f'<g><title>{escape_html(f"DISCARDED GOOD [{int(d_start)}, {int(d_end)}]")}</title><rect x="{dx:.2f}" y="{y + 5}" width="{dw:.2f}" height="{board_row_h - 10}" fill="#b00020" fill-opacity="0.35" stroke="#7a0016" stroke-width="0.8" stroke-dasharray="3 2" rx="2" /></g>'
                 )
 
             for part in parts:
@@ -390,8 +639,8 @@ def render_html(
                 f'<text x="{margin_left + usable_w + 6}" y="{y + 15}" font-size="10" fill="#4a5568">len={int(board_len)}</text>'
             )
 
-        if source_boards:
-            board_rows_h = len(source_boards) * (board_row_h + board_gap) - board_gap
+        if beam_source_boards:
+            board_rows_h = len(beam_source_boards) * (board_row_h + board_gap) - board_gap
             board_axis_y = board_y0 + board_rows_h + 12
             board_items.append(
                 f'<line x1="{margin_left}" y1="{board_axis_y}" x2="{margin_left + usable_w}" y2="{board_axis_y}" stroke="#444" stroke-width="1" />'
@@ -553,6 +802,17 @@ def render_html(
       color: #8a1c23;
       border: 1px solid #efb0b5;
     }}
+        .cross-part {{
+            cursor: pointer;
+            vector-effect: non-scaling-stroke;
+            transition: stroke-width 120ms ease, filter 120ms ease;
+        }}
+        .cross-part.is-hovered,
+        .cross-part.is-locked {{
+            stroke: #0b132b;
+            stroke-width: 2.6 !important;
+            filter: drop-shadow(0 0 1.6px rgba(11, 19, 43, 0.42));
+        }}
   </style>
 </head>
 <body>
@@ -567,6 +827,8 @@ def render_html(
         <div>BeamSkipEnd: {int(beam_skip_end)}</div>
         <div><span class=\"badge\">Gray overlays (foreground) = static forbidden zones</span></div>
         <div><span class=\"badge\">Dark edge overlays = BeamSkipStart/BeamSkipEnd zones</span></div>
+        <div><span class=\"badge\">Blue dashed overlays on input boards = good parts skipped by beam margins</span></div>
+                <div><span class=\"badge\">Red hatched overlays on input boards = discarded GOOD material</span></div>
       </div>
             <div class=\"summary\">
                 <div class=\"summary-card\">
@@ -580,6 +842,10 @@ def render_html(
                 <div class=\"summary-card\">
                     <div class=\"summary-label\">Sum of Cut-Out GOOD Parts</div>
                     <div class=\"summary-value\">{cutout_good}</div>
+                </div>
+                <div class=\"summary-card\">
+                    <div class=\"summary-label\">GOOD Skipped by Beam Margins</div>
+                    <div class=\"summary-value\">{skipped_margins_good}</div>
                 </div>
                 <div class=\"summary-card\">
                     <div class=\"summary-label\">Sum of Used GOOD Parts</div>
@@ -616,6 +882,92 @@ def render_html(
             const prevBtn = document.getElementById("prev-beam");
             const nextBtn = document.getElementById("next-beam");
             const beamIds = Array.from(select.options).map((opt) => String(opt.value));
+            const EPS = 1e-6;
+            const lockedElements = new Set();
+
+            function parseSpan(el) {{
+                const boardId = Number(el.dataset.boardId);
+                const start = Number(el.dataset.start);
+                const end = Number(el.dataset.end);
+                if (!Number.isFinite(boardId) || !Number.isFinite(start) || !Number.isFinite(end)) {{
+                    return null;
+                }}
+                return {{ boardId, start, end }};
+            }}
+
+            function overlaps(a, b) {{
+                return Math.max(a.start, b.start) + EPS < Math.min(a.end, b.end);
+            }}
+
+            function clearHovered() {{
+                document.querySelectorAll(".cross-part.is-hovered").forEach((el) => {{
+                    el.classList.remove("is-hovered");
+                }});
+            }}
+
+            function clearLocked() {{
+                lockedElements.forEach((el) => el.classList.remove("is-locked"));
+                lockedElements.clear();
+            }}
+
+            function matchingElements(el) {{
+                const matches = new Set([el]);
+                const span = parseSpan(el);
+                const linkId = el.dataset.linkId;
+
+                if (linkId) {{
+                    document.querySelectorAll(`.source-piece[data-link-id="${{linkId}}"]`).forEach((m) => matches.add(m));
+                }}
+
+                if (!span) {{
+                    return matches;
+                }}
+
+                document.querySelectorAll(`.cross-part[data-board-id="${{span.boardId}}"]`).forEach((candidate) => {{
+                    const cSpan = parseSpan(candidate);
+                    if (!cSpan) {{
+                        return;
+                    }}
+                    if (overlaps(span, cSpan)) {{
+                        matches.add(candidate);
+                    }}
+                }});
+                return matches;
+            }}
+
+            function applyHover(el) {{
+                clearHovered();
+                matchingElements(el).forEach((m) => m.classList.add("is-hovered"));
+            }}
+
+            function lockSelection(el) {{
+                const alreadyLocked = el.classList.contains("is-locked");
+                clearLocked();
+                if (alreadyLocked) {{
+                    clearHovered();
+                    return;
+                }}
+                matchingElements(el).forEach((m) => {{
+                    m.classList.add("is-locked");
+                    lockedElements.add(m);
+                }});
+            }}
+
+            function wireCrossHighlighting() {{
+                document.querySelectorAll(".cross-part").forEach((el) => {{
+                    el.addEventListener("mouseenter", () => applyHover(el));
+                    el.addEventListener("mouseleave", () => clearHovered());
+                    el.addEventListener("click", (ev) => {{
+                        ev.stopPropagation();
+                        lockSelection(el);
+                    }});
+                }});
+
+                document.addEventListener("click", () => {{
+                    clearLocked();
+                    clearHovered();
+                }});
+            }}
 
       function showBeam(beamId) {{
         document.querySelectorAll(".beam-view").forEach((el) => {{
@@ -661,6 +1013,7 @@ def render_html(
                 }}
         select.value = "{first_beam}";
         showBeam(String(select.value));
+                                wireCrossHighlighting();
       }}
     }})();
   </script>
