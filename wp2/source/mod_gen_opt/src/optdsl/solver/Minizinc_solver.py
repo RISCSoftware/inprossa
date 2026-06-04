@@ -10,12 +10,11 @@ class Timeout:
 import asyncio
 import tempfile
 from datetime import timedelta
-import time
 import minizinc
 
 
 class MiniZincRunner:
-    def __init__(self, solver_name="gecode", timelimit: float = 100):
+    def __init__(self, solver_name="or-tools", timelimit: float = 100):
         self.solver = minizinc.Solver.lookup(solver_name)
         self.timelimit = timelimit
 
@@ -23,15 +22,22 @@ class MiniZincRunner:
         history = {"times": [], "objectives": []}
         final_result = None
         best_solution = None
-        initial_time = time.time()
+        best_statistics = {}
+        objective_bound = None
         async for res in instance.solutions(
             time_limit=time_limit,
             intermediate_solutions=True,
         ):
             final_result = res
+            # Merge statistics — later results may add more keys
+            if res.statistics:
+                best_statistics.update(res.statistics)
+                bound = res.statistics.get("objectiveBound")
+                if bound is not None:
+                    objective_bound = bound
             if res.solution is not None:
-                time_so_far = res.statistics.get("time").total_seconds()  # timedelta
-                history["times"].append(time_so_far)
+                time_so_far = best_statistics.get("time")
+                history["times"].append(time_so_far.total_seconds() if hasattr(time_so_far, "total_seconds") else float(time_so_far or 0))
                 history["objectives"].append(res.objective)
                 best_solution = {name: getattr(res.solution, name) for name in dir(res.solution) if not name.startswith("__")}
 
@@ -47,11 +53,12 @@ class MiniZincRunner:
 
         result = {
             "best_solution": best_solution,
-            "statistics": final_result.statistics,
+            "statistics": best_statistics,
             "times": history["times"],
             "objectives": history["objectives"],
             "status": final_result.status,
-            "total_time": total_time(final_result.statistics).total_seconds()
+            "total_time": total_time(best_statistics).total_seconds(),
+            "objective_bound": objective_bound,
         }
         return result
 
@@ -70,8 +77,8 @@ class MiniZincRunner:
 
     
 def total_time(statistics):
-    if "optTime" in statistics:
-        # it is an optimisation problem
-        return statistics["initTime"] + statistics["solveTime"] + statistics["optTime"]
-    else:
-        return statistics["initTime"] + statistics["solveTime"]
+    from datetime import timedelta
+    init = statistics.get("initTime", timedelta(0))
+    solve = statistics.get("solveTime", timedelta(0))
+    opt = statistics.get("optTime", timedelta(0))
+    return init + solve + opt

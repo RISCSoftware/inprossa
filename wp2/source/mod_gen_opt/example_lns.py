@@ -86,21 +86,37 @@ def _write_dsl_solution_snapshot(
     objective_sense: str,
     event: str,
     iteration: int,
+    objective_variable_name: str | None = None,
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     lines: list[str] = []
     lines.append(source_dsl_text.rstrip())
     lines.append("")
-    lines.append("# --- LNS feasible assignment snapshot ---")
+    lines.append("# --- LNS warm start hint ---")
     lines.append(f"# event: {event}")
     lines.append(f"# iteration: {iteration}")
     lines.append(f"# score: {score}")
     lines.append(f"# objective_sense: {objective_sense}")
+
+    if objective_sense == "maximize":
+        decorator_args = f"lower_bound={score}"
+    else:
+        decorator_args = f"upper_bound={score}"
+
+    hint_items: list[str] = []
     for name in sorted(assignment.keys()):
+        if name == objective_variable_name:
+            continue
         value = assignment[name]
         if value is None:
             continue
-        lines.append(f"{name} = {_to_dsl_literal(value)}")
+        hint_items.append(f'        "{name}": {_to_dsl_literal(value)},')
+
+    lines.append(f"@warm_start({decorator_args})")
+    lines.append("def ws():")
+    lines.append("    return {")
+    lines.extend(hint_items)
+    lines.append("    }")
     lines.append("")
     output_path.write_text("\n".join(lines), encoding="utf-8")
 
@@ -240,8 +256,26 @@ def main() -> None:
     if args.value_bias != "auto":
         context.extra["value_bias"] = args.value_bias
 
+    # Auto-tune greedy initialization for dense packing-style models where
+    # objective-only single-restart initialization often stays infeasible.
+    is_2dbp_like = (
+        {"assignments", "x_positions", "y_positions"}.issubset(problem_data.variables.keys())
+        and "no_overlap" in problem_data.parsed.constraints
+    )
+    effective_init_scoring = args.init_scoring
+    effective_init_restarts = max(1, args.init_restarts)
+    if (
+        is_2dbp_like
+        and args.initializer == "greedy"
+        and args.init_scoring == "objective"
+        and args.init_restarts == 1
+    ):
+        effective_init_scoring = "feasibility-first"
+        effective_init_restarts = 32
+
     if args.emit_feasible_dsl:
         source_dsl_text = dsl_path.read_text(encoding="utf-8")
+        _objective_variable_name = problem_data.objective.variable_name if problem_data.objective is not None else None
         emit_event_counter = {"count": 0}
         event_groups = {
             "incumbent": {"initial", "incumbent_update"},
@@ -289,6 +323,7 @@ def main() -> None:
                 objective_sense=context.objective_sense,
                 event=event,
                 iteration=iteration,
+                objective_variable_name=_objective_variable_name,
             )
 
         context.extra["on_feasible_solution"] = _feasible_solution_callback
@@ -324,8 +359,8 @@ def main() -> None:
         initializer = GreedyRandomizedInitializer(
             candidate_values=max(1, args.init_candidates),
             completion_samples=max(1, args.init_completion_samples),
-            scoring_mode=("feasibility_first" if args.init_scoring == "feasibility-first" else "objective"),
-            restarts=max(1, args.init_restarts),
+            scoring_mode=("feasibility_first" if effective_init_scoring == "feasibility-first" else "objective"),
+            restarts=effective_init_restarts,
             post_fixup_rounds=max(0, args.init_fixup_rounds),
             post_fixup_walk_steps=max(0, args.init_fixup_walk_steps),
             post_fixup_plateau_prob=max(0.0, min(1.0, args.init_fixup_plateau_prob)),

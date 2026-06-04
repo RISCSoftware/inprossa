@@ -12,6 +12,17 @@ def main():
         default=0,
         help="Index base used in DSL source code: 0 (Python style) or 1 (legacy mode)",
     )
+    parser.add_argument(
+        "--solver",
+        default="chuffed",
+        help="MiniZinc solver name (e.g. chuffed, cp-sat, gecode)",
+    )
+    parser.add_argument(
+        "--timelimit",
+        type=float,
+        default=10.0,
+        help="Solver time limit in seconds",
+    )
     args = parser.parse_args()
 
     filepath = args.filepath
@@ -20,8 +31,8 @@ def main():
 
     solver = DSLSolver(
         dsl_code,
-        solver_name="chuffed",
-        timelimit=10,
+        solver_name=args.solver,
+        timelimit=args.timelimit,
         dsl_index_base=args.dsl_index_base,
     )
     result = solver.run()

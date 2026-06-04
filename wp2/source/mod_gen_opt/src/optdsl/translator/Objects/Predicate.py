@@ -96,8 +96,8 @@ class Predicate(CodeBlock):
                 last = 1
             exprs.append(f"output_{k} = {ret_name}[{last}]")
 
-        expr_joined = " /\\\n    ".join(exprs)
-        return f"predicate {self.name}({', '.join(params)}) =\n    (\n    {expr_joined}\n    )"
+        exprs_indented = ",\n        ".join(exprs)
+        return f"predicate {self.name}({', '.join(params)}) =\n    forall([\n        {exprs_indented}\n    ])"
 
     def emit_call_line(self, input_exprs, output_names, array_param_names):
         """Return 'f(in..., out..., arrs...)' suitable for 'constraint ...;' usage."""
