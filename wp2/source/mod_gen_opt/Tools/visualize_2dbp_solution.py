@@ -157,6 +157,63 @@ def parse_solution_data(result_text: str) -> Dict[str, Any]:
             ) from exc
 
 
+def parse_warm_start_hints(dsl_text: str) -> Optional[Dict[str, Any]]:
+    """Extract warm-start assignment hints from a @warm_start-decorated function in DSL source."""
+
+    try:
+        tree = ast.parse(dsl_text)
+    except SyntaxError:
+        return None
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+
+        for decorator in node.decorator_list:
+            is_warm_start = (
+                isinstance(decorator, ast.Name)
+                and decorator.id == "warm_start"
+            ) or (
+                isinstance(decorator, ast.Call)
+                and isinstance(decorator.func, ast.Name)
+                and decorator.func.id == "warm_start"
+            )
+            if not is_warm_start:
+                continue
+
+            bound_value: Optional[float] = None
+            if isinstance(decorator, ast.Call):
+                for kw in decorator.keywords:
+                    if kw.arg in ("upper_bound", "ub", "lower_bound", "lb"):
+                        try:
+                            bound_value = float(ast.literal_eval(kw.value))
+                        except (ValueError, SyntaxError, TypeError):
+                            pass
+
+            for stmt in node.body:
+                if not isinstance(stmt, ast.Return) or stmt.value is None:
+                    continue
+                try:
+                    hints = ast.literal_eval(stmt.value)
+                except (ValueError, SyntaxError):
+                    continue
+
+                if not isinstance(hints, dict):
+                    continue
+
+                if "assignments" not in hints:
+                    continue
+
+                # Use bound as displayed objective value when available.
+                if bound_value is not None and "objective" not in hints:
+                    hints = dict(hints)
+                    hints["objective"] = bound_value
+
+                return hints
+
+    return None
+
+
 def _remove_dict_field(dict_text: str, field_name: str) -> str:
     key_token = f"'{field_name}'"
     key_pos = dict_text.find(key_token)
@@ -530,22 +587,36 @@ def render_html(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Visualize OptDSL 2DBP solution output as HTML/SVG.")
-    parser.add_argument("--result-file", required=True, help="Path to text file containing solver output dict.")
+    parser.add_argument(
+        "--result-file",
+        default=None,
+        help=(
+            "Path to text file containing solver output dict. "
+            "Optional when --dsl-file contains @warm_start hints."
+        ),
+    )
     parser.add_argument("--dsl-file", required=True, help="Path to 2DBP OptDSL instance file.")
     parser.add_argument("--output", default="2dbp_solution_viz.html", help="Output HTML path.")
     parser.add_argument("--title", default="2DBP Solution", help="Title shown in HTML.")
     args = parser.parse_args()
 
-    result_text = _read_text_with_fallback(args.result_file)
-
     with open(args.dsl_file, "r", encoding="utf-8") as f:
         dsl_text = f.read()
 
-    try:
-        best_solution = parse_solution_data(result_text)
-    except ValueError as exc:
-        print(f"Error: {exc}")
-        raise SystemExit(2) from exc
+    best_solution = parse_warm_start_hints(dsl_text)
+    if best_solution is None:
+        if not args.result_file:
+            print(
+                "Error: no warm-start hints found in DSL and no --result-file was provided."
+            )
+            raise SystemExit(2)
+        result_text = _read_text_with_fallback(args.result_file)
+        try:
+            best_solution = parse_solution_data(result_text)
+        except ValueError as exc:
+            print(f"Error: {exc}")
+            raise SystemExit(2) from exc
+
     data = parse_instance_data(dsl_text)
     html_text = render_html(best_solution, data, args.title)
 

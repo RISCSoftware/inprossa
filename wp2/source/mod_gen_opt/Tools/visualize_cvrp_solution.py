@@ -211,6 +211,58 @@ def _extract_assignment_block(result_text: str) -> dict[str, Any]:
     return data
 
 
+def parse_warm_start_hints(dsl_text: str) -> dict[str, Any] | None:
+    """Extract arcs/vehicle_used and objective bound from a @warm_start decorated function in DSL source."""
+    try:
+        tree = ast.parse(dsl_text)
+    except SyntaxError:
+        return None
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        for decorator in node.decorator_list:
+            is_ws = (
+                isinstance(decorator, ast.Call)
+                and isinstance(decorator.func, ast.Name)
+                and decorator.func.id == "warm_start"
+            ) or (
+                isinstance(decorator, ast.Name)
+                and decorator.id == "warm_start"
+            )
+            if not is_ws:
+                continue
+
+            # Extract bound from decorator keyword args
+            bound_value: float | None = None
+            bound_key: str | None = None
+            if isinstance(decorator, ast.Call):
+                for kw in decorator.keywords:
+                    if kw.arg in ("upper_bound", "ub", "lower_bound", "lb"):
+                        try:
+                            bound_value = float(ast.literal_eval(kw.value))
+                            bound_key = kw.arg
+                        except (ValueError, TypeError):
+                            pass
+
+            # Extract return dict from function body
+            for stmt in node.body:
+                if isinstance(stmt, ast.Return) and stmt.value is not None:
+                    try:
+                        hints = ast.literal_eval(stmt.value)
+                    except (ValueError, SyntaxError):
+                        continue
+                    if not isinstance(hints, dict):
+                        continue
+                    result: dict[str, Any] = dict(hints)
+                    if bound_value is not None:
+                        result["objective"] = bound_value
+                        result["_bound_key"] = bound_key
+                    return result
+
+    return None
+
+
 def parse_solution_data(result_text: str) -> dict[str, Any]:
     try:
         return _extract_best_solution_dict(result_text)
@@ -589,21 +641,35 @@ def render_html(solution: dict[str, Any], instance: dict[str, Any], title: str) 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Visualize CVRP OptDSL solution output as HTML/SVG.")
-    parser.add_argument("--result-file", required=True, help="Path to text file containing solver output.")
+    parser.add_argument("--result-file", default=None, help="Path to text file containing solver output. If omitted, warm start hints in --dsl-file are used.")
     parser.add_argument("--dsl-file", required=True, help="Path to CVRP OptDSL instance file.")
     parser.add_argument("--output", default="cvrp_solution_viz.html", help="Output HTML path.")
     parser.add_argument("--title", default="CVRP Solution", help="Title shown in HTML.")
     args = parser.parse_args()
 
-    result_text = _read_text_with_fallback(args.result_file)
     with open(args.dsl_file, "r", encoding="utf-8") as f:
         dsl_text = f.read()
 
-    try:
-        solution = parse_solution_data(result_text)
-    except ValueError as exc:
-        print(f"Error: {exc}")
-        raise SystemExit(2) from exc
+    solution: dict[str, Any] | None = None
+
+    if args.result_file:
+        result_text = _read_text_with_fallback(args.result_file)
+        try:
+            solution = parse_solution_data(result_text)
+        except ValueError as exc:
+            print(f"Error parsing result file: {exc}")
+            raise SystemExit(2) from exc
+    else:
+        solution = parse_warm_start_hints(dsl_text)
+        if solution is None:
+            print(
+                "Error: no --result-file given and no @warm_start decorator found in the DSL file.\n"
+                "Either provide --result-file or use an LNS snapshot DSL that contains a @warm_start hint."
+            )
+            raise SystemExit(2)
+        bound_key = solution.pop("_bound_key", None)
+        if args.title == "CVRP Solution" and bound_key:
+            args.title = f"CVRP LNS Warm Start ({bound_key}={solution.get('objective', 'n/a')})"
 
     instance = parse_instance_data(dsl_text)
     html_text = render_html(solution, instance, args.title)

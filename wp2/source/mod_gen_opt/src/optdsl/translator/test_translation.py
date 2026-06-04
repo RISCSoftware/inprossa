@@ -705,6 +705,28 @@ minimize(a)
 constraint a[1] = 4;
 solve minimize a[1];"""
     },
+    {
+        "name": "test_warm_start_decorator",
+        "code": """
+x: DSList(3, DSInt(0, 10))
+objective: DSInt(0, 100) = 0
+
+@warm_start(lower_bound=5, upper_bound=25)
+def ws():
+    return {"x": [1, None, 3]}
+
+minimize(objective)
+""",
+        "expected_translation": """array[1..1] of array[1..3] of var 0..10: x;
+array[1..1] of var 0..100: objective;
+array[1..3] of opt int: x_hint = [1, <>, 3];
+constraint objective[1] = 0;
+constraint objective[1] >= 5;
+constraint objective[1] <= 25;
+solve
+  :: warm_start(x[1], x_hint)
+  minimize objective[1];"""
+    },
 ]
 
 
