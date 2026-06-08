@@ -1,13 +1,41 @@
 """Provides a lightweight chat-completions client with optional tool-calling helpers."""
 
-import requests
+import datetime
 import json
 import re
+from pathlib import Path
 from typing import List, Dict, Any, Optional
+
+import requests
 
 
 MAX_TOOL_STDOUT_CHARS = 20000
 HTTP_ERROR_BODY_CHARS = 2000
+
+# Optional per-request chat log destination.
+_chat_log_path: Optional[Path] = None
+
+
+def set_chat_log_path(path: str | Path | None) -> None:
+    """Set the path for subsequent LLM chat log files. Pass None to disable."""
+    global _chat_log_path
+    _chat_log_path = Path(path) if path is not None else None
+
+
+def _log_chatRound(purpose: str, messages: List[Dict[str, Any]], response: Dict[str, Any]) -> None:
+    """Append one request/response round to the chat log, if enabled."""
+    if _chat_log_path is None:
+        return
+    entry = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "purpose": purpose,
+        "request_messages": messages,
+        "raw_response": response,
+    }
+    _chat_log_path.parent.mkdir(parents=True, exist_ok=True)
+    mode = "a" if _chat_log_path.exists() else "w"
+    with _chat_log_path.open(mode, encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False, indent=2) + "\n")
 
 class LLMClient:
     def __init__(self, url: str, model: str):
@@ -93,10 +121,11 @@ class LLMClient:
 
 def call_llm(
     messages: List[Dict[str, str]],
-    model: str = "nvidia/MiniMax-M2.7-NVFP4",
+    #model: str = "nvidia/MiniMax-M2.7-NVFP4",
+    model: str = "Qwen/Qwen3.6-27B-FP8",
     url: str = "http://ada01.risc.local:8002/v1/chat/completions",
     temperature: float = 0.7,
-    max_tokens: int = 1024,
+    max_tokens: int = 43690,
     tools: Optional[List[Dict[str, Any]]] = None,
     tool_choice: Optional[str] = "auto",
 ) -> Dict[str, Any]:
@@ -108,7 +137,7 @@ def call_llm(
         model: model id
         url: endpoint URL
         temperature: sampling temperature
-        max_tokens: max tokens to generate
+        max_tokens: max output tokens to generate (default 43690)
         tools: optional tool definitions
         tool_choice: "auto", "none", or specific tool config
 
@@ -116,14 +145,19 @@ def call_llm(
         Parsed JSON response from the LLM.
     """
 
-    payload = {
+    # Send as max_completion_tokens (OpenAI standard) — not max_tokens,
+    # which some servers interpret differently for thinking-enabled models.
+    # Also set thinking budget so model doesn't exhaust tokens on reasoning alone.
+    payload: Dict[str, Any] = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "max_completion_tokens": max_tokens,
         "stream": False,
+        "thinking": {"type": "disabled"},
     }
-
+    
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = tool_choice
@@ -137,7 +171,9 @@ def call_llm(
             f"LLM endpoint HTTP {response.status_code}. Response body (truncated): {body_preview}"
         ) from exc
 
-    return response.json()
+    parsed = response.json()
+    _log_chatRound(purpose="operator-generation", messages=messages, response=parsed)
+    return parsed
 
 
 def build_simulation_tool_definition() -> Dict[str, Any]:

@@ -66,6 +66,16 @@ class LNSLogger(ABC):
     def on_start(self, _state: LNSState, _context: LNSContext) -> None:
         return None
 
+    def on_restart(
+        self,
+        _iteration: int,
+        _restart_count: int,
+        _score: float,
+        _state: LNSState,
+        _context: LNSContext,
+    ) -> None:
+        return None
+
     def on_iteration(
         self,
         _iteration: int,

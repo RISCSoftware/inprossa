@@ -5,10 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from tree_search.problem_reader import ProblemDefinition, read_problem
-
 from .components import Evaluator, Initializer
 from .models import LNSContext
+from .problem_reader import ProblemDefinition, read_problem
 
 
 def build_lns_context(
@@ -447,6 +446,20 @@ class OptDSLEvaluator(Evaluator):
         if _has_unassigned(assignment):
             return EvaluationDetails(failed_constraints=10_000, objective_value=None, score=self._penalty_score(10_000, context.objective_sense))
 
+        # Reject assignments with negative values in any decision variable — they violate
+        # DSInt(0, …) lower bounds and correspond to infeasible/invalid states.
+        for value in assignment.values():
+            if isinstance(value, (int, float)) and value < 0:
+                return EvaluationDetails(failed_constraints=10_000, objective_value=None, score=self._penalty_score(10_000, context.objective_sense))
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, (int, float)) and item < 0:
+                        return EvaluationDetails(failed_constraints=10_000, objective_value=None, score=self._penalty_score(10_000, context.objective_sense))
+                    if isinstance(item, list):
+                        for inner in item:
+                            if isinstance(inner, (int, float)) and inner < 0:
+                                return EvaluationDetails(failed_constraints=10_000, objective_value=None, score=self._penalty_score(10_000, context.objective_sense))
+
         runtime_constraints = self.problem_data.parsed.runtime_constraints
         constraint_asts = self.problem_data.parsed.constraints
 
@@ -509,7 +522,7 @@ class OptDSLEvaluator(Evaluator):
         return penalty
 
 
-def _set_decision_value(assignment: dict[str, object], key: tuple[str, int | None], value: int | None) -> None:
+def _set_decision_value(assignment: dict[str, object], key: tuple[str, int | tuple[int, int] | None], value: int | None) -> None:
     var_name, idx = key
     if idx is None:
         assignment[var_name] = value
@@ -517,10 +530,16 @@ def _set_decision_value(assignment: dict[str, object], key: tuple[str, int | Non
 
     var_value = assignment[var_name]
     if isinstance(var_value, list):
-        var_value[idx] = value
+        # Support both 1D index (int) and 2D index (tuple[int, int]).
+        if isinstance(idx, tuple):
+            # 2D: var_value[i][j]
+            i, j = idx
+            var_value[i][j] = value
+        else:
+            var_value[idx] = value
 
 
-def _get_decision_value(assignment: dict[str, object], key: tuple[str, int | None]) -> int | None:
+def _get_decision_value(assignment: dict[str, object], key: tuple[str, int | tuple[int, int] | None]) -> int | None:
     var_name, idx = key
     if idx is None:
         value = assignment.get(var_name)
@@ -528,7 +547,12 @@ def _get_decision_value(assignment: dict[str, object], key: tuple[str, int | Non
 
     var_value = assignment.get(var_name)
     if isinstance(var_value, list):
-        item = var_value[idx]
+        if isinstance(idx, tuple):
+            # 2D: var_value[i][j]
+            i, j = idx
+            item = var_value[i][j]
+        else:
+            item = var_value[idx]
         return int(item) if isinstance(item, int) else None
     return None
 
@@ -549,6 +573,12 @@ def _build_empty_assignment(context: LNSContext) -> dict[str, object]:
             assignment[var.name] = None
         elif domain.kind == "list" and domain.length is not None:
             assignment[var.name] = [None for _ in range(domain.length)]
+        elif domain.kind == "list_2d" and domain.length is not None:
+            # 2D decision variable: rows × inner-length.  Reconstruct from the
+            # element_domain to get the inner length.
+            inner_domain = domain.element_domain
+            inner_length = inner_domain.length if inner_domain is not None else 1
+            assignment[var.name] = [[None for _ in range(inner_length)] for _ in range(domain.length)]
     return assignment
 
 
@@ -556,7 +586,10 @@ def _clone_assignment(assignment: dict[str, object]) -> dict[str, object]:
     cloned: dict[str, object] = {}
     for key, value in assignment.items():
         if isinstance(value, list):
-            cloned[key] = value.copy()
+            # One-level deep copy so that inner lists are not shared references.
+            # This prevents in-place operators (e.g. JSSPShiftTimesDestroy) from
+            # corrupting the incumbent across LNS iterations.
+            cloned[key] = [item.copy() if isinstance(item, list) else item for item in value]
         else:
             cloned[key] = value
     return cloned
@@ -643,8 +676,20 @@ def _has_unassigned(assignment: dict[str, object]) -> bool:
     for value in assignment.values():
         if value is None:
             return True
-        if isinstance(value, list) and any(item is None for item in value):
-            return True
+        if isinstance(value, list):
+            for item in value:
+                if item is None:
+                    return True
+                # Negative elements violate DSInt(0, …) domain — treat as infeasible.
+                if isinstance(item, (int, float)) and item < 0:
+                    return True
+                # Recurse into inner lists (for 2D decision variables like JSSP completion).
+                if isinstance(item, list):
+                    for inner in item:
+                        if inner is None:
+                            return True
+                        if isinstance(inner, (int, float)) and inner < 0:
+                            return True
     return False
 
 

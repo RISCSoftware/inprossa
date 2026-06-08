@@ -14,7 +14,7 @@ def main():
     )
     parser.add_argument(
         "--solver",
-        default="chuffed",
+        default="cp-sat",
         help="MiniZinc solver name (e.g. chuffed, cp-sat, gecode)",
     )
     parser.add_argument(
