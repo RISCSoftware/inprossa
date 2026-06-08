@@ -14,7 +14,7 @@ import minizinc
 
 
 class MiniZincRunner:
-    def __init__(self, solver_name="or-tools", timelimit: float = 100):
+    def __init__(self, solver_name="cp-sat", timelimit: float = 100):
         self.solver = minizinc.Solver.lookup(solver_name)
         self.timelimit = timelimit
 

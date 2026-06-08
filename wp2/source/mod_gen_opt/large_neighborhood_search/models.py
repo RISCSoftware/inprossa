@@ -20,6 +20,8 @@ class LNSStats:
     accepted: int = 0
     improvements: int = 0
     infeasible_candidates: int = 0
+    restarts: int = 0
+    last_improvement_iteration: int = 0
 
     @property
     def elapsed_seconds(self) -> float:

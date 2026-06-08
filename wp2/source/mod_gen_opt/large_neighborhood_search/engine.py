@@ -28,6 +28,14 @@ class LargeNeighborhoodSearchEngine:
         initial_score = self.evaluator.evaluate(initial_assignment, context)
         initial = LNSSolution(assignment=initial_assignment, score=initial_score)
         state = LNSState(current=initial, incumbent=initial)
+        state.stats.last_improvement_iteration = 0
+
+        stagnation_restart_after = context.extra.get("stagnation_restart_after")
+        restart_limit = context.extra.get("stagnation_restart_limit", 0)
+        if not isinstance(stagnation_restart_after, int) or stagnation_restart_after <= 0:
+            stagnation_restart_after = 0
+        if not isinstance(restart_limit, int) or restart_limit < 0:
+            restart_limit = 0
 
         if not _is_infeasible_score(initial_score, context):
             _emit_feasible_solution_callback(
@@ -43,20 +51,41 @@ class LargeNeighborhoodSearchEngine:
             self.logger.on_start(state, context)
 
         while not self.stop.should_stop(state, context):
+            if (
+                stagnation_restart_after > 0
+                and state.stats.restarts < restart_limit
+                and state.stats.iterations - state.stats.last_improvement_iteration >= stagnation_restart_after
+            ):
+                restart_assignment = self.initializer.initialize(context)
+                restart_score = self.evaluator.evaluate(restart_assignment, context)
+                state.current = LNSSolution(assignment=restart_assignment, score=restart_score)
+                state.stats.restarts += 1
+                state.stats.last_improvement_iteration = state.stats.iterations
+
+                if self.logger is not None:
+                    self.logger.on_restart(
+                        state.stats.iterations,
+                        state.stats.restarts,
+                        restart_score,
+                        state,
+                        context,
+                    )
+
+                if not _is_infeasible_score(restart_score, context):
+                    _emit_feasible_solution_callback(
+                        assignment=restart_assignment,
+                        score=restart_score,
+                        iteration=state.stats.iterations,
+                        event="restart_initial",
+                        state=state,
+                        context=context,
+                    )
+
             state.stats.iterations += 1
             destroy, repair = self.selector.select(state, context)
             partial = destroy.destroy(_clone_assignment(state.current.assignment), context)
             candidate_assignment = repair.repair(partial, context)
             candidate_score = self.evaluator.evaluate(candidate_assignment, context)
-
-            if _is_infeasible_score(candidate_score, context):
-                fallback_initializer = context.extra.get("infeasible_fallback_initializer")
-                if fallback_initializer is not None and hasattr(fallback_initializer, "initialize"):
-                    fallback_assignment = fallback_initializer.initialize(context)
-                    fallback_score = self.evaluator.evaluate(fallback_assignment, context)
-                    if not _is_infeasible_score(fallback_score, context):
-                        candidate_assignment = fallback_assignment
-                        candidate_score = fallback_score
 
             if _is_infeasible_score(candidate_score, context):
                 state.stats.infeasible_candidates += 1
@@ -95,6 +124,7 @@ class LargeNeighborhoodSearchEngine:
             if _is_better(candidate_score, state.incumbent.score, context.objective_sense):
                 state.stats.improvements += 1
                 improved = True
+                state.stats.last_improvement_iteration = state.stats.iterations
                 state.incumbent = LNSSolution(assignment=candidate_assignment, score=candidate_score)
                 if not _is_infeasible_score(candidate_score, context):
                     _emit_feasible_solution_callback(
@@ -130,7 +160,10 @@ def _clone_assignment(assignment: dict[str, object]) -> dict[str, object]:
     cloned: dict[str, object] = {}
     for key, value in assignment.items():
         if isinstance(value, list):
-            cloned[key] = value.copy()
+            # Copy one level deep so that in-place modifications of inner lists
+            # (e.g. JSSPSwapDestroy slice assignment, JSSPShiftTimesDestroy element
+            # assignment) do not corrupt the original assignment's inner lists.
+            cloned[key] = [item.copy() if isinstance(item, list) else item for item in value]
         else:
             cloned[key] = value
     return cloned
@@ -174,6 +207,7 @@ def _emit_feasible_solution_callback(
             "accepted": state.stats.accepted,
             "improvements": state.stats.improvements,
             "infeasible_candidates": state.stats.infeasible_candidates,
+            "restarts": state.stats.restarts,
         },
         context,
     )

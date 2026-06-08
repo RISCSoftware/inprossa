@@ -367,7 +367,18 @@ def parse_instance_data(dsl_text: str) -> dict[str, Any]:
         "x_coords": _parse_int_list("X_COORDS", dsl_text),
         "y_coords": _parse_int_list("Y_COORDS", dsl_text),
         "distance_matrix": _parse_nested_int_list("DISTANCE_MATRIX", dsl_text),
+        "vehicle_capacity": _parse_int_constant("VEHICLE_CAPACITY", dsl_text),
     }
+
+
+def parse_city_tour(solution: dict[str, Any]) -> list[int]:
+    """Extract city_tour from solution dict, handling various wrapping formats."""
+    raw = solution.get("city_tour", [])
+    if isinstance(raw, list) and raw and isinstance(raw[0], list):
+        return raw[0]
+    if isinstance(raw, list):
+        return raw
+    raise ValueError("city_tour not found or invalid in solution.")
 
 
 def _normalize_1d_int_list(value: Any, field_name: str) -> list[int]:
@@ -399,6 +410,54 @@ def _decode_arcs(arcs_flat: list[int], n_vehicles: int, n_cities: int) -> list[l
                 if val == 1:
                     edges_by_vehicle[v].append((i, j))
     return edges_by_vehicle
+
+
+def _decode_giant_tour(city_tour: list[int], n_vehicles: int, depot: int, demands: list[int], capacity: int) -> tuple[list[list[tuple[int, int]]], list[int]]:
+    """Decode a giant-tour (permutation) encoding into edges-by-vehicle format.
+    
+    Returns (edges_by_vehicle, vehicle_used) where:
+    - edges_by_vehicle[v] is list of (from, to) arcs for vehicle v
+    - vehicle_used[v] is 1 if vehicle v is used, 0 otherwise
+    """
+    n_cities = len(city_tour) + 1
+    
+    # Build full tour: depot -> city_tour[0] -> city_tour[1] -> ... -> city_tour[-1] -> depot
+    full_tour = [depot] + city_tour + [depot]
+    
+    # Split into vehicle routes based on capacity constraints
+    edges_by_vehicle: list[list[tuple[int, int]]] = [[] for _ in range(n_vehicles)]
+    vehicle_used: list[int] = [0] * n_vehicles
+    
+    current_route: list[int] = [depot]
+    current_load = 0
+    vehicle_idx = 0
+    
+    for city in city_tour:
+        demand = demands[city] if 0 <= city < len(demands) else 0
+        
+        if current_load + demand > capacity and vehicle_idx < n_vehicles - 1:
+            # Close current route at depot and start new vehicle
+            current_route.append(depot)
+            edges = list(zip(current_route[:-1], current_route[1:]))
+            if vehicle_idx < n_vehicles and edges:
+                edges_by_vehicle[vehicle_idx] = edges
+                vehicle_used[vehicle_idx] = 1
+            vehicle_idx += 1
+            current_route = [depot, city]
+            current_load = demand
+        else:
+            current_route.append(city)
+            current_load += demand
+    
+    # Close final route at depot
+    if current_route and current_route[-1] != depot:
+        current_route.append(depot)
+    if vehicle_idx < n_vehicles and len(current_route) > 1:
+        edges = list(zip(current_route[:-1], current_route[1:]))
+        edges_by_vehicle[vehicle_idx] = edges
+        vehicle_used[vehicle_idx] = 1
+    
+    return edges_by_vehicle, vehicle_used
 
 
 def _extract_routes(
@@ -505,7 +564,7 @@ def _palette(idx: int) -> str:
     return colors[idx % len(colors)]
 
 
-def render_html(solution: dict[str, Any], instance: dict[str, Any], title: str) -> str:
+def render_html(solution: dict[str, Any], instance: dict[str, Any], title: str, encoding: str = "arcs") -> str:
     n_cities = int(instance["n_cities"])
     n_vehicles = int(instance["n_vehicles"])
     depot = int(instance["depot"])
@@ -513,16 +572,23 @@ def render_html(solution: dict[str, Any], instance: dict[str, Any], title: str) 
     x_coords = instance["x_coords"]
     y_coords = instance["y_coords"]
     distance = instance["distance_matrix"]
+    capacity = int(instance.get("vehicle_capacity", 999999))
 
-    arcs = _normalize_1d_int_list(solution.get("arcs", []), "arcs")
-    raw_vehicle_used = solution.get("vehicle_used", [0] * n_vehicles)
-    vehicle_used = _normalize_1d_int_list(raw_vehicle_used, "vehicle_used")
     objective = solution.get("objective", "n/a")
 
-    if len(vehicle_used) != n_vehicles:
-        raise ValueError(f"vehicle_used length {len(vehicle_used)} does not match N_VEHICLES {n_vehicles}.")
+    if encoding == "giant-tour":
+        city_tour = parse_city_tour(solution)
+        edges_by_vehicle, vehicle_used = _decode_giant_tour(city_tour, n_vehicles, depot, demands, capacity)
+    else:
+        arcs = _normalize_1d_int_list(solution.get("arcs", []), "arcs")
+        raw_vehicle_used = solution.get("vehicle_used", [0] * n_vehicles)
+        vehicle_used = _normalize_1d_int_list(raw_vehicle_used, "vehicle_used")
 
-    edges_by_vehicle = _decode_arcs(arcs, n_vehicles, n_cities)
+        if len(vehicle_used) != n_vehicles:
+            raise ValueError(f"vehicle_used length {len(vehicle_used)} does not match N_VEHICLES {n_vehicles}.")
+
+        edges_by_vehicle = _decode_arcs(arcs, n_vehicles, n_cities)
+
     routes = _extract_routes(edges_by_vehicle, vehicle_used, depot, demands, distance)
     global_notes, unserved = _validate_global(edges_by_vehicle, n_cities, depot)
 
@@ -643,6 +709,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Visualize CVRP OptDSL solution output as HTML/SVG.")
     parser.add_argument("--result-file", default=None, help="Path to text file containing solver output. If omitted, warm start hints in --dsl-file are used.")
     parser.add_argument("--dsl-file", required=True, help="Path to CVRP OptDSL instance file.")
+    parser.add_argument("--encoding", choices=["arcs", "giant-tour"], default="arcs", help="Solution encoding type: 'arcs' for arc-based, 'giant-tour' for permutation-based (city_tour).")
     parser.add_argument("--output", default="cvrp_solution_viz.html", help="Output HTML path.")
     parser.add_argument("--title", default="CVRP Solution", help="Title shown in HTML.")
     args = parser.parse_args()
@@ -672,7 +739,7 @@ def main() -> None:
             args.title = f"CVRP LNS Warm Start ({bound_key}={solution.get('objective', 'n/a')})"
 
     instance = parse_instance_data(dsl_text)
-    html_text = render_html(solution, instance, args.title)
+    html_text = render_html(solution, instance, args.title, encoding=args.encoding)
 
     out_path = os.path.abspath(args.output)
     with open(out_path, "w", encoding="utf-8") as f:
