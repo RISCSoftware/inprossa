@@ -7,7 +7,7 @@ NITEMS : int = 5
 assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))
 
 def all_assigned(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
-    assigned: DSList(NITEMS, DSInt())
+    assigned: DSList(NITEMS, DSInt()) = [0] * NITEMS
     for i in range(0, NBOXES):
         for j in range(0, NITEMS):
             if assignments[j] == i:
@@ -16,7 +16,7 @@ def all_assigned(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
         assert assigned[k] != 0
 
 def not_exceed(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
-    cap: DSList(NBOXES, DSInt(0, sum(ITEM_WEIGHTS)))
+    cap: DSList(NBOXES, DSInt(0, sum(ITEM_WEIGHTS))) = [0] * NBOXES
     obj = 0
     for i in range(0, NBOXES):
         cap[i] = 0

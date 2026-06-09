@@ -5,3 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = "~=3.11.0"
 dependencies = ["minizinc (>=0.10.0,<0.11.0)", "requests (>=2.34.2,<3.0.0)", "pyinstrument (>=5.1.2,<6.0.0)"]
+
+[tool.poetry]
+package-mode = false

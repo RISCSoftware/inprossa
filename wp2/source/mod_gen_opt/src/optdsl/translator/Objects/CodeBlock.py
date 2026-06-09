@@ -232,7 +232,23 @@ class CodeBlock:
                 raise TypeError(f"Invalid access step: {step}")
         return appended_text
 
+    def _is_zero_initialized_list(self, rhs):
+        """Detect `[0] * N` pattern: ast.List([ast.Constant(0)]) * ast.Name."""
+        return (
+            isinstance(rhs, ast.BinOp)
+            and isinstance(rhs.op, ast.Mult)
+            and isinstance(rhs.left, ast.List)
+            and len(rhs.left.elts) == 1
+            and isinstance(rhs.left.elts[0], ast.Constant)
+            and rhs.left.elts[0].value == 0
+        )
+
     def create_equality_constraint(self, lhs_name, rhs_expr, rhs, loop_scope, fields=None):
+        # Skip `[0] * N` RHS: MiniZinc cannot subscript a list-literal with a variable index,
+        # and the values are dead code anyway (immediately overwritten by subsequent loops).
+        if self._is_zero_initialized_list(rhs):
+            return "int"
+
         if fields is not None and fields != 0:
             # Iterate through the content of the type to create the constraints
             # 0 means that we are at the final field

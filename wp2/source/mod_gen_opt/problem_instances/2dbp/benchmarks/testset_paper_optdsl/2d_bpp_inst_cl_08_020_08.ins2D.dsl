@@ -14,7 +14,7 @@ x_positions: DSList(NITEMS, DSInt(0, MAX_BOX_WIDTH - 1))
 y_positions: DSList(NITEMS, DSInt(0, MAX_BOX_HEIGHT - 1))
 
 def all_assigned(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
-    assigned: DSList(NITEMS, DSInt())
+    assigned: DSList(NITEMS, DSInt()) = [0] * NITEMS
     for i in range(0, NBOXES):
         for j in range(0, NITEMS):
             if assignments[j] == i:
@@ -23,7 +23,7 @@ def all_assigned(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
         assert assigned[k] != 0
 
 def not_exceed_2d(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
-    used: DSList(NBOXES, DSInt(0, 1))
+    used: DSList(NBOXES, DSInt(0, 1)) = [0] * NBOXES
     obj = 0
     for i in range(0, NBOXES):
         used[i] = 0
