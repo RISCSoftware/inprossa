@@ -13,7 +13,7 @@ files (arc-based formulation with MTZ subtour elimination).
 
 Usage:
     python Tools/convert_golden_cvrp_to_optdsl.py input_dir output_dir
-    python Tools/convert_golden_cvrp_to_optdsl.py problem_instances/cvrp/benchmark/golden problem_instances/cvrp/benchmark/golden_optdsl
+    python Tools/convert_golden_cvrp_to_optdsl.py problem_instances/cvrp/benchmarks/golden problem_instances/cvrp/benchmarks/golden_optdsl
 """
 
 from __future__ import annotations
