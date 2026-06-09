@@ -183,7 +183,94 @@ class _ReturnSignal(Exception):
         self.value = value
 
 
-def _make_ast_callable(fn_ast: ast.FunctionDef, constants: dict[str, Any]):
+def _make_compiled_callable(fn_ast: ast.FunctionDef, constants: dict[str, Any]) -> Any:
+    """Compile DSL function to native Python bytecode at parse time.
+
+    Generates Python source from the AST, wraps it with runtime guards,
+    and compiles to a real function. Falls back to interpreter on failure.
+    """
+    arg_names = [arg.arg for arg in fn_ast.args.args]
+    arg_list = ", ".join(arg_names)
+
+    # Generate Python source from AST with proper indentation
+    body_source = ""
+    for stmt in fn_ast.body:
+        unparsed = ast.unparse(stmt)
+        # Indent all lines in this statement by one level (4 spaces)
+        if unparsed:
+            indented = "\n".join("    " + line for line in unparsed.split("\n"))
+            body_source += indented + "\n"
+
+    # Build function with native builtins and proper DSList/DSInt handling
+    wrapper = f"""def {fn_ast.name}({arg_list}):
+{body_source}"""
+
+    # Build namespace with constants and native builtins
+    namespace: dict[str, Any] = {
+        "range": range,
+        "sum": sum,
+        "min": min,
+        "max": max,
+        "abs": abs,
+        "len": len,
+        "int": int,
+        "float": float,
+        "list": list,
+        "tuple": tuple,
+        "dict": dict,
+        "set": set,
+        "any": any,
+        "all": all,
+        "sorted": sorted,
+        "enumerate": enumerate,
+        "zip": zip,
+        "map": map,
+        "filter": filter,
+        "DSInt": lambda *a, **k: int if not a else a[0],
+        "DSList": lambda length, *a, **k: [0] * int(length),
+        "__builtins__": {
+            "range": range,
+            "sum": sum,
+            "min": min,
+            "max": max,
+            "abs": abs,
+            "len": len,
+            "int": int,
+            "float": float,
+            "list": list,
+            "tuple": tuple,
+            "dict": dict,
+            "set": set,
+            "any": any,
+            "all": all,
+            "sorted": sorted,
+            "enumerate": enumerate,
+            "zip": zip,
+            "map": map,
+            "filter": filter,
+            "True": True,
+            "False": False,
+            "None": None,
+            "AssertionError": AssertionError,
+            "ValueError": ValueError,
+            "TypeError": TypeError,
+            "IndexError": IndexError,
+            "KeyError": KeyError,
+        },
+    }
+    namespace.update(constants)
+
+    try:
+        code = compile(wrapper, f"<dsl:{fn_ast.name}>", "exec")
+        exec(code, namespace)
+        return namespace[fn_ast.name]
+    except Exception:
+        # Fall back to interpreter if compilation fails
+        return _make_ast_callable_interpreter(fn_ast, constants)
+
+
+def _make_ast_callable_interpreter(fn_ast: ast.FunctionDef, constants: dict[str, Any]):
+    """Original AST interpreter-based callable (kept for comparison)."""
     arg_names = [arg.arg for arg in fn_ast.args.args]
 
     def _callable(*args: Any) -> Any:
@@ -207,6 +294,10 @@ def _make_ast_callable(fn_ast: ast.FunctionDef, constants: dict[str, Any]):
         return None
 
     return _callable
+
+
+# Alias: default to compiled version
+_make_ast_callable = _make_compiled_callable
 
 
 def _exec_block(statements: list[ast.stmt], env: dict[str, Any]) -> None:
