@@ -11,8 +11,8 @@ logic and double variable-indexed array access inside constraint functions.
 Usage:
     python Tools/convert_golden_cvrp_to_optdsl_giant_tour.py input_dir output_dir
     python Tools/convert_golden_cvrp_to_optdsl_giant_tour.py \
-        problem_instances/cvrp/benchmark/golden \
-        problem_instances/cvrp/benchmark/golden_optdsl_giant_tour
+        problem_instances/cvrp/benchmarks/golden \
+        problem_instances/cvrp/benchmarks/golden_optdsl_giant_tour
 """
 
 from __future__ import annotations
