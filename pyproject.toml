@@ -43,6 +43,11 @@ torchvision = [
   {index = "pytorch-cu124", marker = "sys_platform == 'linux' or sys_platform == 'win32'"},
 ]
 
+[tool.uv.workspace]
+members = [
+    "wp2/source/mod_gen_opt",
+]
+
 [tool.hatch.build.targets.sdist]
 include = ["inprossa"]
 
