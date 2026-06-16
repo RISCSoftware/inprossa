@@ -1,0 +1,107 @@
+{
+    "id": "L0-N0|L1-N0|L2-N0|L3-N1",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "\n\n# -- Objects --\n\n\n```python\nfrom typing import Annotated\nfrom pydantic import Field\n\n# --- Objects ---\nItem = DSRecord({\n    \"width\": Annotated[int, Field(strict=True, ge=1, le=10)],\n    \"height\": Annotated[int, Field(strict=True, ge=1, le=5)]\n})\n\nBoxAssignment = DSRecord({\n    \"box_id\": Annotated[int, Field(strict=True, ge=1, le=100)],\n    \"x\": Annotated[int, Field(strict=True, ge=0, le=1000)],\n    \"y\": Annotated[int, Field(strict=True, ge=0, le=1000)]\n})\n```\n\n\n\n# --- Constants ---\nBOX_HEIGHT : int = 5\nBOX_WIDTH : int = 10\nITEM1 : Item = {\"width\": 10, \"height\": 5}\nITEM2 : Item = {\"width\": 2, \"height\": 2}\nITEMS : Annotated[list[Item], Len(2, 2)] = [ITEM1, ITEM2]\nN_ITEMS : int = 2\nnr_used_boxes : Annotated[int, Field(strict=True, ge=0, le=100)]\nitem_box_assignments : Annotated[list[BoxAssignment], Len(2, 2)]\nx_y_positions : Annotated[list[BoxAssignment], Len(2, 2)]\nN_ITEMS : int = 2\nN_ITEM_BOX_ASSIGNMENTS : int = 2\nN_X_Y_POSITIONS : int = 2\n\n\n# -- Objective --\n\n\n# --- objective ---\ndef assign_items_to_boxes(\n    items: Annotated[list[Item], Len(2, 2)],\n    item_box_assignments: Annotated[list[BoxAssignment], Len(2, 2)],\n    nr_used_boxes: Annotated[int, Field(strict=True, ge=0, le=100)]\n) -> int:\n    total_area: int = 0\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        total_area = total_area + (item.width * item.height)\n    return total_area\n\ndef validate_box_assignments(\n    items: Annotated[list[Item], Len(2, 2)],\n    item_box_assignments: Annotated[list[BoxAssignment], Len(2, 2)],\n    nr_used_boxes: Annotated[int, Field(strict=True, ge=0, le=100)]\n) -> int:\n    total_items_assigned: int = 0\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        box_assignment : BoxAssignment = item_box_assignments[i]\n        total_items_assigned = total_items_assigned + 1\n        assert box_assignment.box_id > 0\n        assert box_assignment.box_id <= 100\n        assert box_assignment.x >= 0\n        assert box_assignment.x <= 1000\n        assert box_assignment.y >= 0\n        assert box_assignment.y <= 1000\n        assert item.width <= BOX_WIDTH\n        assert item.height <= BOX_HEIGHT\n    assert total_items_assigned == N_ITEMS\n    return total_items_assigned\n\ntotal_items_assigned = validate_box_assignments(ITEMS, item_box_assignments, nr_used_boxes)",
+    "objective_val": 0,
+    "solution_model": {
+        "objective": [
+            0,
+            0
+        ],
+        "nr_used_boxes": [
+            0
+        ],
+        "item_box_assignments": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "total_items_assigned": [
+            2
+        ],
+        "box_assignment__validate_box_assignments__1": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "item__validate_box_assignments__1": [
+            {
+                "height": 5,
+                "width": 10
+            },
+            {
+                "height": 2,
+                "width": 2
+            }
+        ],
+        "item_box_assignments__validate_box_assignments__1": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "items__validate_box_assignments__1": [
+            [
+                {
+                    "height": 5,
+                    "width": 10
+                },
+                {
+                    "height": 2,
+                    "width": 2
+                }
+            ]
+        ],
+        "nr_used_boxes__validate_box_assignments__1": [
+            0
+        ],
+        "objective__validate_box_assignments__1": [
+            0
+        ],
+        "total_items_assigned__validate_box_assignments__1": [
+            0,
+            1,
+            2
+        ]
+    },
+    "solve_time": 0.0001356
+}

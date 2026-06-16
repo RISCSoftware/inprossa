@@ -1,0 +1,9 @@
+{
+  "input": {},
+  "output": [],
+  "global_problem": "Global problem:\n    This problem involves a collection of items, where each have a length.\n    We have a finite number of boxes, each with its own capacity. An item can be cut at most once within a cutting machine. Then all these cut and non-cut items need to be packed into boxes within a packing_machine.\n    Each cut and each box in use causes costs. The goal is to cut and order the boards in such a way that the costs are minimal. The result and expected output is:\n        - the position of each optional cut on an item.\n        - the length of each resulting item after the cutting process.\n        - the assignments of eacu cut item to a given boxes.",
+  "subproblems": [
+    "Sub problem definition - part 1 - cutting_machine:\n    The cutting machine performs one or no cut on each item. The cut must be placed on the item, without exceeding its boundaries. Each cut costs 1. After the cutting process, the machine provides the lengths of the resulting items and the overall costs of cuts performed.",
+    "Sub problem definition - part 2 - packing_machine:\n    The cut items from the cutting machine are now passed to the packing machine, to be packed into a given finite number of boxes. A box may be used or stay empty. The items are packed such that the accumulated lengths of all items within one box does not exceed the box' capacity. Each box in use causes costs of 3."
+  ]
+}

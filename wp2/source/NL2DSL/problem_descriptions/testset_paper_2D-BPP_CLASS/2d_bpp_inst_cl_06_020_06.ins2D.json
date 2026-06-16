@@ -1,0 +1,86 @@
+{
+    "BOX_HEIGHT": 300,
+    "BOX_WIDTH": 300,
+    "ITEMS": [
+        {
+            "width": 14,
+            "height": 69
+        },
+        {
+            "width": 74,
+            "height": 13
+        },
+        {
+            "width": 23,
+            "height": 86
+        },
+        {
+            "width": 84,
+            "height": 42
+        },
+        {
+            "width": 12,
+            "height": 72
+        },
+        {
+            "width": 97,
+            "height": 96
+        },
+        {
+            "width": 60,
+            "height": 71
+        },
+        {
+            "width": 57,
+            "height": 86
+        },
+        {
+            "width": 77,
+            "height": 62
+        },
+        {
+            "width": 41,
+            "height": 56
+        },
+        {
+            "width": 7,
+            "height": 56
+        },
+        {
+            "width": 62,
+            "height": 84
+        },
+        {
+            "width": 29,
+            "height": 97
+        },
+        {
+            "width": 63,
+            "height": 82
+        },
+        {
+            "width": 53,
+            "height": 62
+        },
+        {
+            "width": 22,
+            "height": 93
+        },
+        {
+            "width": 25,
+            "height": 64
+        },
+        {
+            "width": 50,
+            "height": 96
+        },
+        {
+            "width": 21,
+            "height": 45
+        },
+        {
+            "width": 92,
+            "height": 1
+        }
+    ]
+}

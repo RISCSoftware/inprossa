@@ -1,0 +1,1215 @@
+C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\venv\Scripts\python.exe C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\tryout_pipeline.py
+input tokens: 3227
+output tokens: 96
+total tokens: 3323
+*** Response, global problem/datatypes:
+Item = DSRecord({
+    "width": DSInt(lb=1, ub=10),
+    "height": DSInt(lb=1, ub=6)
+})
+
+BoxAssignment = DSRecord({
+    "box_id": DSInt(lb=1, ub=6),
+    "x": DSInt(lb=1, ub=10),
+    "y": DSInt(lb=1, ub=6)
+})
+
+
+input tokens: 3065
+output tokens: 289
+total tokens: 3354
+*** Response, constants: [
+    {
+        "description": "Height of the box",
+        "variable_name": "BOX_HEIGHT",
+        "type": "int",
+        "initialization": "BOX_HEIGHT : int = 6"
+    },
+    {
+        "description": "Width of the box",
+        "variable_name": "BOX_WIDTH",
+        "type": "int",
+        "initialization": "BOX_WIDTH : int = 10"
+    },
+    {
+        "description": "List of items to place in the box",
+        "variable_name": "ITEMS",
+        "type": "DSList(length=6, elem_type=Item)",
+        "initialization": "ITEM1 : Item = {\"width\": 4, \"height\": 3}\nITEM2 : Item = {\"width\": 3, \"height\": 2}\nITEM3 : Item = {\"width\": 5, \"height\": 3}\nITEM4 : Item = {\"width\": 2, \"height\": 4}\nITEM5 : Item = {\"width\": 3, \"height\": 3}\nITEM6 : Item = {\"width\": 5, \"height\": 2}\nITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]"
+    }
+]
+
+input tokens: 3280
+output tokens: 142
+total tokens: 3422
+*** Response (decision) variables: [
+    {
+        "description": "Number of boxes used to pack all items, minimized in the objective",
+        "variable_name": "nr_used_boxes",
+        "type": "DSInt(lb=1, ub=6)",
+        "initialization": "nr_used_boxes : DSInt(lb=1, ub=6)"
+    },
+    {
+        "description": "Assignment of each item to a box with its position",
+        "variable_name": "item_box_assignment",
+        "type": "DSList(length=6, elem_type=BoxAssignment)",
+        "initialization": "item_box_assignment : DSList(length=6, elem_type=BoxAssignment)"
+    }
+]
+
+input tokens: 3179
+output tokens: 138
+total tokens: 3317
+Error processing statement: for i in range(1, N_item_box_assignment + 1):
+    box_id: DSInt(lb=1, ub=6) = assignments[i].box_id
+    if box_id > max_box_id:
+        max_box_id = box_id
+Traceback (most recent call last):
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Objects\CodeBlock.py", line 63, in execute_block
+    self.execute_block_for(stmt, loop_scope)
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Objects\CodeBlock.py", line 342, in execute_block_for
+    iter_values, loop_vars = self._resolve_range_iter(stmt, loop_scope)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Objects\CodeBlock.py", line 420, in _resolve_range_iter
+    end_val = ExpressionRewriter(loop_scope, code_block=self).get_expr_value(end_node)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Tools.py", line 29, in get_expr_value
+    string_expr = self.rewrite_expr(expr)
+                  ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Tools.py", line 44, in rewrite_expr
+    left = self.rewrite_expr(expr.left)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Tools.py", line 110, in rewrite_expr
+    return self.variable_table[name].versioned_name()
+           ~~~~~~~~~~~~~~~~~~~^^^^^^
+KeyError: 'N_item_box_assignment'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\structures_utils.py", line 330, in check_executability
+    model = MiniZincTranslator(variable_block).unroll_translation()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Objects\MiniZincTranslator.py", line 27, in unroll_translation
+    self.parse()
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Objects\MiniZincTranslator.py", line 72, in parse
+    pred = Predicate(node,
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Objects\Predicate.py", line 37, in __init__
+    self.run(func_body, loop_scope={})
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Objects\CodeBlock.py", line 43, in run
+    self.execute_block(block, {} if loop_scope is None else loop_scope)
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\Translator\Objects\CodeBlock.py", line 96, in execute_block
+    raise Exception(f"Error processing statement: {ast.unparse(stmt)}") from e
+Exception: Error processing statement: for i in range(1, N_item_box_assignment + 1):
+    box_id: DSInt(lb=1, ub=6) = assignments[i].box_id
+    if box_id > max_box_id:
+        max_box_id = box_id
+Checking node created for level 3 not executable: KeyError - 'N_item_box_assignment', occurring at: for i in range(1, N_item_box_assignment + 1):
+    box_id: DSInt(lb=1, ub=6) = assignments[i].box_id
+    if box_id > max_box_id:
+        max_box_id = box_id
+
+
+input tokens: 2997
+output tokens: 137
+total tokens: 3134
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE872330>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE870B00>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8CB9B0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8CB8F0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFAB8F50>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE87FBF0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4D4530>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4D45F0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFABAF60>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4D4110>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE498860>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE498920>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE4AF320>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE49A810>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8C97C0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8C9700>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8C9760>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE899F10>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE89B680>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE89B740>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8C81A0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE891700>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE892E70>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE892F30>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE89B7A0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACE5A0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACFD10>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACFDD0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE891580>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAE210>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAACAA0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAC9E0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFACFE30>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA12E0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8FB30>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8FA70>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFAAFF20>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAE390>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8CDA0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8D940>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA8DAF0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8F9B0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8CE30>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8DAC0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA8F950>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8C260>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8C230>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA702C0>}
+Sending feedback for a partial job well done.
+input tokens: 497
+output tokens: 1
+total tokens: 498
+*** Obj. function:
+# --- objective ---
+def calculate_objective(assignments: DSList(length=6, elem_type=BoxAssignment)) -> DSInt(lb=1, ub=6):
+    max_box_id: DSInt(lb=1, ub=6) = 1
+    for i in range(1, N_ITEMS + 1):
+        box_id : DSInt(lb=1, ub=6) = assignments[i].box_id
+        if box_id > max_box_id:
+            max_box_id = box_id
+    return max_box_id
+
+nr_used_boxes = calculate_objective(item_box_assignment)
+objective = nr_used_boxes
+
+Sending feedback for a partial job well done.
+input tokens: 497
+output tokens: 1
+total tokens: 498
+input tokens: 3494
+output tokens: 135
+total tokens: 3629
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA702C0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA73F80>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE87DA00>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA5C860>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA72270>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA73470>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA73560>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA5E0C0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA73B90>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA71BB0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA701D0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA72F60>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA71B80>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA73FB0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA72060>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA73650>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023F9E51C9B0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8EC90>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA1130>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA0E60>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA8E4E0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA20C0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAADDF0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAE000>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023F9E51C9B0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACCDD0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACFDA0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACFE60>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFACCCB0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACC080>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFABAE70>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFABB080>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023F9E51C9B0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8988F0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE89B830>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE89B9B0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8987D0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE898EC0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8C9A90>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8C9A30>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023F9E51C9B0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4997C0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4980B0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE498560>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8CA570>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE46F8F0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE87E5D0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE87DEB0>}
+*** Constraints:
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def fit_items_in_box(items: DSList(length=6, elem_type=Item), assignments: DSList(length=6, elem_type=BoxAssignment)):
+    for i in range(1, N_ITEMS + 1):
+        item : Item = items[i]
+        assignment : BoxAssignment = assignments[i]
+        # Ensure item fits within the box dimensions
+        assert assignment.x + item.width - 1 <= BOX_WIDTH
+        assert assignment.y + item.height - 1 <= BOX_HEIGHT
+
+fit_items_in_box(ITEMS, item_box_assignment)
+
+Sending feedback for a partial job well done.
+input tokens: 632
+output tokens: 1
+total tokens: 633
+input tokens: 3617
+output tokens: 469
+total tokens: 4086
+Checking node created for level 4 not executable: Syntaxerror "invalid syntax" in line 98, at offset 29:             assert same_box implies (no_overlap_x or no_overlap_y)
+
+input tokens: 2988
+output tokens: 478
+total tokens: 3466
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE87C560>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AEA80>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AED50>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AEB70>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE87FE30>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE870950>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8731D0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA5C1A0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE87C110>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE873D10>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4ADEB0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AE660>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE4AEEA0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AECF0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AFCB0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE46EEA0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE4AFB90>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4ACB30>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4ACC50>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AFEC0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE4AEC60>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AF140>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AD460>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4D4560>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8CB530>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8C90D0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8C9F10>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE899430>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE87CA40>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE898B60>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE898080>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFABBE30>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE899E80>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE89A6C0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAB9AC0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACEBA0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFABAD80>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACD0A0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACE300>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAD100>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFACDFD0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACDBB0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAADF70>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA1FD0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFACF710>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACD070>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAD370>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAEFC0>}
+*** Constraints:
+# --- Auxiliary Variables ---
+# --- Incorrect Code ---
+# Leave empty, if not required.
+# --- constraints ---
+def no_overlap(assignments: DSList(length=6, elem_type=BoxAssignment), items: DSList(length=6, elem_type=Item)):
+    for i in range(1, N_ITEMS + 1):
+        for j in range(i + 1, N_ITEMS + 1):
+            assignment_i : BoxAssignment = assignments[i]
+            assignment_j : BoxAssignment = assignments[j]
+            item_i : Item = items[i]
+            item_j : Item = items[j]
+
+            # Calculate boundaries for item i
+            x1_i : DSInt(lb=1, ub=10) = assignment_i.x
+            y1_i : DSInt(lb=1, ub=6) = assignment_i.y
+            x2_i : DSInt(lb=1, ub=10) = assignment_i.x + item_i.width - 1
+            y2_i : DSInt(lb=1, ub=6) = assignment_i.y + item_i.height - 1
+
+            # Calculate boundaries for item j
+            x1_j : DSInt(lb=1, ub=10) = assignment_j.x
+            y1_j : DSInt(lb=1, ub=6) = assignment_j.y
+            x2_j : DSInt(lb=1, ub=10) = assignment_j.x + item_j.width - 1
+            y2_j : DSInt(lb=1, ub=6) = assignment_j.y + item_j.height - 1
+
+            # Check if boxes are in the same box
+            same_box : DSBool() = assignment_i.box_id == assignment_j.box_id
+
+            # Check for non-overlapping conditions
+            no_overlap_x : DSBool() = (x2_i < x1_j) or (x2_j < x1_i)
+            no_overlap_y : DSBool() = (y2_i < y1_j) or (y2_j < y1_i)
+
+            # If in the same box, ensure they don't overlap
+            assert (not same_box) or (no_overlap_x or no_overlap_y)
+
+no_overlap(item_box_assignment, ITEMS)
+
+Sending feedback for a partial job well done.
+input tokens: 1105
+output tokens: 1
+total tokens: 1106
+input tokens: 4094
+output tokens: 104
+total tokens: 4198
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA5D820>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA5DCD0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA5D6D0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA1F40>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA5C080>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4D6B40>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8DF40>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8E600>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFAAE900>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE870350>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA16A0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B4B00>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFAA2780>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA39B0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA71820>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B6600>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA73680>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B6960>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B6A20>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B6A80>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8B6F30>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B46B0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B4380>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B43B0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8B62D0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B6900>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B7200>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8E3C0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8B5490>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8ED80>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA5D550>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA0D10>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA5D010>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8F470>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8F290>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA15B0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA8E5A0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B55E0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B44D0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA0DD0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA8C410>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA5D2B0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA3F80>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAB9910>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFA5E060>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAF9E0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAC5C0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACF230>}
+*** Constraints:
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def assign_item_to_one_box(assignments: DSList(length=6, elem_type=BoxAssignment)):
+    for i in range(1, N_ITEMS + 1):
+        box_id : DSInt(lb=1, ub=6) = assignments[i].box_id
+        assert box_id >= 1
+        assert box_id <= 6
+
+assign_item_to_one_box(item_box_assignment)
+
+Sending feedback for a partial job well done.
+input tokens: 1204
+output tokens: 1
+total tokens: 1205
+Full formulation:
+
+
+# -- Objects --
+
+
+Item = DSRecord({
+    "width": DSInt(lb=1, ub=10),
+    "height": DSInt(lb=1, ub=6)
+})
+
+BoxAssignment = DSRecord({
+    "box_id": DSInt(lb=1, ub=6),
+    "x": DSInt(lb=1, ub=10),
+    "y": DSInt(lb=1, ub=6)
+})
+
+
+
+# --- Constants ---
+BOX_HEIGHT : int = 6
+BOX_WIDTH : int = 10
+ITEM1 : Item = {"width": 4, "height": 3}
+ITEM2 : Item = {"width": 3, "height": 2}
+ITEM3 : Item = {"width": 5, "height": 3}
+ITEM4 : Item = {"width": 2, "height": 4}
+ITEM5 : Item = {"width": 3, "height": 3}
+ITEM6 : Item = {"width": 5, "height": 2}
+ITEMS : DSList(length=6, elem_type=Item) = [ITEM1, ITEM2, ITEM3, ITEM4, ITEM5, ITEM6]
+nr_used_boxes : DSInt(lb=1, ub=6)
+item_box_assignment : DSList(length=6, elem_type=BoxAssignment)
+N_ITEMS : int = 6
+N_item_box_assignment : int = 6
+
+
+# -- Objective --
+
+
+# --- objective ---
+def calculate_objective(assignments: DSList(length=6, elem_type=BoxAssignment)) -> DSInt(lb=1, ub=6):
+    max_box_id: DSInt(lb=1, ub=6) = 1
+    for i in range(1, N_ITEMS + 1):
+        box_id : DSInt(lb=1, ub=6) = assignments[i].box_id
+        if box_id > max_box_id:
+            max_box_id = box_id
+    return max_box_id
+
+nr_used_boxes = calculate_objective(item_box_assignment)
+objective = nr_used_boxes
+
+# -- Constraints --
+
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def fit_items_in_box(items: DSList(length=6, elem_type=Item), assignments: DSList(length=6, elem_type=BoxAssignment)):
+    for i in range(1, N_ITEMS + 1):
+        item : Item = items[i]
+        assignment : BoxAssignment = assignments[i]
+        # Ensure item fits within the box dimensions
+        assert assignment.x + item.width - 1 <= BOX_WIDTH
+        assert assignment.y + item.height - 1 <= BOX_HEIGHT
+
+fit_items_in_box(ITEMS, item_box_assignment)
+
+# --- Auxiliary Variables ---
+# --- Incorrect Code ---
+# Leave empty, if not required.
+# --- constraints ---
+def no_overlap(assignments: DSList(length=6, elem_type=BoxAssignment), items: DSList(length=6, elem_type=Item)):
+    for i in range(1, N_ITEMS + 1):
+        for j in range(i + 1, N_ITEMS + 1):
+            assignment_i : BoxAssignment = assignments[i]
+            assignment_j : BoxAssignment = assignments[j]
+            item_i : Item = items[i]
+            item_j : Item = items[j]
+
+            # Calculate boundaries for item i
+            x1_i : DSInt(lb=1, ub=10) = assignment_i.x
+            y1_i : DSInt(lb=1, ub=6) = assignment_i.y
+            x2_i : DSInt(lb=1, ub=10) = assignment_i.x + item_i.width - 1
+            y2_i : DSInt(lb=1, ub=6) = assignment_i.y + item_i.height - 1
+
+            # Calculate boundaries for item j
+            x1_j : DSInt(lb=1, ub=10) = assignment_j.x
+            y1_j : DSInt(lb=1, ub=6) = assignment_j.y
+            x2_j : DSInt(lb=1, ub=10) = assignment_j.x + item_j.width - 1
+            y2_j : DSInt(lb=1, ub=6) = assignment_j.y + item_j.height - 1
+
+            # Check if boxes are in the same box
+            same_box : DSBool() = assignment_i.box_id == assignment_j.box_id
+
+            # Check for non-overlapping conditions
+            no_overlap_x : DSBool() = (x2_i < x1_j) or (x2_j < x1_i)
+            no_overlap_y : DSBool() = (y2_i < y1_j) or (y2_j < y1_i)
+
+            # If in the same box, ensure they don't overlap
+            assert (not same_box) or (no_overlap_x or no_overlap_y)
+
+no_overlap(item_box_assignment, ITEMS)
+
+# --- Auxiliary Variables ---
+# Leave empty, if not required.
+# --- constraints ---
+def assign_item_to_one_box(assignments: DSList(length=6, elem_type=BoxAssignment)):
+    for i in range(1, N_ITEMS + 1):
+        box_id : DSInt(lb=1, ub=6) = assignments[i].box_id
+        assert box_id >= 1
+        assert box_id <= 6
+
+assign_item_to_one_box(item_box_assignment)
+**************************
+Total failed steps: 0
+**************************
+----------------------------------------------------------------------------
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8CB500>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8CB2F0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA2540>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACD280>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFACDE80>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA2000>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE46FC20>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE898AD0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFAB9160>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACE510>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8995E0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8C9880>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE8CBAA0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8CB2F0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACF8C0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE49A6F0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE46E450>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACDB20>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFACD010>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE49AB70>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFACECC0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE46E540>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B50D0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE8B9E80>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE49AFC0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4989B0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE49A3C0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AFB90>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE4995E0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE499D90>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AEFC0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE89B2F0>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE4AD2B0>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AEAB0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE4AF3B0>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAB9880>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBE49A000>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE49A810>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBE46FD40>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAC410>}
+index after if: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFABBB00>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFABB6B0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAB9280>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAA26F0>}
+index after else: {'assignments': <Translator.Objects.DSTypes.DSList object at 0x0000023FBFAAEC90>, 'objective': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAC6B0>, 'max_box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFAAC110>, 'box_id': <Translator.Objects.DSTypes.DSInt object at 0x0000023FBFA8C950>}
+Return code: 0
+Output:
+ {
+    "objective": [
+        0,
+        0,
+        2,
+        2,
+        2,
+        2
+    ],
+    "nr_used_boxes": [
+        2
+    ],
+    "item_box_assignment": [
+        [
+            {
+                "box_id": 1,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 4
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 8,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 1,
+                "y": 1
+            }
+        ]
+    ],
+    "N_item_box_assignment": [
+        6
+    ],
+    "assignments__calculate_objective__1": [
+        [
+            {
+                "box_id": 1,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 4
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 8,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 1,
+                "y": 1
+            }
+        ]
+    ],
+    "box_id__calculate_objective__1": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+    ],
+    "max_box_id__calculate_objective__1": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+    ],
+    "objective__calculate_objective__1": [
+        0
+    ],
+    "assignment__fit_items_in_box__1": [
+        {
+            "box_id": 1,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 4
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 8,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 1,
+            "y": 1
+        }
+    ],
+    "assignments__fit_items_in_box__1": [
+        [
+            {
+                "box_id": 1,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 4
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 8,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 1,
+                "y": 1
+            }
+        ]
+    ],
+    "item__fit_items_in_box__1": [
+        {
+            "height": 3,
+            "width": 4
+        },
+        {
+            "height": 2,
+            "width": 3
+        },
+        {
+            "height": 3,
+            "width": 5
+        },
+        {
+            "height": 4,
+            "width": 2
+        },
+        {
+            "height": 3,
+            "width": 3
+        },
+        {
+            "height": 2,
+            "width": 5
+        }
+    ],
+    "items__fit_items_in_box__1": [
+        [
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 3,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 5
+            }
+        ]
+    ],
+    "objective__fit_items_in_box__1": [
+        0
+    ],
+    "assignment_i__no_overlap__1": [
+        {
+            "box_id": 1,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 4
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 4
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 4
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 4
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 8,
+            "y": 1
+        }
+    ],
+    "assignment_j__no_overlap__1": [
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 4
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 8,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 1,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 8,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 6,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 8,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 8,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 1,
+            "y": 1
+        },
+        {
+            "box_id": 2,
+            "x": 1,
+            "y": 1
+        }
+    ],
+    "assignments__no_overlap__1": [
+        [
+            {
+                "box_id": 1,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 4
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 8,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 1,
+                "y": 1
+            }
+        ]
+    ],
+    "item_i__no_overlap__1": [
+        {
+            "height": 3,
+            "width": 4
+        },
+        {
+            "height": 3,
+            "width": 4
+        },
+        {
+            "height": 3,
+            "width": 4
+        },
+        {
+            "height": 3,
+            "width": 4
+        },
+        {
+            "height": 3,
+            "width": 4
+        },
+        {
+            "height": 2,
+            "width": 3
+        },
+        {
+            "height": 2,
+            "width": 3
+        },
+        {
+            "height": 2,
+            "width": 3
+        },
+        {
+            "height": 2,
+            "width": 3
+        },
+        {
+            "height": 3,
+            "width": 5
+        },
+        {
+            "height": 3,
+            "width": 5
+        },
+        {
+            "height": 3,
+            "width": 5
+        },
+        {
+            "height": 4,
+            "width": 2
+        },
+        {
+            "height": 4,
+            "width": 2
+        },
+        {
+            "height": 3,
+            "width": 3
+        }
+    ],
+    "item_j__no_overlap__1": [
+        {
+            "height": 2,
+            "width": 3
+        },
+        {
+            "height": 3,
+            "width": 5
+        },
+        {
+            "height": 4,
+            "width": 2
+        },
+        {
+            "height": 3,
+            "width": 3
+        },
+        {
+            "height": 2,
+            "width": 5
+        },
+        {
+            "height": 3,
+            "width": 5
+        },
+        {
+            "height": 4,
+            "width": 2
+        },
+        {
+            "height": 3,
+            "width": 3
+        },
+        {
+            "height": 2,
+            "width": 5
+        },
+        {
+            "height": 4,
+            "width": 2
+        },
+        {
+            "height": 3,
+            "width": 3
+        },
+        {
+            "height": 2,
+            "width": 5
+        },
+        {
+            "height": 3,
+            "width": 3
+        },
+        {
+            "height": 2,
+            "width": 5
+        },
+        {
+            "height": 2,
+            "width": 5
+        }
+    ],
+    "items__no_overlap__1": [
+        [
+            {
+                "height": 3,
+                "width": 4
+            },
+            {
+                "height": 2,
+                "width": 3
+            },
+            {
+                "height": 3,
+                "width": 5
+            },
+            {
+                "height": 4,
+                "width": 2
+            },
+            {
+                "height": 3,
+                "width": 3
+            },
+            {
+                "height": 2,
+                "width": 5
+            }
+        ]
+    ],
+    "no_overlap_x__no_overlap__1": [
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true
+    ],
+    "no_overlap_y__no_overlap__1": [
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+    ],
+    "objective__no_overlap__1": [
+        0
+    ],
+    "same_box__no_overlap__1": [
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
+    ],
+    "x1_i__no_overlap__1": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        6,
+        6,
+        8
+    ],
+    "x1_j__no_overlap__1": [
+        1,
+        1,
+        6,
+        8,
+        1,
+        1,
+        6,
+        8,
+        1,
+        6,
+        8,
+        1,
+        8,
+        1,
+        1
+    ],
+    "x2_i__no_overlap__1": [
+        9,
+        9,
+        9,
+        9,
+        9,
+        3,
+        3,
+        3,
+        3,
+        5,
+        5,
+        5,
+        7,
+        7,
+        10
+    ],
+    "x2_j__no_overlap__1": [
+        3,
+        5,
+        7,
+        10,
+        5,
+        5,
+        7,
+        10,
+        5,
+        7,
+        10,
+        5,
+        10,
+        5,
+        5
+    ],
+    "y1_i__no_overlap__1": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        4,
+        4,
+        4,
+        4,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+    ],
+    "y1_j__no_overlap__1": [
+        4,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+    ],
+    "y2_i__no_overlap__1": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        5,
+        5,
+        5,
+        5,
+        3,
+        3,
+        3,
+        4,
+        4,
+        3
+    ],
+    "y2_j__no_overlap__1": [
+        5,
+        3,
+        4,
+        3,
+        2,
+        3,
+        4,
+        3,
+        2,
+        4,
+        3,
+        2,
+        3,
+        2,
+        2
+    ],
+    "assignments__assign_item_to_one_box__1": [
+        [
+            {
+                "box_id": 1,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 4
+            },
+            {
+                "box_id": 1,
+                "x": 1,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 6,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 8,
+                "y": 1
+            },
+            {
+                "box_id": 2,
+                "x": 1,
+                "y": 1
+            }
+        ]
+    ],
+    "box_id__assign_item_to_one_box__1": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+    ],
+    "objective__assign_item_to_one_box__1": [
+        0
+    ]
+}
+Traceback (most recent call last):
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\tryout_pipeline.py", line 940, in <module>
+    build_up_formulation_iteratively(llm)
+  File "C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\tryout_pipeline.py", line 932, in build_up_formulation_iteratively
+    print(f"Solution for objective is: {solution["objective"][len(solution["objective"])-1]}")
+                                        ~~~~~~~~^^^^^^^^^^^^^
+TypeError: string indices must be integers, not 'str'
+
+Process finished with exit code 1

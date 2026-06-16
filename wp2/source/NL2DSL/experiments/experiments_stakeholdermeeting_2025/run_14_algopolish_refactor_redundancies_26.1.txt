@@ -1,0 +1,902 @@
+C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\venv\Scripts\python.exe -X pycache_prefix=C:\Users\katha\AppData\Local\JetBrains\PyCharm2025.2\cpython-cache C:/Users/katha/AppData/Local/Programs/PyCharm/plugins/python-ce/helpers/pydev/pydevd.py --multiprocess --qt-support=auto --client 127.0.0.1 --port 51283 --file C:\Users\katha\Documents\GitHub\inprossa\wp2\source\minizinc\NL2DSL\algo_polish.py
+Connected to: <socket.socket fd=972, family=2, type=1, proto=0, laddr=('127.0.0.1', 51284), raddr=('127.0.0.1', 51283)>.
+Connected to pydev debugger (build 252.26199.168)
+input tokens: 3636
+output tokens: 473
+total tokens: 4109
+Solver Output:
+ {'objective': [0, 0, 3, 3], 'nr_used_boxes': [3], 'item_box_assignments': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [3], 'assignments__calculate_objective__1': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 1, 2, 2, 2, 2, 3, 3, 3, 3], 'objective__calculate_objective__1': [0], 'assignments__pack_items_valid__1': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'item__pack_items_valid__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_i__pack_items_valid__1': [{'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}], 'item_j__pack_items_valid__1': [{'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 1, 'width': 5}], 'items__pack_items_valid__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_used_boxes__pack_items_valid__1': [3], 'objective__pack_items_valid__1': [0], 'pos__pack_items_valid__1': [{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos_i__pack_items_valid__1': [{'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}], 'pos_j__pack_items_valid__1': [{'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'positions__pack_items_valid__1': [[{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 0.0337283
+Solution for objective is: [0, 0, 3, 3]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def pack_items_valid(
+    items: Annotated[list[Item], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    nr_used_boxes: Annotated[int, Field(strict=True, ge=1, le=9)]
+) -> None:
+    # items_fit_in_box
+    for i in range(1, 10):
+        item : Item = items[i]
+        pos : X_Y_Position = positions[i]
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+        # ensure_item_assignment_valid
+        assert assignments[i] >= 1
+        assert assignments[i] <= nr_used_boxes
+
+    # no_overlap
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            item_i : Item = items[i]
+            item_j : Item = items[j]
+            pos_i : X_Y_Position = positions[i]
+            pos_j : X_Y_Position = positions[j]
+            assert assignments[i] != assignments[j] or \
+                   pos_i.x >= pos_j.x + item_j.width or \
+                   pos_j.x >= pos_i.x + item_i.width or \
+                   pos_i.y >= pos_j.y + item_j.height or \
+                   pos_j.y >= pos_i.y + item_i.height
+
+    # minimize_used_boxes
+    for i in range(1, 10):
+        assert assignments[i] <= nr_used_boxes
+
+pack_items_valid(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)
+assert objective == nr_used_boxes
+nr_used_boxes = objective
+```
+Objective value: 3
+Solver time: 0.0337283
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3517
+output tokens: 428
+total tokens: 3945
+Solver Output:
+ {'objective': [0, 0, 5, 5], 'nr_used_boxes': [5], 'item_box_assignments': [[4, 1, 5, 4, 1, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 4, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [5], 'assignments__calculate_objective__1': [[4, 1, 5, 4, 1, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 4, 4, 5, 5, 5, 5, 5, 5, 5], 'objective__calculate_objective__1': [0], 'assignments__validate_all_constraints__1': [[4, 1, 5, 4, 1, 3, 2, 1, 1]], 'item__validate_all_constraints__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_i__validate_all_constraints__1': [{'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}], 'item_j__validate_all_constraints__1': [{'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 1, 'width': 5}], 'items__validate_all_constraints__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'objective__validate_all_constraints__1': [0], 'pos__validate_all_constraints__1': [{'x': 4, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos_i__validate_all_constraints__1': [{'x': 4, 'y': 0}, {'x': 4, 'y': 0}, {'x': 4, 'y': 0}, {'x': 4, 'y': 0}, {'x': 4, 'y': 0}, {'x': 4, 'y': 0}, {'x': 4, 'y': 0}, {'x': 4, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}], 'pos_j__validate_all_constraints__1': [{'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'positions__validate_all_constraints__1': [[{'x': 4, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 59.8212
+Solution for objective is: [0, 0, 5, 5]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def validate_all_constraints(
+    items: Annotated[list[Item], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)]
+) -> None:
+    # Items fit in box constraint
+    for i in range(1, 10):
+        item : Item = items[i]
+        pos : X_Y_Position = positions[i]
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+
+    # No overlap constraint
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            item_i : Item = items[i]
+            item_j : Item = items[j]
+            pos_i : X_Y_Position = positions[i]
+            pos_j : X_Y_Position = positions[j]
+            assert assignments[i] != assignments[j] or \
+                   pos_i.x >= pos_j.x + item_j.width or \
+                   pos_j.x >= pos_i.x + item_i.width or \
+                   pos_i.y >= pos_j.y + item_j.height or \
+                   pos_j.y >= pos_i.y + item_i.height
+
+    # Each item in one box constraint
+    for i in range(1, 10):
+        assert assignments[i] >= 1
+        assert assignments[i] <= 9
+
+validate_all_constraints(ITEMS, item_box_assignments, x_y_positions)
+
+nr_used_boxes = objective
+```
+Objective value: 5
+Solver time: 59.8212
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3620
+output tokens: 463
+total tokens: 4083
+Solver Output:
+ {'objective': [0, 0, 8, 8], 'nr_used_boxes': [8], 'item_box_assignments': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [8], 'assignments__calculate_objective__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 8, 8, 8, 8, 8, 8, 8, 8, 8], 'objective__calculate_objective__1': [0], 'assignments__validate_all_constraints__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'item__validate_all_constraints__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_i__validate_all_constraints__1': [{'height': 5, 'width': 3}], 'item_j__validate_all_constraints__1': [{'height': 1, 'width': 5}], 'items__validate_all_constraints__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_used_boxes__validate_all_constraints__1': [8], 'objective__validate_all_constraints__1': [0], 'pos__validate_all_constraints__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos_i__validate_all_constraints__1': [{'x': 5, 'y': 0}], 'pos_j__validate_all_constraints__1': [{'x': 0, 'y': 0}], 'positions__validate_all_constraints__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 5.87822
+Solution for objective is: [0, 0, 8, 8]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def validate_all_constraints(
+    items: Annotated[list[Item], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    nr_used_boxes: Annotated[int, Field(strict=True, ge=1, le=9)]
+) -> None:
+    # Items fit in box constraint
+    for i in range(1, 10):
+        item : Item = items[i]
+        pos : X_Y_Position = positions[i]
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+
+        # Ensure item-box assignment validity
+        assert assignments[i] >= 1
+        assert assignments[i] <= nr_used_boxes
+
+        # Non-negative positions
+        assert pos.x >= 0
+        assert pos.y >= 0
+
+    # No overlap constraint
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            if assignments[i] == assignments[j]:
+                item_i : Item = items[i]
+                item_j : Item = items[j]
+                pos_i : X_Y_Position = positions[i]
+                pos_j : X_Y_Position = positions[j]
+                assert (pos_i.x + item_i.width <= pos_j.x) or (pos_j.x + item_j.width <= pos_i.x) or (pos_i.y + item_i.height <= pos_j.y) or (pos_j.y + item_j.height <= pos_i.y)
+
+validate_all_constraints(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)
+
+nr_used_boxes = objective
+```
+Objective value: 8
+Solver time: 5.87822
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3620
+output tokens: 462
+total tokens: 4082
+Solver Output:
+ {'objective': [0, 0, 8, 8], 'nr_used_boxes': [8], 'item_box_assignments': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [8], 'assignments__calculate_objective__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 8, 8, 8, 8, 8, 8, 8, 8, 8], 'objective__calculate_objective__1': [0], 'assignments__validate_all_constraints__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'item__validate_all_constraints__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_i__validate_all_constraints__1': [{'height': 5, 'width': 3}], 'item_j__validate_all_constraints__1': [{'height': 1, 'width': 5}], 'items__validate_all_constraints__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_used_boxes__validate_all_constraints__1': [8], 'objective__validate_all_constraints__1': [0], 'pos__validate_all_constraints__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos_i__validate_all_constraints__1': [{'x': 5, 'y': 0}], 'pos_j__validate_all_constraints__1': [{'x': 0, 'y': 0}], 'positions__validate_all_constraints__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 6.84743
+Solution for objective is: [0, 0, 8, 8]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def validate_all_constraints(
+    items: Annotated[list[Item], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    nr_used_boxes: Annotated[int, Field(strict=True, ge=1, le=9)]
+) -> None:
+    # Items fit in box constraint
+    for i in range(1, 10):
+        item : Item = items[i]
+        pos : X_Y_Position = positions[i]
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+
+        # Assignment validity constraint
+        assert assignments[i] >= 1
+        assert assignments[i] <= nr_used_boxes
+
+        # Non-negative positions constraint
+        assert pos.x >= 0
+        assert pos.y >= 0
+
+    # No overlap constraint
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            if assignments[i] == assignments[j]:
+                item_i : Item = items[i]
+                item_j : Item = items[j]
+                pos_i : X_Y_Position = positions[i]
+                pos_j : X_Y_Position = positions[j]
+                assert (pos_i.x + item_i.width <= pos_j.x) or (pos_j.x + item_j.width <= pos_i.x) or (pos_i.y + item_i.height <= pos_j.y) or (pos_j.y + item_j.height <= pos_i.y)
+
+validate_all_constraints(ITEMS, item_box_assignments, x_y_positions, nr_used_boxes)
+
+nr_used_boxes = objective
+```
+Objective value: 8
+Solver time: 6.84743
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3969
+output tokens: 431
+total tokens: 4400
+Solver Output:
+ {'objective': [0, 0, 8, 8], 'nr_used_boxes': [8], 'item_box_assignments': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [8], 'assignments__calculate_objective__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 8, 8, 8, 8, 8, 8, 8, 8, 8], 'objective__calculate_objective__1': [0], 'assignments__validate_and_prevent_overlap__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'box_id__validate_and_prevent_overlap__1': [8, 7, 6, 5, 4, 3, 2, 1, 1], 'item__validate_and_prevent_overlap__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_j__validate_and_prevent_overlap__1': [{'height': 1, 'width': 5}], 'items__validate_and_prevent_overlap__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_boxes__validate_and_prevent_overlap__1': [8], 'objective__validate_and_prevent_overlap__1': [0], 'pos__validate_and_prevent_overlap__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos_j__validate_and_prevent_overlap__1': [{'x': 0, 'y': 0}], 'positions__validate_and_prevent_overlap__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 4.44614
+Solution for objective is: [0, 0, 8, 8]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def validate_and_prevent_overlap(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    nr_boxes: int
+):
+    for i in range(1, 10):
+        item: Item = items[i]
+        pos: X_Y_Position = positions[i]
+        box_id: int = assignments[i]
+
+        # Validate item placement within box dimensions
+        assert pos.x >= 0
+        assert pos.y >= 0
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+
+        # Validate box assignment
+        assert box_id >= 1
+        assert box_id <= nr_boxes
+
+        # Check overlap with subsequent items in the same box
+        for j in range(i + 1, 10):
+            if assignments[j] == box_id:
+                pos_j: X_Y_Position = positions[j]
+                item_j: Item = items[j]
+
+                # Prevent overlap between items in the same box
+                assert (
+                    pos.x >= pos_j.x + item_j.width or
+                    pos_j.x >= pos.x + item.width or
+                    pos.y >= pos_j.y + item_j.height or
+                    pos_j.y >= pos.y + item.height
+                )
+
+validate_and_prevent_overlap(ITEMS, x_y_positions, item_box_assignments, nr_used_boxes)
+
+nr_used_boxes = objective
+```
+Objective value: 8
+Solver time: 4.44614
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3935
+output tokens: 410
+total tokens: 4345
+Solver Output:
+ {'objective': [0, 0, 8, 8], 'nr_used_boxes': [8], 'item_box_assignments': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [8], 'assignments__calculate_objective__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 8, 8, 8, 8, 8, 8, 8, 8, 8], 'objective__calculate_objective__1': [0], 'assignments__validate_and_prevent_overlap__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'box_id__validate_and_prevent_overlap__1': [8, 7, 6, 5, 4, 3, 2, 1, 1], 'item__validate_and_prevent_overlap__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_j__validate_and_prevent_overlap__1': [{'height': 1, 'width': 5}], 'items__validate_and_prevent_overlap__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_boxes__validate_and_prevent_overlap__1': [8], 'objective__validate_and_prevent_overlap__1': [0], 'pos__validate_and_prevent_overlap__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos_j__validate_and_prevent_overlap__1': [{'x': 0, 'y': 0}], 'positions__validate_and_prevent_overlap__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 4.38007
+Solution for objective is: [0, 0, 8, 8]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def validate_and_prevent_overlap(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    nr_boxes: int
+):
+    for i in range(1, 10):
+        item: Item = items[i]
+        pos: X_Y_Position = positions[i]
+        box_id: int = assignments[i]
+
+        # Position bounds and item fitting checks
+        assert pos.x >= 0
+        assert pos.y >= 0
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+
+        # Box assignment validity
+        assert box_id >= 1
+        assert box_id <= nr_boxes
+
+        # Overlap checks with subsequent items in the same box
+        for j in range(i + 1, 10):
+            if assignments[j] == box_id:
+                pos_j: X_Y_Position = positions[j]
+                item_j: Item = items[j]
+                assert pos.x >= pos_j.x + item_j.width or pos_j.x >= pos.x + item.width or pos.y >= pos_j.y + item_j.height or pos_j.y >= pos.y + item.height
+
+validate_and_prevent_overlap(ITEMS, x_y_positions, item_box_assignments, nr_used_boxes)
+
+nr_used_boxes = objective
+```
+Objective value: 8
+Solver time: 4.38007
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3634
+output tokens: 480
+total tokens: 4114
+Solver Output:
+ {'objective': [0, 0, 3, 3], 'nr_used_boxes': [3], 'item_box_assignments': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [3], 'assignments__calculate_objective__1': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 1, 2, 2, 2, 2, 3, 3, 3, 3], 'objective__calculate_objective__1': [0], 'assignments__packing_constraints__1': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'box1__packing_constraints__1': [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 2, 2, 1], 'box2__packing_constraints__1': [2, 1, 1, 2, 3, 2, 1, 1, 1, 1, 2, 3, 2, 1, 1, 1, 2, 3, 2, 1, 1, 2, 3, 2, 1, 1, 3, 2, 1, 1, 2, 1, 1, 1, 1, 1], 'box_id__packing_constraints__1': [1, 2, 1, 1, 2, 3, 2, 1, 1], 'item__packing_constraints__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item1__packing_constraints__1': [{'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}], 'item2__packing_constraints__1': [{'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 1, 'width': 5}], 'items__packing_constraints__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_used_boxes__packing_constraints__1': [3], 'objective__packing_constraints__1': [0], 'pos__packing_constraints__1': [{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos1__packing_constraints__1': [{'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}], 'pos2__packing_constraints__1': [{'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'positions__packing_constraints__1': [[{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 0.0319575
+Solution for objective is: [0, 0, 3, 3]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def packing_constraints(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    nr_used_boxes: Annotated[int, Field(strict=True, ge=1, le=9)]
+):
+    # Fit in box constraint
+    for i in range(1, 10):
+        item : Item = items[i]
+        pos : X_Y_Position = positions[i]
+        box_id : int = assignments[i]
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+        assert assignments[i] >= 1
+        assert assignments[i] <= 9
+
+    # No overlap constraint
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            item1 : Item = items[i]
+            pos1 : X_Y_Position = positions[i]
+            box1 : int = assignments[i]
+            item2 : Item = items[j]
+            pos2 : X_Y_Position = positions[j]
+            box2 : int = assignments[j]
+            if box1 == box2:
+                assert pos1.x >= pos2.x + item2.width or pos2.x >= pos1.x + item1.width or pos1.y >= pos2.y + item2.height or pos2.y >= pos1.y + item1.height
+
+    # Box usage constraint
+    for i in range(1, 10):
+        assert assignments[i] <= nr_used_boxes
+
+packing_constraints(ITEMS, x_y_positions, item_box_assignments, nr_used_boxes)
+assert objective == nr_used_boxes
+nr_used_boxes = objective
+```
+Objective value: 3
+Solver time: 0.0319575
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3634
+output tokens: 463
+total tokens: 4097
+Solver Output:
+ {'objective': [0, 0, 3, 3], 'nr_used_boxes': [3], 'item_box_assignments': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [3], 'assignments__calculate_objective__1': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 1, 2, 2, 2, 2, 3, 3, 3, 3], 'objective__calculate_objective__1': [0], 'assignments__packing_constraints__1': [[1, 2, 1, 1, 2, 3, 2, 1, 1]], 'box1__packing_constraints__1': [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 2, 2, 1], 'box2__packing_constraints__1': [2, 1, 1, 2, 3, 2, 1, 1, 1, 1, 2, 3, 2, 1, 1, 1, 2, 3, 2, 1, 1, 2, 3, 2, 1, 1, 3, 2, 1, 1, 2, 1, 1, 1, 1, 1], 'box_id__packing_constraints__1': [1, 2, 1, 1, 2, 3, 2, 1, 1], 'item__packing_constraints__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item1__packing_constraints__1': [{'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}], 'item2__packing_constraints__1': [{'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 1, 'width': 5}], 'items__packing_constraints__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_used_boxes__packing_constraints__1': [3], 'objective__packing_constraints__1': [0], 'pos__packing_constraints__1': [{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos1__packing_constraints__1': [{'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}], 'pos2__packing_constraints__1': [{'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'positions__packing_constraints__1': [[{'x': 8, 'y': 2}, {'x': 10, 'y': 0}, {'x': 0, 'y': 1}, {'x': 8, 'y': 0}, {'x': 9, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 0.0271483
+Solution for objective is: [0, 0, 3, 3]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def packing_constraints(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    nr_used_boxes: Annotated[int, Field(strict=True, ge=1, le=9)]
+):
+    # Fit in box constraint
+    for i in range(1, 10):
+        item : Item = items[i]
+        pos : X_Y_Position = positions[i]
+        box_id : int = assignments[i]
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+        assert assignments[i] >= 1
+        assert assignments[i] <= 9
+        assert assignments[i] <= nr_used_boxes
+
+    # No overlap constraint
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            item1 : Item = items[i]
+            pos1 : X_Y_Position = positions[i]
+            box1 : int = assignments[i]
+            item2 : Item = items[j]
+            pos2 : X_Y_Position = positions[j]
+            box2 : int = assignments[j]
+
+            if box1 == box2:
+                assert pos1.x >= pos2.x + item2.width or pos2.x >= pos1.x + item1.width or pos1.y >= pos2.y + item2.height or pos2.y >= pos1.y + item1.height
+
+packing_constraints(ITEMS, x_y_positions, item_box_assignments, nr_used_boxes)
+assert objective == nr_used_boxes
+nr_used_boxes = objective
+```
+Objective value: 3
+Solver time: 0.0271483
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3683
+output tokens: 483
+total tokens: 4166
+Solver Output:
+ {'objective': [0, 0, 9, 9], 'nr_used_boxes': [9], 'item_box_assignments': [[9, 8, 7, 6, 5, 4, 3, 2, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [9], 'assignments__calculate_objective__1': [[9, 8, 7, 6, 5, 4, 3, 2, 1]], 'max_box__calculate_objective__1': [0, 9, 9, 9, 9, 9, 9, 9, 9, 9], 'objective__calculate_objective__1': [0], 'assignments__packing_constraints__1': [[9, 8, 7, 6, 5, 4, 3, 2, 1]], 'box1__packing_constraints__1': [9, 9, 9, 9, 9, 9, 9, 9, 8, 8, 8, 8, 8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 5, 5, 5, 4, 4, 4, 3, 3, 2], 'box2__packing_constraints__1': [8, 7, 6, 5, 4, 3, 2, 1, 7, 6, 5, 4, 3, 2, 1, 6, 5, 4, 3, 2, 1, 5, 4, 3, 2, 1, 4, 3, 2, 1, 3, 2, 1, 2, 1, 1], 'box_id__packing_constraints__1': [9, 8, 7, 6, 5, 4, 3, 2, 1], 'item__packing_constraints__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item1__packing_constraints__1': [{'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}], 'item2__packing_constraints__1': [{'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 1, 'width': 5}], 'items__packing_constraints__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_used_boxes__packing_constraints__1': [9], 'objective__packing_constraints__1': [0], 'pos__packing_constraints__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'pos1__packing_constraints__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'pos2__packing_constraints__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'positions__packing_constraints__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'x_overlap__packing_constraints__1': [False], 'y_overlap__packing_constraints__1': [False]}
+Solve time (sec):
+ 59.8404
+Solution for objective is: [0, 0, 9, 9]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def packing_constraints(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    nr_used_boxes: Annotated[int, Field(strict=True, ge=1, le=9)]
+):
+    # Constraint 1: Ensure items fit in box dimensions
+    for i in range(1, 10):
+        item : Item = items[i]
+        pos : X_Y_Position = positions[i]
+        box_id : int = assignments[i]
+        assert pos.x + item.width <= BOX_WIDTH
+        assert pos.y + item.height <= BOX_HEIGHT
+        assert assignments[i] >= 1
+        assert assignments[i] <= 9
+        assert assignments[i] <= nr_used_boxes
+
+    # Constraint 2: No overlapping items
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            item1 : Item = items[i]
+            pos1 : X_Y_Position = positions[i]
+            box1 : int = assignments[i]
+
+            item2 : Item = items[j]
+            pos2 : X_Y_Position = positions[j]
+            box2 : int = assignments[j]
+
+            if box1 == box2:
+                x_overlap : bool = not (pos1.x + item1.width <= pos2.x or pos2.x + item2.width <= pos1.x)
+                y_overlap : bool = not (pos1.y + item1.height <= pos2.y or pos2.y + item2.height <= pos1.y)
+                assert not (x_overlap and y_overlap)
+
+packing_constraints(ITEMS, x_y_positions, item_box_assignments, nr_used_boxes)
+```
+Objective value: 9
+Solver time: 59.8404
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3687
+output tokens: 554
+total tokens: 4241
+Solver Output:
+ {'objective': [0, 0, 4, 4, 4], 'nr_used_boxes': [4], 'item_box_assignments': [[1, 1, 3, 1, 2, 4, 2, 1, 3]], 'x_y_positions': [[{'x': 8, 'y': 0}, {'x': 3, 'y': 0}, {'x': 5, 'y': 0}, {'x': 4, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [4], 'assignments__calculate_objective__1': [[1, 1, 3, 1, 2, 4, 2, 1, 3]], 'max_box__calculate_objective__1': [0, 1, 1, 3, 3, 3, 4, 4, 4, 4], 'objective__calculate_objective__1': [0], 'assignments__validate_assignments_and_positions__1': [[1, 1, 3, 1, 2, 4, 2, 1, 3]], 'box_i__validate_assignments_and_positions__1': [1, 1, 3, 1, 2, 4, 2, 1, 3], 'box_j__validate_assignments_and_positions__1': [1, 3, 1, 2, 4, 2, 1, 3, 3, 1, 2, 4, 2, 1, 3, 1, 2, 4, 2, 1, 3, 2, 4, 2, 1, 3, 4, 2, 1, 3, 2, 1, 3, 1, 3, 3], 'item_i__validate_assignments_and_positions__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_j__validate_assignments_and_positions__1': [{'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}, {'height': 1, 'width': 5}], 'items__validate_assignments_and_positions__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_used_boxes__validate_assignments_and_positions__1': [4], 'objective__validate_assignments_and_positions__1': [0], 'pos_i__validate_assignments_and_positions__1': [{'x': 8, 'y': 0}, {'x': 3, 'y': 0}, {'x': 5, 'y': 0}, {'x': 4, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'pos_j__validate_assignments_and_positions__1': [{'x': 3, 'y': 0}, {'x': 5, 'y': 0}, {'x': 4, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 4, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 4, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'positions__validate_assignments_and_positions__1': [[{'x': 8, 'y': 0}, {'x': 3, 'y': 0}, {'x': 5, 'y': 0}, {'x': 4, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 1, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'x_no_overlap__validate_assignments_and_positions__1': [True], 'y_no_overlap__validate_assignments_and_positions__1': [False]}
+Solve time (sec):
+ 5.05555
+Solution for objective is: [0, 0, 4, 4, 4]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def validate_assignments_and_positions(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=9)]], Len(9, 9)],
+    nr_used_boxes: Annotated[int, Field(strict=True, ge=1, le=9)]
+):
+    # Constraint: Each item must be placed within box dimensions
+    # Constraint: No overlapping items
+    for i in range(1, 10):
+        item_i : Item = items[i]
+        pos_i : X_Y_Position = positions[i]
+        box_i : int = assignments[i]
+
+        # Dimension check for current item
+        assert pos_i.x + item_i.width <= BOX_WIDTH
+        assert pos_i.y + item_i.height <= BOX_HEIGHT
+
+        # Constraint: Box index validity
+        assert 1 <= box_i <= 9
+
+        # Overlap checks with subsequent items
+        for j in range(i + 1, 10):
+            item_j : Item = items[j]
+            pos_j : X_Y_Position = positions[j]
+            box_j : int = assignments[j]
+
+            # Only check overlap if both items are in the same box
+            if box_i == box_j:
+                # Non-overlapping on x-axis
+                x_no_overlap : bool = (pos_i.x + item_i.width <= pos_j.x) or (pos_j.x + item_j.width <= pos_i.x)
+                # Non-overlapping on y-axis
+                y_no_overlap : bool = (pos_i.y + item_i.height <= pos_j.y) or (pos_j.y + item_j.height <= pos_i.y)
+
+                # Must not overlap on both axes
+                assert x_no_overlap or y_no_overlap
+
+    # Constraint: Minimize number of boxes used
+    for i in range(1, 10):
+        assert assignments[i] <= nr_used_boxes
+
+validate_assignments_and_positions(ITEMS, x_y_positions, item_box_assignments, nr_used_boxes)
+objective = nr_used_boxes
+```
+Objective value: 4
+Solver time: 5.05555
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3733
+output tokens: 497
+total tokens: 4230
+Solver Output:
+ {'objective': [0, 0, 8, 8], 'nr_used_boxes': [8], 'item_box_assignments': [[1, 6, 2, 1, 8, 5, 4, 3, 7]], 'x_y_positions': [[{'x': 0, 'y': 2}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [8], 'assignments__calculate_objective__1': [[1, 6, 2, 1, 8, 5, 4, 3, 7]], 'max_box__calculate_objective__1': [0, 1, 6, 6, 6, 8, 8, 8, 8, 8], 'objective__calculate_objective__1': [0], 'assignments__pack_and_fit_items__1': [[1, 6, 2, 1, 8, 5, 4, 3, 7]], 'box_height__pack_and_fit_items__1': [5], 'box_width__pack_and_fit_items__1': [12], 'item__pack_and_fit_items__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_i__pack_and_fit_items__1': [{'height': 3, 'width': 4}], 'item_j__pack_and_fit_items__1': [{'height': 2, 'width': 4}], 'items__pack_and_fit_items__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_boxes__pack_and_fit_items__1': [8], 'objective__pack_and_fit_items__1': [0], 'pos__pack_and_fit_items__1': [{'x': 0, 'y': 2}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'pos_i__pack_and_fit_items__1': [{'x': 0, 'y': 2}], 'pos_j__pack_and_fit_items__1': [{'x': 0, 'y': 0}], 'positions__pack_and_fit_items__1': [[{'x': 0, 'y': 2}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'x_overlap__pack_and_fit_items__1': [True], 'y_overlap__pack_and_fit_items__1': [False]}
+Solve time (sec):
+ 16.1535
+Solution for objective is: [0, 0, 8, 8]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def pack_and_fit_items(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    box_width: int,
+    box_height: int,
+    nr_boxes: Annotated[int, Field(strict=True, ge=1, le=9)]
+) -> None:
+    # Fit items in box constraint
+    for i in range(1, 10):
+        pos: X_Y_Position = positions[i]
+        item: Item = items[i]
+        assert pos.x + item.width <= box_width
+        assert pos.y + item.height <= box_height
+        assert assignments[i] >= 1
+        assert assignments[i] <= nr_boxes
+        assert assignments[i] <= nr_boxes
+
+    # No overlap constraint
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            if assignments[i] == assignments[j]:
+                pos_i: X_Y_Position = positions[i]
+                pos_j: X_Y_Position = positions[j]
+                item_i: Item = items[i]
+                item_j: Item = items[j]
+
+                x_overlap: bool = not (
+                    pos_i.x + item_i.width <= pos_j.x or
+                    pos_j.x + item_j.width <= pos_i.x
+                )
+
+                y_overlap: bool = not (
+                    pos_i.y + item_i.height <= pos_j.y or
+                    pos_j.y + item_j.height <= pos_i.y
+                )
+
+                assert not (x_overlap and y_overlap)
+
+pack_and_fit_items(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT, nr_used_boxes)
+assert objective == nr_used_boxes
+nr_used_boxes = objective
+```
+Objective value: 8
+Solver time: 16.1535
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3686
+output tokens: 554
+total tokens: 4240
+Solver Output:
+ {'objective': [0, 0, 9, 9, 9], 'nr_used_boxes': [9, 9], 'item_box_assignments': [[9, 8, 7, 6, 5, 4, 3, 2, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [9], 'assignments__calculate_objective__1': [[9, 8, 7, 6, 5, 4, 3, 2, 1]], 'max_box__calculate_objective__1': [0, 9, 9, 9, 9, 9, 9, 9, 9, 9], 'objective__calculate_objective__1': [0], 'assignments__packing_constraints__1': [[9, 8, 7, 6, 5, 4, 3, 2, 1]], 'box_height__packing_constraints__1': [5], 'box_width__packing_constraints__1': [12], 'item__packing_constraints__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_j__packing_constraints__1': [{'height': 1, 'width': 1}], 'items__packing_constraints__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'objective__packing_constraints__1': [0], 'pos__packing_constraints__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}], 'pos_j__packing_constraints__1': [{'x': 0, 'y': 0}], 'positions__packing_constraints__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}]], 'x_no_overlap__packing_constraints__1': [False], 'y_no_overlap__packing_constraints__1': [False], 'assignments__box_usage_count__1': [[9, 8, 7, 6, 5, 4, 3, 2, 1]], 'max_assigned__box_usage_count__1': [0, 9, 9, 9, 9, 9, 9, 9, 9, 9], 'objective__box_usage_count__1': [0]}
+Solve time (sec):
+ 59.8363
+Solution for objective is: [0, 0, 9, 9, 9]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def packing_constraints(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    box_width: int,
+    box_height: int
+) -> None:
+    # Fit items in box and no overlap combined
+    for i in range(1, 10):
+        pos: X_Y_Position = positions[i]
+        item: Item = items[i]
+        # Box fitting constraint
+        assert pos.x + item.width <= box_width
+        assert pos.y + item.height <= box_height
+
+        # Assignment validity
+        assert assignments[i] >= 1
+        assert assignments[i] <= 9
+
+        # No overlap with subsequent items in same box
+        for j in range(i + 1, 10):
+            if assignments[i] == assignments[j]:
+                pos_j: X_Y_Position = positions[j]
+                item_j: Item = items[j]
+
+                # Non-overlap on x-axis
+                x_no_overlap: bool = (
+                    pos.x + item.width <= pos_j.x or
+                    pos_j.x + item_j.width <= pos.x
+                )
+
+                # Non-overlap on y-axis
+                y_no_overlap: bool = (
+                    pos.y + item.height <= pos_j.y or
+                    pos_j.y + item_j.height <= pos.y
+                )
+
+                # At least one axis must not overlap
+                assert x_no_overlap or y_no_overlap
+
+packing_constraints(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)
+
+# --- Box usage count as objective ---
+def box_usage_count(
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]
+) -> int:
+    max_assigned = 0
+    for i in range(1, 10):
+        if assignments[i] > max_assigned:
+            max_assigned = assignments[i]
+    return max_assigned
+
+nr_used_boxes = box_usage_count(item_box_assignments)
+nr_used_boxes = objective
+```
+Objective value: 9
+Solver time: 59.8363
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3620
+output tokens: 431
+total tokens: 4051
+Solver Output:
+ {'objective': [0, 0, 8, 8], 'nr_used_boxes': [1], 'item_box_assignments': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [8], 'assignments__calculate_objective__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 8, 8, 8, 8, 8, 8, 8, 8, 8], 'objective__calculate_objective__1': [0], 'assignments__packing_constraints__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'box_height__packing_constraints__1': [5], 'box_width__packing_constraints__1': [12], 'item__packing_constraints__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_i__packing_constraints__1': [{'height': 5, 'width': 3}], 'item_j__packing_constraints__1': [{'height': 1, 'width': 5}], 'items__packing_constraints__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_boxes__packing_constraints__1': [8], 'objective__packing_constraints__1': [0], 'pos__packing_constraints__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos_i__packing_constraints__1': [{'x': 5, 'y': 0}], 'pos_j__packing_constraints__1': [{'x': 0, 'y': 0}], 'positions__packing_constraints__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 5.16453
+Solution for objective is: [0, 0, 8, 8]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- Objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def packing_constraints(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    box_width: int,
+    box_height: int,
+    nr_boxes: int
+) -> None:
+    # Fit items in box and item-box assignment constraints
+    for i in range(1, 10):
+        pos: X_Y_Position = positions[i]
+        item: Item = items[i]
+        assert pos.x + item.width <= box_width
+        assert pos.y + item.height <= box_height
+        assert assignments[i] >= 1
+        assert assignments[i] <= 9
+        assert assignments[i] <= nr_boxes
+
+    # No overlap constraint
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            if assignments[i] == assignments[j]:
+                pos_i: X_Y_Position = positions[i]
+                pos_j: X_Y_Position = positions[j]
+                item_i: Item = items[i]
+                item_j: Item = items[j]
+                assert pos_i.x + item_i.width <= pos_j.x or pos_j.x + item_j.width <= pos_i.x or pos_i.y + item_i.height <= pos_j.y or pos_j.y + item_j.height <= pos_i.y
+
+packing_constraints(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT, objective)
+```
+Objective value: 8
+Solver time: 5.16453
+Semantic validation: Successfully validated solution.
+*******************************************
+input tokens: 3655
+output tokens: 427
+total tokens: 4082
+Solver Output:
+ {'objective': [0, 0, 8, 8], 'nr_used_boxes': [1], 'item_box_assignments': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'x_y_positions': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]], 'calculated_objective_value': [8], 'assignments__calculate_objective__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'max_box__calculate_objective__1': [0, 8, 8, 8, 8, 8, 8, 8, 8, 8], 'objective__calculate_objective__1': [0], 'assignments__validate_and_fit_items__1': [[8, 7, 6, 5, 4, 3, 2, 1, 1]], 'box_height__validate_and_fit_items__1': [5], 'box_width__validate_and_fit_items__1': [12], 'item__validate_and_fit_items__1': [{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}], 'item_i__validate_and_fit_items__1': [{'height': 5, 'width': 3}], 'item_j__validate_and_fit_items__1': [{'height': 1, 'width': 5}], 'items__validate_and_fit_items__1': [[{'height': 3, 'width': 4}, {'height': 2, 'width': 1}, {'height': 3, 'width': 5}, {'height': 2, 'width': 4}, {'height': 3, 'width': 1}, {'height': 2, 'width': 5}, {'height': 5, 'width': 9}, {'height': 5, 'width': 3}, {'height': 1, 'width': 5}]], 'nr_boxes__validate_and_fit_items__1': [8], 'objective__validate_and_fit_items__1': [0], 'pos__validate_and_fit_items__1': [{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}], 'pos_i__validate_and_fit_items__1': [{'x': 5, 'y': 0}], 'pos_j__validate_and_fit_items__1': [{'x': 0, 'y': 0}], 'positions__validate_and_fit_items__1': [[{'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 0, 'y': 0}, {'x': 5, 'y': 0}, {'x': 0, 'y': 0}]]}
+Solve time (sec):
+ 5.13137
+Solution for objective is: [0, 0, 8, 8]
+Sucessful refactoring:
+*******************************************
+Obj. + Constraints: ```python
+# --- objective ---
+def calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)]) -> int:
+    max_box = 0
+    for i in range(1, 10):
+        if assignments[i] > max_box:
+            max_box = assignments[i]
+    return max_box
+
+calculated_objective_value = calculate_objective(item_box_assignments)
+objective = calculated_objective_value
+
+# --- Constraints ---
+def validate_and_fit_items(
+    items: Annotated[list[Item], Len(9, 9)],
+    positions: Annotated[list[X_Y_Position], Len(9, 9)],
+    assignments: Annotated[list[Annotated[int, Field(strict=True)]], Len(9, 9)],
+    box_width: int,
+    box_height: int,
+    nr_boxes: int
+) -> None:
+    for i in range(1, 10):
+        # Box assignment validity
+        assert assignments[i] >= 1
+        assert assignments[i] <= nr_boxes
+
+        # Fit items in box
+        pos: X_Y_Position = positions[i]
+        item: Item = items[i]
+        assert pos.x + item.width <= box_width
+        assert pos.y + item.height <= box_height
+
+    # Ensure no overlap
+    for i in range(1, 10):
+        for j in range(i + 1, 10):
+            if assignments[i] == assignments[j]:
+                pos_i: X_Y_Position = positions[i]
+                pos_j: X_Y_Position = positions[j]
+                item_i: Item = items[i]
+                item_j: Item = items[j]
+                assert pos_i.x + item_i.width <= pos_j.x or pos_j.x + item_j.width <= pos_i.x or pos_i.y + item_i.height <= pos_j.y or pos_j.y + item_j.height <= pos_i.y
+
+validate_and_fit_items(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT, objective)
+```
+Objective value: 8
+Solver time: 5.13137
+Semantic validation: Successfully validated solution.
+*******************************************
+
+Process finished with exit code 0

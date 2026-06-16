@@ -1,0 +1,48 @@
+[Code]
+```
+from pydantic import Field
+from typing import Annotated
+{}
+```
+
+[Improvement_approaches]
+{}
+
+[Task]
+Perform the following three steps:
+1. Realize the full description of the {}. approach from [Improvement_approaches] by updating the given OptDSL formulation in [Code].
+2. After refactoring, list each decision variable and enumerate all constraints that apply to it. Confirm that none are missing according to [Problem].
+
+Fulfill the following rules:
+- Do not use list comprehension or any list multiplication operator. Code like `[1] * 5` and `[True for _ in range(1, 5)]` is illegal.
+- Do not use floating-point division. Do not define constants (upper-case variables) within functions. Use lower-case variables instead.
+- Assume every list element is automatically initialized at runtime, e.g. the list elements of a list of booleans are automatically set to false.
+- Do not initialize decision-variable-list-elements (with default values). Set a decision-variable-list-element only when it not 0, 0.0 and False.
+- Use minimal necessary temporary variables.
+- Do not initialize decision variables with default values. Set them exactly once.
+- Check that all decision variables from [Decision_variables] are integrated in assert-constraints. Add missing semantic constraints.
+- Constrain every decision variable with at least one other decision variable.
+- Make sure there is a variable "objective" for the optimization goal.
+- Do not return explanations or any markdown code.
+- Put newly introduced variables into a section "# --- Constraints ---", if you introduce new variables.
+- No matter what the approach says, for every decision variable, ensure that:
+    - All its original constraints, bounds, and relationships are defined according to [Problem].
+    - No variable becomes unconstrained
+    - If constraints are rewritten, they must be logically equivalent
+    - they are sufficiently constrained according to their relationship to each other
+    - every decision variable represents its meaning in the described problem
+- Provide your answer as valid OptDSL code enclosed with codeblock in the following format:
+```
+...
+
+# --- Objective ---
+...
+
+# --- Constraints ---
+...
+```
+[Decision_variables]
+{}
+
+[Problem]
+{}

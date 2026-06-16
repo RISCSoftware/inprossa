@@ -1,0 +1,29 @@
+{
+  "input": {},
+  "output": [
+    {
+      "description": "Number of boxes used in the end to pack all all items. Minimizing it is the objective.",
+      "is_objective": true,
+      "mandatory_variable_name": "nr_used_boxes",
+      "suggested_shape": "integer"
+    },
+    {
+      "description": "Which item is assigned to which box as a separate variable.",
+      "is_objective": false,
+      "mandatory_variable_name": "item_box_assignments",
+      "suggested_shape": "array"
+    },
+    {
+      "description": "Position x and y of each item within box as a separate variable.",
+      "is_objective": false,
+      "mandatory_variable_name": "x_y_positions",
+      "suggested_shape": "array"
+    }
+  ],
+  "global_problem": "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have different items given.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+  "subproblems": [
+    "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+    "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+    "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+  ]
+}

@@ -2,7 +2,7 @@ Cache and temp files
 *~
 
 # Compiled
-*.so 
+*.so
 
 # Coverage.py
 htmlcov/
@@ -101,3 +101,6 @@ liccheck_reporting.txt
 
 # credentials and similar
 .env-secrets
+
+# LLM API key
+*.api_key

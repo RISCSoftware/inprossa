@@ -1,0 +1,332 @@
+{
+    "id": "L0-N0|L1-N1|L2-N0|L3-N1|L4-N1",
+    "state": 0,
+    "n_failed_generations": 0,
+    "partial_formulation_up_until_now": "# -- Objects --\n\n\n\n\n# --- Objects ---\nItem = DSRecord({\n    \"width\": DSInt(lb=1, ub=10),\n    \"height\": DSInt(lb=1, ub=5)\n})\n\nBoxAssignment = DSRecord({\n    \"box_id\": DSInt(lb=1, ub=100),\n    \"x\": DSInt(lb=0, ub=1000),\n    \"y\": DSInt(lb=0, ub=1000)\n})\n\n\n\n\n# --- Constants ---\nBOX_HEIGHT : int = 5\nBOX_WIDTH : int = 10\nITEM1 : Item = {\"width\": 10, \"height\": 5}\nITEM2 : Item = {\"width\": 2, \"height\": 2}\nITEMS : DSList(length=2, elem_type=Item) = [ITEM1, ITEM2]\nnr_used_boxes : DSInt(lb=1, ub=100)\nitem_box_assignments : DSList(length=2, elem_type=BoxAssignment)\nx_y_positions : DSList(length=2, elem_type=Item)\nN_ITEMS : int = 2\nN_ITEM_BOX_ASSIGNMENTS : int = 2\nN_X_Y_POSITIONS : int = 2\n\n\n# -- Objective --\n\n\n# --- objective ---\ndef calculate_objective(assignments: DSList(length=2, elem_type=BoxAssignment)) -> int:\n    max_box_id = 0\n    for i in range(1, N_ITEM_BOX_ASSIGNMENTS + 1):\n        box_id = assignments[i].box_id\n        if box_id > max_box_id:\n            max_box_id = box_id\n    return max_box_id\n\ncalculated_objective_value = calculate_objective(item_box_assignments)\nobjective = calculated_objective_value\n\n# -- Constraints --\n\n\n# --- Auxiliary Variables ---\n# No additional auxiliary variables needed\n# --- constraints ---\ndef pack_items_in_boxes(assignments: DSList(length=2, elem_type=BoxAssignment), items: DSList(length=2, elem_type=Item)) -> None:\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        assignment : BoxAssignment = assignments[i]\n        assert assignment.x >= 0\n        assert assignment.y >= 0\n        assert assignment.x + item.width <= BOX_WIDTH\n        assert assignment.y + item.height <= BOX_HEIGHT\n        assert assignment.box_id >= 1\n        assert assignment.box_id <= 100\n\npack_items_in_boxes(item_box_assignments, ITEMS)\n\ndef ensure_no_overlap(assignments: DSList(length=2, elem_type=BoxAssignment), items: DSList(length=2, elem_type=Item)) -> None:\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            item_i : Item = items[i]\n            item_j : Item = items[j]\n            assignment_i : BoxAssignment = assignments[i]\n            assignment_j : BoxAssignment = assignments[j]\n            # Check if boxes are the same\n            if assignment_i.box_id == assignment_j.box_id:\n                # Check for overlap in x-direction\n                assert not (assignment_i.x + item_i.width <= assignment_j.x or assignment_j.x + item_j.width <= assignment_i.x)\n                # Check for overlap in y-direction\n                assert not (assignment_i.y + item_i.height <= assignment_j.y or assignment_j.y + item_j.height <= assignment_i.y)\n\nensure_no_overlap(item_box_assignments, ITEMS)\n\n# --- Auxiliary Variables ---\n# No additional auxiliary variables needed\n# --- constraints ---\ndef pack_items_in_boxes(assignments: DSList(length=2, elem_type=BoxAssignment), items: DSList(length=2, elem_type=Item)) -> None:\n    for i in range(1, N_ITEMS + 1):\n        item : Item = items[i]\n        assignment : BoxAssignment = assignments[i]\n        assert assignment.x >= 0\n        assert assignment.y >= 0\n        assert assignment.x + item.width <= BOX_WIDTH\n        assert assignment.y + item.height <= BOX_HEIGHT\n        assert assignment.box_id >= 1\n        assert assignment.box_id <= 100\n\npack_items_in_boxes(item_box_assignments, ITEMS)\n\ndef ensure_no_overlap(assignments: DSList(length=2, elem_type=BoxAssignment), items: DSList(length=2, elem_type=Item)) -> None:\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            item_i : Item = items[i]\n            item_j : Item = items[j]\n            assignment_i : BoxAssignment = assignments[i]\n            assignment_j : BoxAssignment = assignments[j]\n            # Check if boxes are the same\n            if assignment_i.box_id == assignment_j.box_id:\n                # Check for overlap in x-direction\n                assert not (assignment_i.x + item_i.width <= assignment_j.x or assignment_j.x + item_j.width <= assignment_i.x)\n                # Check for overlap in y-direction\n                assert not (assignment_i.y + item_i.height <= assignment_j.y or assignment_j.y + item_j.height <= assignment_i.y)\n\nensure_no_overlap(item_box_assignments, ITEMS)\n\n# --- constraints ---\ndef ensure_single_assignment(assignments: DSList(length=2, elem_type=BoxAssignment), items: DSList(length=2, elem_type=Item)) -> None:\n    for i in range(1, N_ITEMS + 1):\n        assignment : BoxAssignment = assignments[i]\n        assert assignment.box_id >= 1\n        assert assignment.box_id <= 100\n        assert assignment.x >= 0\n        assert assignment.y >= 0\n        assert assignment.x + items[i].width <= BOX_WIDTH\n        assert assignment.y + items[i].height <= BOX_HEIGHT\n\nensure_single_assignment(item_box_assignments, ITEMS)\n\nnr_used_boxes = objective",
+    "objective_val": 1,
+    "solution_model": {
+        "objective": [
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+        ],
+        "nr_used_boxes": [
+            1
+        ],
+        "item_box_assignments": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "x_y_positions": [
+            [
+                {
+                    "height": 1,
+                    "width": 1
+                },
+                {
+                    "height": 1,
+                    "width": 1
+                }
+            ]
+        ],
+        "calculated_objective_value": [
+            1
+        ],
+        "assignments__calculate_objective__1": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "box_id__calculate_objective__1": [
+            1,
+            1
+        ],
+        "max_box_id__calculate_objective__1": [
+            0,
+            1,
+            1
+        ],
+        "objective__calculate_objective__1": [
+            0
+        ],
+        "assignment__pack_items_in_boxes__1": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__pack_items_in_boxes__1": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "item__pack_items_in_boxes__1": [
+            {
+                "height": 5,
+                "width": 10
+            },
+            {
+                "height": 2,
+                "width": 2
+            }
+        ],
+        "items__pack_items_in_boxes__1": [
+            [
+                {
+                    "height": 5,
+                    "width": 10
+                },
+                {
+                    "height": 2,
+                    "width": 2
+                }
+            ]
+        ],
+        "objective__pack_items_in_boxes__1": [
+            0
+        ],
+        "assignment_i__ensure_no_overlap__1": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignment_j__ensure_no_overlap__1": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__ensure_no_overlap__1": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "item_i__ensure_no_overlap__1": [
+            {
+                "height": 5,
+                "width": 10
+            }
+        ],
+        "item_j__ensure_no_overlap__1": [
+            {
+                "height": 2,
+                "width": 2
+            }
+        ],
+        "items__ensure_no_overlap__1": [
+            [
+                {
+                    "height": 5,
+                    "width": 10
+                },
+                {
+                    "height": 2,
+                    "width": 2
+                }
+            ]
+        ],
+        "objective__ensure_no_overlap__1": [
+            0
+        ],
+        "assignment__pack_items_in_boxes__2": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__pack_items_in_boxes__2": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "item__pack_items_in_boxes__2": [
+            {
+                "height": 5,
+                "width": 10
+            },
+            {
+                "height": 2,
+                "width": 2
+            }
+        ],
+        "items__pack_items_in_boxes__2": [
+            [
+                {
+                    "height": 5,
+                    "width": 10
+                },
+                {
+                    "height": 2,
+                    "width": 2
+                }
+            ]
+        ],
+        "objective__pack_items_in_boxes__2": [
+            0
+        ],
+        "assignment_i__ensure_no_overlap__2": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignment_j__ensure_no_overlap__2": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__ensure_no_overlap__2": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "item_i__ensure_no_overlap__2": [
+            {
+                "height": 5,
+                "width": 10
+            }
+        ],
+        "item_j__ensure_no_overlap__2": [
+            {
+                "height": 2,
+                "width": 2
+            }
+        ],
+        "items__ensure_no_overlap__2": [
+            [
+                {
+                    "height": 5,
+                    "width": 10
+                },
+                {
+                    "height": 2,
+                    "width": 2
+                }
+            ]
+        ],
+        "objective__ensure_no_overlap__2": [
+            0
+        ],
+        "assignment__ensure_single_assignment__1": [
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "box_id": 1,
+                "x": 0,
+                "y": 0
+            }
+        ],
+        "assignments__ensure_single_assignment__1": [
+            [
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "box_id": 1,
+                    "x": 0,
+                    "y": 0
+                }
+            ]
+        ],
+        "items__ensure_single_assignment__1": [
+            [
+                {
+                    "height": 5,
+                    "width": 10
+                },
+                {
+                    "height": 2,
+                    "width": 2
+                }
+            ]
+        ],
+        "objective__ensure_single_assignment__1": [
+            0
+        ]
+    },
+    "solve_time": 0.0005862,
+    "final_evaluation_result": "Failed to validate solution: Items 0 and 1 overlap."
+}

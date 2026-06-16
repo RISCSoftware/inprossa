@@ -1,0 +1,4 @@
+Assume we are given a snippet of an optimization problem formulation in a domain specific language (DSL) that the LLM is not familiar with. But we provide a system prompt with the language description.
+Given such a code snippet, the DSL description as system prompt and the optimization problem description, we want to improve that snippet now. List ten good prompts to stimulate the LLM to try improve different aspects of that formulation.
+Do not use concrete values or any variables at all, just pure textual descriptions.
+Return a short, concise answer and a sentence at the end: "Found approaches: <nr_approaches>", where you replace <nr_approaches> with the number of the found above approaches.

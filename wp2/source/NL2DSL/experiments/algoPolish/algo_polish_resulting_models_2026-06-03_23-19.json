@@ -1,0 +1,1742 @@
+[
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_min_boxes(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_min_boxes(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef pack_items_in_boxes(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Each item must be assigned to a valid box\n        assert box_id >= 1\n        assert box_id <= 20\n        \n        # Position constraints\n        assert pos.x >= 0\n        assert pos.y >= 0\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y + item.height <= BOX_HEIGHT\n        \n        # Non-overlap constraints\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                assert pos.x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= pos.x + item.width or \\\n                       pos.y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= pos.y + item.height\n\npack_items_in_boxes(ITEMS, x_y_positions, item_box_assignments)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_min_boxes(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_min_boxes(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef pack_items_in_boxes(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Each item must be assigned to a valid box\n        assert box_id >= 1\n        assert box_id <= 20\n        \n        # Position constraints\n        assert pos.x >= 0\n        assert pos.y >= 0\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y + item.height <= BOX_HEIGHT\n        \n        # Non-overlap constraints\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                assert pos.x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= pos.x + item.width or \\\n                       pos.y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= pos.y + item.height\n\npack_items_in_boxes(ITEMS, x_y_positions, item_box_assignments)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21657,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id > 0)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)],\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id > 0)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21666,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id >= 1)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)],\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id >= 1)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21678999999999998,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id > 0)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)],\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id > 0)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21686999999999998,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id >= 1)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            # Check if both items are assigned to the same box\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)],\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id >= 1)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            # Check if both items are assigned to the same box\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21692999999999998,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_minimal_boxes(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_minimal_boxes(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef pack_items_constraints(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Each item must be assigned to a valid box\n        assert box_id >= 1\n        assert box_id <= 20\n        \n        # Position constraints\n        assert pos.x >= 0\n        assert pos.y >= 0\n        \n        # Fit constraints\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y + item.height <= BOX_HEIGHT\n        \n        # Non-overlap constraints\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert pos.x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= pos.x + item.width or \\\n                       pos.y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= pos.y + item.height\n\npack_items_constraints(ITEMS, x_y_positions, item_box_assignments)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_minimal_boxes(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_minimal_boxes(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef pack_items_constraints(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Each item must be assigned to a valid box\n        assert box_id >= 1\n        assert box_id <= 20\n        \n        # Position constraints\n        assert pos.x >= 0\n        assert pos.y >= 0\n        \n        # Fit constraints\n        assert pos.x + item.width <= BOX_WIDTH\n        assert pos.y + item.height <= BOX_HEIGHT\n        \n        # Non-overlap constraints\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert pos.x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= pos.x + item.width or \\\n                       pos.y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= pos.y + item.height\n\npack_items_constraints(ITEMS, x_y_positions, item_box_assignments)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21707,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id > 0)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)],\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id > 0)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21726,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id >= 1)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef items_fit_exactly_in_box(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)],\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id >= 1)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\ndef no_item_overlap(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\ndef ensure_item_in_one_box_only(\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21727,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "#--- Objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "#--- Constraints ---\ndef pack_and_place_items(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Ensure item fits in box and is within bounds\n        assert pos.x >= 0\n        assert pos.y >= 0\n        assert pos.x + item.width <= box_width\n        assert pos.y + item.height <= box_height\n        \n        # Ensure each item is assigned to exactly one box\n        assert box_id >= 1\n        assert box_id <= 20\n        \n        # Check for non-overlapping between items in same box\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                assert pos.x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= pos.x + item.width or \\\n                       pos.y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= pos.y + item.height\n\npack_and_place_items(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)",
+        "full_formulation": "# --- Objects ---\n\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]\nitem_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20\n\n\n#--- Objective ---\ndef calculate_objective(assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]) -> Annotated[int, Field(strict=True, ge=1, le=20)]:\n    max_box: Annotated[int, Field(strict=True, ge=1, le=20)] = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n#--- Constraints ---\ndef pack_and_place_items(\n    items: Annotated[list[Item], Len(20, 20)],\n    positions: Annotated[list[X_Y_Position], Len(20, 20)],\n    assignments: Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)],\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: Annotated[int, Field(strict=True, ge=1, le=20)] = assignments[i]\n        \n        # Ensure item fits in box and is within bounds\n        assert pos.x >= 0\n        assert pos.y >= 0\n        assert pos.x + item.width <= box_width\n        assert pos.y + item.height <= box_height\n        \n        # Ensure each item is assigned to exactly one box\n        assert box_id >= 1\n        assert box_id <= 20\n        \n        # Check for non-overlapping between items in same box\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                assert pos.x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= pos.x + item.width or \\\n                       pos.y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= pos.y + item.height\n\npack_and_place_items(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)",
+        "objective_val": 4.3,
+        "solution_model": {},
+        "solve_time": 0.21737,
+        "final_evaluation_result": ""
+    },
+    {
+        "problem_description": [
+            "\u00b4\u00b4\u00b4 json\n{}\u00b4\u00b4\u00b4",
+            "\u00b4\u00b4\u00b4 json\n[]\u00b4\u00b4\u00b4",
+            "Global problem:\n    This problem involves a collection of items, where each have a height and a width. We have 6 different items given in the parameters.\n    We have a infinite number of boxes with width BOX_WIDTH and height BOX_HEIGHT. All items need to be packed into minimal number of such boxes.\n    The result and expected output is:\n        - the assigment of each item into a box\n        - the position (x and y) of each item within its assigned box. x and y have minimum values 0 and maximum infinity.",
+            "Sub problem definition - items that go in the bin - part 1:\n    The items that are put into a box, must fit exactly inside the box and must not stick out of the box.",
+            "Sub problem definition - items that go in the bin - part 2:\n    Taking the given items that are put into a box, they must not overlap.",
+            "Sub problem definition - items that go in the bin - part 3:\n    Taking the given items that are put into a box, one item can be exactly in one box."
+        ],
+        "llm_generated_objects": "",
+        "script_generated_objects": {
+            "Item": "Item = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\n",
+            "X_Y_Position": "X_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n"
+        },
+        "constants": [
+            {
+                "description": "",
+                "variable_name": "BOX_HEIGHT",
+                "type": "BOX_HEIGHT : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_HEIGHT : int = {}",
+                "initialization": "BOX_HEIGHT : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "BOX_WIDTH",
+                "type": "BOX_WIDTH : int",
+                "variable_instance": [
+                    10
+                ],
+                "variable_dslcode_template": "BOX_WIDTH : int = {}",
+                "initialization": "BOX_WIDTH : int = 10"
+            },
+            {
+                "description": "",
+                "variable_name": "ITEMS",
+                "type": "ITEMS : DSList(length = {}, elem_type = Item)",
+                "variable_instance": [
+                    20,
+                    [
+                        {
+                            "width": 10,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 2,
+                            "height": 4
+                        },
+                        {
+                            "width": 10,
+                            "height": 10
+                        },
+                        {
+                            "width": 7,
+                            "height": 2
+                        },
+                        {
+                            "width": 9,
+                            "height": 10
+                        },
+                        {
+                            "width": 5,
+                            "height": 6
+                        },
+                        {
+                            "width": 7,
+                            "height": 5
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 5,
+                            "height": 3
+                        },
+                        {
+                            "width": 3,
+                            "height": 9
+                        },
+                        {
+                            "width": 9,
+                            "height": 4
+                        },
+                        {
+                            "width": 2,
+                            "height": 10
+                        },
+                        {
+                            "width": 4,
+                            "height": 3
+                        },
+                        {
+                            "width": 2,
+                            "height": 2
+                        },
+                        {
+                            "width": 4,
+                            "height": 9
+                        },
+                        {
+                            "width": 2,
+                            "height": 8
+                        },
+                        {
+                            "width": 1,
+                            "height": 1
+                        },
+                        {
+                            "width": 1,
+                            "height": 7
+                        },
+                        {
+                            "width": 4,
+                            "height": 4
+                        }
+                    ],
+                    20
+                ],
+                "variable_dslcode_template": "ITEMS : DSList(length = {}, elem_type = Item) = {}\nN_ITEMS : int = {}",
+                "initialization": "ITEMS : Annotated[list[Item], Len(20, 20)] = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20"
+            }
+        ],
+        "decision_variables": [
+            {
+                "description": "",
+                "variable_name": "nr_used_boxes",
+                "type": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "variable_instance": [
+                    1,
+                    20
+                ],
+                "variable_dslcode_template": "nr_used_boxes : DSInt(lb={}, ub={})",
+                "initialization": "nr_used_boxes : Annotated[int, Field(strict=True, ge=1, le=20)]"
+            },
+            {
+                "description": "",
+                "variable_name": "item_box_assignments",
+                "type": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int",
+                "variable_instance": [
+                    20,
+                    1,
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "item_box_assignments : DSList(length = {}, elem_type = DSInt(lb={}, ub={}))\nN_ITEM_BOX_ASSIGNMENTS : int = {}",
+                "initialization": "item_box_assignments : Annotated[list[Annotated[int, Field(strict=True, ge=1, le=20)]], Len(20, 20)]\nN_ITEM_BOX_ASSIGNMENTS : int = 20"
+            },
+            {
+                "description": "",
+                "variable_name": "x_y_positions",
+                "type": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int",
+                "variable_instance": [
+                    20,
+                    20
+                ],
+                "variable_dslcode_template": "x_y_positions : DSList(length = {}, elem_type = X_Y_Position)\nN_X_Y_POSITIONS : int = {}",
+                "initialization": "x_y_positions : Annotated[list[X_Y_Position], Len(20, 20)]\nN_X_Y_POSITIONS : int = 20"
+            }
+        ],
+        "objective": "# --- objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)",
+        "constraints": "# -- Constraints --\n\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef items_fit_exactly_in_box(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id > 0)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\n# --- constraints ---\ndef no_item_overlap(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef ensure_item_in_one_box_only(\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "full_formulation": "# --- Objects ---\nItem = DSRecord({\"width\" : DSInt(lb=1, ub=10), \"height\" : DSInt(lb=1, ub=10)})\nX_Y_Position = DSRecord({\"x\" : DSInt(lb=0, ub=10), \"y\" : DSInt(lb=0, ub=10)})\n\n\n\n# --- Constants and Decision Variables ---\nBOX_HEIGHT : int = 10\nBOX_WIDTH : int = 10\nITEMS : DSList(length=20, elem_type=Item) = [{'width': 10, 'height': 4}, {'width': 2, 'height': 10}, {'width': 2, 'height': 4}, {'width': 10, 'height': 10}, {'width': 7, 'height': 2}, {'width': 9, 'height': 10}, {'width': 5, 'height': 6}, {'width': 7, 'height': 5}, {'width': 1, 'height': 7}, {'width': 5, 'height': 3}, {'width': 3, 'height': 9}, {'width': 9, 'height': 4}, {'width': 2, 'height': 10}, {'width': 4, 'height': 3}, {'width': 2, 'height': 2}, {'width': 4, 'height': 9}, {'width': 2, 'height': 8}, {'width': 1, 'height': 1}, {'width': 1, 'height': 7}, {'width': 4, 'height': 4}]\nN_ITEMS : int = 20\nnr_used_boxes : DSInt(lb=1, ub=20)\nitem_box_assignments : DSList(length=20, elem_type=DSInt(lb=1, ub=20))\nN_ITEM_BOX_ASSIGNMENTS : int = 20\nx_y_positions : DSList(length=20, elem_type=X_Y_Position)\nN_X_Y_POSITIONS : int = 20\n\n\n# --- objective ---\ndef calculate_objective(assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))) -> DSInt(lb=1, ub=20):\n    max_box: DSInt(lb=1, ub=20) = 1\n    for i in range(1, N_ITEMS + 1):\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        if box_id > max_box:\n            max_box = box_id\n    return max_box\n\nobjective = calculate_objective(item_box_assignments)\nnr_used_boxes = objective\nminimize(objective)\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef items_fit_exactly_in_box(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20)),\n    box_width: int,\n    box_height: int\n):\n    for i in range(1, N_ITEMS + 1):\n        item: Item = items[i]\n        pos: X_Y_Position = positions[i]\n        box_id: DSInt(lb=1, ub=20) = assignments[i]\n        \n        # Only check items that are assigned to a box (box_id > 0)\n        if box_id >= 1:\n            # Right edge must not exceed box width\n            assert pos.x + item.width <= box_width\n            # Bottom edge must not exceed box height\n            assert pos.y + item.height <= box_height\n            # Positions must be non-negative\n            assert pos.x >= 0\n            assert pos.y >= 0\n\nitems_fit_exactly_in_box(ITEMS, x_y_positions, item_box_assignments, BOX_WIDTH, BOX_HEIGHT)\n\n# --- constraints ---\ndef no_item_overlap(\n    items: DSList(length=20, elem_type=Item),\n    positions: DSList(length=20, elem_type=X_Y_Position),\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        for j in range(i + 1, N_ITEMS + 1):\n            if assignments[i] == assignments[j]:\n                # Check for non-overlapping rectangles\n                assert positions[i].x >= positions[j].x + items[j].width or \\\n                       positions[j].x >= positions[i].x + items[i].width or \\\n                       positions[i].y >= positions[j].y + items[j].height or \\\n                       positions[j].y >= positions[i].y + items[i].height\n\nno_item_overlap(ITEMS, x_y_positions, item_box_assignments)\n\n# --- Auxiliary Variables ---\n# Leave empty, if not required.\n# --- constraints ---\ndef ensure_item_in_one_box_only(\n    assignments: DSList(length=20, elem_type=DSInt(lb=1, ub=20))\n):\n    for i in range(1, N_ITEMS + 1):\n        assert assignments[i] >= 1\n        assert assignments[i] <= 20\n\nensure_item_in_one_box_only(item_box_assignments)",
+        "objective_val": 6,
+        "solution_model": {},
+        "solve_time": 0.248,
+        "final_evaluation_result": ""
+    }
+]

@@ -1,0 +1,36 @@
+{
+  "BOX_HEIGHT": 6,
+  "BOX_WIDTH": 10,
+  "ITEMS": [
+    {
+      "name": "item1",
+      "width": 4,
+      "height": 3
+    },
+    {
+      "name": "item2",
+      "width": 3,
+      "height": 2
+    },
+    {
+      "name": "item3",
+      "width": 5,
+      "height": 3
+    },
+    {
+      "name": "item4",
+      "width": 2,
+      "height": 4
+    },
+    {
+      "name": "item5",
+      "width": 3,
+      "height": 3
+    },
+    {
+      "name": "item6",
+      "width": 5,
+      "height": 2
+    }
+  ]
+}

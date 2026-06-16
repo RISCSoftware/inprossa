@@ -1,0 +1,130 @@
+import subprocess
+
+import re
+import ast
+from typing import Any, Dict
+#from minizinc import Model, Solver, Instance
+import threading
+
+import constants
+from constants import DEBUG_MODE_ON
+
+lock = threading.Lock()
+
+
+class MiniZincSolver:
+    def solve_with_command_line_minizinc(self, minizinc_code: str, last_in_progress: bool = False):
+        """
+        Solve given problem formulation, given as minizinc code with MiniZinc command line.
+        Args:
+            minizinc_code: Optimization problem formulation MiniZinc.
+            last_in_progress: If the formulation does not contain subproblem-constraints yet,
+                              then we do not care about the exact result found by the solver,
+                              just that it finds some result, therefore confirming that the formulation is executable.
+        """
+        # write the MiniZinc model to temp.mzn
+        with lock:
+            with open("temp.mzn", "w", encoding="utf-8") as f:
+                f.write(minizinc_code)
+
+            # run minizinc on the file
+            try:
+                if not last_in_progress:
+                    result = subprocess.Popen(
+                        ["minizinc",
+                            "--solver", constants.SOLVER,
+                            "--statistics",
+                            "--output-mode", "item",
+                            "--time-limit", "5000",
+                            "--random-seed", "0",
+                            "temp.mzn"],
+                        text=True,
+                        stdout = subprocess.PIPE, stderr = subprocess.PIPE
+                    )
+                else:
+                    result = subprocess.Popen(
+                        ["minizinc",
+                             "--solver", constants.SOLVER,
+                             "--statistics",
+                             "--output-mode", "item",
+                             "--time-limit", str(constants.SOLVE_TIME_TIMEOUT),
+                             "--random-seed", "0",
+                             "temp.mzn"],
+                        text=True,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    )
+                try:
+                    solver_output, errs = result.communicate(timeout=constants.SOLVE_TIME_TIMEOUT)
+                except subprocess.TimeoutExpired:
+                    if DEBUG_MODE_ON: print("Minizinc failed the first time - lets try that again")
+                    result.kill()  # or proc.terminate()
+                    solver_output, errs = result.communicate()
+                finally:
+                    result.terminate()
+                solver_output = solver_output
+            except KeyboardInterrupt:
+                print("Caught Ctrl-C! Probably MiniZinc died again ...")
+                return "Unknown", None
+
+        if solver_output:
+            if "unsatisfiable" not in solver_output.lower(): # "unknown" not in solver_output.lower() and
+                solve_time = None
+                m = re.search(r"solveTime\s*=\s*([0-9]*\.?[0-9,e,-]+)", solver_output)
+                if m:
+                    solve_time = float(m.group(1))
+                m = re.search(r"initTime\s*=\s*([0-9]*\.?[0-9,e,-]+)", solver_output)
+                if m:
+                    solve_time += float(m.group(1))
+                m = re.search(r"optTime\s*=\s*([0-9]*\.?[0-9,e,-]+)", solver_output)
+                if m:
+                    solve_time += float(m.group(1))
+                filtered_result = "\n".join(line for line in solver_output.splitlines() if ("%" not in line
+                                                                                              and "---" not in line
+                                                                                              and "===" not in line))
+                parsed_solution = self._minizinc_item_to_dict(filtered_result)
+                if "unknown" in str(solver_output).lower():
+                    parsed_solution.update({"solver_result_is": "unknown"})
+                else:
+                    parsed_solution.update({"solver_result_is": "optimal"})
+                print("Solver Output:\n", parsed_solution)
+                print("Solve time (sec): ", solve_time)
+                return parsed_solution, solve_time
+            else:
+                print("Output:\n", solver_output)
+                return solver_output, None
+        if errs:
+            print("Errors:\\n", errs)
+            return f"{errs}", None
+        return None, None
+
+    def _minizinc_item_to_dict(self, s: str) -> Dict[str, Any]:
+        """
+        Extract solver result as dict.
+        Args:
+            s(str): raw solver output (problem solution)
+        """
+        result: Dict[str, Any] = {}
+
+        parts = [p.strip() for p in s.split(';') if p.strip()]
+        for part in parts:
+            if '=' not in part:
+                continue
+            key, val = part.split('=', 1)
+            key = key.strip()
+            val = val.strip()
+
+            # Convert record syntax: (field: v, ...) → { "field": v, ...}
+            py = val.replace('(', '{').replace(')', '}')
+            py = re.sub(r'([A-Za-z_]\w*)\s*:', r'"\1":', py)
+
+            # Convert MiniZinc boolean literals to Python booleans
+            py = (re.compile(r'\b(true|false)\b', flags=re.IGNORECASE)
+                  .sub(lambda m: m.group(1).lower().capitalize(), py))
+
+            try:
+                parsed = ast.literal_eval(py)
+            except Exception as e:
+                raise ValueError(f"Cannot parse value for {key!r}.\nTransformed: {py!r}\nError: {e}")
+            result[key] = parsed
+        return result
+
