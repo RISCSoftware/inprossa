@@ -95,7 +95,7 @@ class TreeNode:
 
     def save_model_to_file(self, final_evaluation_result, problem_description: str, filename: str = f'optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H")}.json'):
         curNode = self
-        while(curNode.parent.level != 3):
+        while curNode.parent.level != 3:
             curNode = curNode.parent
         data = {
             "problem_description": problem_description,
@@ -123,20 +123,38 @@ class TreeNode:
             json.dump(existing_data, f, indent=4)
 
     def increment_n_failed_generations(self):
+        """
+            Increment number of failed LLM formulation generations.
+        """
         self.n_failed_generations += 1
         self.state = State.FAILED
 
     def append_child(self, child):
+        """
+        Append a child node to the current node. Max. possilbe children is constants.NR_MAX_CHILDREN.
+        Args:
+            child (TreeNode): child to be appended.
+        """
         self.children.append(child)
 
     def get_correct_children(self):
+        """
+        Get syntactically/semantically correct child nodes from current node.
+        """
         return [child for child in self.children if (child.state == State.CORRECT and child.n_failed_generations == 0)]
 
     def get_partial_formulation_up_until_now(self):
+        """
+        Get formulation from root up to current node.
+        """
         return self.partial_formulation_up_until_now
 
-    def set_content(self, content, failed: bool = False):
-        if constants.USE_ALL_AT_ONCE_AND_EXTRACT: content = remove_duplicate_lines(build_code(self), content)
+    def set_content(self, content):
+        """
+        Set content of current node.
+        Args:
+            content (str): content of current node.
+        """
         if isinstance(self, ObjectsNode) and "# --- Objects ---\n" not in content: content =  "# --- Objects ---\n" + content
 
         self.content += "\n\n"
@@ -150,8 +168,47 @@ class TreeNode:
             if self.state == State.UNINITIALIZED: self.state = State.CORRECT
         if self.save_nodes: self.save_child_to_file()
 
-    def prepend_section_title(self, block):
-        return f"# --- {self.name} ---\n" + block
+
+    def get_siblings(self):
+        """
+        Get tree siblings of current node.
+        """
+        curNode = self
+        while (not isinstance(curNode, RootNode)):
+            curNode = curNode.parent
+        return self.collect_siblings([], curNode)
+
+    def collect_siblings(self, siblings: list, curNode):
+        """
+        Collect siblings of current node across tree recursively.
+        Args:
+            siblings (list): siblings of current node.
+            curNode (TreeNode): current node.
+        """
+        if curNode is not self and curNode.level == self.level:
+            siblings.append(curNode.formulation_with_stripped_comments())
+        if curNode.level == 4:
+            return siblings
+        else:
+            for child in curNode.children:
+                siblings = self.collect_siblings(siblings, child)
+        return siblings
+
+    def formulation_with_stripped_comments(self):
+        """
+        Remove all comments from partial_formulation_up_until_now and return it.
+        """
+        return TreeNode.strip_comments(self.get_partial_formulation_up_until_now())
+
+    @staticmethod
+    def strip_comments(code: str):
+        """
+        Remove python comments from pythonic formulation "code".
+        Args:
+            code (str): python/pythonic formulation
+        """
+        code = re.sub(r'(?m)^ *#.*\n?', '', str(code))
+        return "\n".join(line for line in code.split("\n") if line)
 
     ################# MCST specific ####################
     def is_fully_expanded(self):
@@ -175,34 +232,6 @@ class RootNode(TreeNode):
         super().__init__(name, parent, save_nodes=save_nodes, save_model=save_model)
         use_heavy_module_sentence_transformers()
 
-    def set_content(self, content, failed: bool = False):
-        # Check if at least one section header is present
-        if "--- Objects ---".lower() not in content.lower() or "--- Decision variables ---".lower() not in content.lower() or "--- Constants and Decision Variables ---".lower() not in content.lower() or "--- Objective function ---".lower() not in content.lower() or "--- Constraints 1 ---".lower() not in content.lower():
-            self.increment_n_failed_generations()
-            return False
-
-        # Extract code according to section headers
-        blocks = {}
-        current_key = None
-        for line in content.splitlines():
-            # Detect a block header, e.g. "--- Datatypes ---"
-            m = re.match(r'^---\s*(.+?)\s*---$', line)
-            if m:
-                current_key = m.group(1).strip().lower()  # use lower case key
-                blocks[current_key] = []
-            else:
-                if current_key is not None:
-                    blocks[current_key].append(line)
-
-        # Convert lists into single strings
-        for k in blocks:
-            blocks[k] = "\n".join(blocks[k]).strip()
-
-        self.content += f"# --- {self.name} ---\n"
-        self.content += blocks
-        self.state = State.CORRECT
-        return True
-
 class ObjectsNode(TreeNode):
     def __init__(self, name = "", parent = None):
         super().__init__("Objects", parent, level=1)
@@ -210,13 +239,16 @@ class ObjectsNode(TreeNode):
         self.script_generated_objects = None
 
     def set_llm_generated_objects(self, llm_generated_objects):
+        """
+        Set LLM-generated object type OptDSL formulation, used for flexible shapes methodology.
+        """
         self.llm_generated_objects = llm_generated_objects
 
     def set_script_generated_objects(self, script_generated_objects):
+        """
+        Set script-generated object type OptDSL formulation, used for fixed shapes methodology.
+        """
         self.script_generated_objects = script_generated_objects
-
-    def get_textual_repr(self):
-        return self.parent.content()
 
 class VariablesConstantsNode(TreeNode):
     def __init__(self, name = "", parent = None):
@@ -224,39 +256,31 @@ class VariablesConstantsNode(TreeNode):
         self.all_variables_created = False
         super().__init__("Constants and Decision Variables", parent, level=2)
 
-    def set_constants(self, incomming_constants, expected_input_variables = None):
+    def set_constants(self, incomming_constants):
+        """
+        Set constants in node as json (self.variables_and_constants),
+        while also defining the json definitions as OptDSL formulation block (self.content).
+        Args:
+            incomming_constants (str): json-string representing variable definitions.
+        """
         self.content = "# --- Constants ---\n"
         if not is_valid_json(incomming_constants):
             self.state = State.FAILED
             return False
         if incomming_constants.strip() == "":
             self.state = State.FAILED
-        if not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
-            # Filter constants
-            filtered_constants_only = [item for item in json.loads(incomming_constants) if item.get("variable_name", "").isupper()]
 
-            # Safety check: There must be at least one constant (input)
-            if len(filtered_constants_only) == 0:
-                if constants.DEBUG_MODE_ON: print(f"Checking node created for level 2 (constants): No uppercase constants found.")
-                self.state = State.FAILED
-                return False
+        # Filter constants
+        filtered_constants_only = [item for item in json.loads(incomming_constants) if item.get("variable_name", "").isupper()]
 
-            # Safety check: All expected input variable names must be defined
-            #if expected_input_variables is not None:
-            #    variable_names = [item["variable_name"].lower() for item in filtered_constants_only]
-            #    if isinstance(expected_input_variables, str):
-            #        expected_input_variables = json.loads(remove_programming_environment(expected_input_variables))
-            #        expected_input_variables = [variable.lower() for variable in expected_input_variables]
-            #    for expected_variable in expected_input_variables:
-            #        if expected_variable not in variable_names:
-            #            if DEBUG_MODE_ON: print(
-            #                f"Constant variable not defined: {expected_variable}")
-            #            return False
+        # Safety check: There must be at least one constant (input)
+        if len(filtered_constants_only) == 0:
+            if constants.DEBUG_MODE_ON: print(f"Checking node created for level 2 (constants): No uppercase constants found.")
+            self.state = State.FAILED
+            return False
 
-            self.variables_and_constants.extend(filtered_constants_only)
-            self.content += self.get_as_codeblock()
-        else:
-            self.content += incomming_constants
+        self.variables_and_constants.extend(filtered_constants_only)
+        self.content += self.get_as_codeblock()
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
 
         # Only check satisfiability for constants if mode is "fixed_objects_fixed_input_values", "fixed_objects_fixed_inoutput_values"
@@ -267,35 +291,40 @@ class VariablesConstantsNode(TreeNode):
         return True
 
     def set_variables(self, variables, expected_output_variables):
+        """
+        Set decision variables in node as json (self.variables_and_constants),
+        while also defining the json definitions as OptDSL formulation block (self.content).
+        Args:
+            variables (str): json-string representing variable definitions.
+            expected_output_variables (str): list of expected output variables names.
+        """
         if not is_valid_json(variables):
             return False
 
         if variables.strip() == "":
             self.state = State.FAILED
-        elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
-            # Filter decision variables
-            filtered_decision_variables_only = [item for item in json.loads(variables) if item.get("variable_name", "").islower()]
 
-            # Safety check: There must be at least one decision variable (output)
-            if len(filtered_decision_variables_only) == 0:
-                if constants.DEBUG_MODE_ON: print(
-                    f"Checking node created for level 3 (decision variables): No lower case variables found.")
-                return False
+        # Filter decision variables
+        filtered_decision_variables_only = [item for item in json.loads(variables) if item.get("variable_name", "").islower()]
 
-            # Safety check: All expected output variable names must be defined
-            if expected_output_variables:
-                variable_names = [item["variable_name"] for item in filtered_decision_variables_only]
-                for expected_variable in (json.loads(remove_programming_environment(expected_output_variables))):
-                    if expected_variable["mandatory_variable_name"] not in variable_names:
-                        if DEBUG_MODE_ON: print(f"Expected variable not defined: {expected_variable["mandatory_variable_name"]}")
-                        return False
+        # Safety check: There must be at least one decision variable (output)
+        if len(filtered_decision_variables_only) == 0:
+            if constants.DEBUG_MODE_ON: print(
+                f"Checking node created for level 3 (decision variables): No lower case variables found.")
+            return False
 
-            self.variables_and_constants.extend(remove_duplicate_variables(filtered_decision_variables_only,0.925))
-            self.define_list_lengths()
-            self.variables_and_constants = remove_duplicate_variables(self.variables_and_constants, 1)
-            self.content = f"\n\n# --- {self.name} ---\n" + self.get_as_codeblock()
-        else:
-            self.content += "\n\n" + variables
+        # Safety check: All expected output variable names must be defined
+        if expected_output_variables:
+            variable_names = [item["variable_name"] for item in filtered_decision_variables_only]
+            for expected_variable in (json.loads(remove_programming_environment(expected_output_variables))):
+                if expected_variable["mandatory_variable_name"] not in variable_names:
+                    if DEBUG_MODE_ON: print(f"Expected variable not defined: {expected_variable["mandatory_variable_name"]}")
+                    return False
+
+        self.variables_and_constants.extend(remove_duplicate_variables(filtered_decision_variables_only,0.925))
+        self.define_list_lengths()
+        self.variables_and_constants = remove_duplicate_variables(self.variables_and_constants, 1)
+        self.content = f"\n\n# --- {self.name} ---\n" + self.get_as_codeblock()
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now + "\n\n" + self.content
         if self.state == State.UNINITIALIZED: self.state = State.CORRECT
         self.all_variables_created = True
@@ -303,6 +332,9 @@ class VariablesConstantsNode(TreeNode):
         return True
 
     def define_list_lengths(self):
+        """
+        Manually define list lengths as OptDSL constants, as LLM tends to forget.
+        """
         for constant in self.variables_and_constants:
             if "initialization" in constant and ("DSList" in constant["initialization"] or "list[" in constant["initialization"]):
                 match = re.search(r"length=(\d+)", constant["initialization"])
@@ -321,13 +353,10 @@ class VariablesConstantsNode(TreeNode):
                 else:
                     if DEBUG_MODE_ON: print("Warning: DSList has no length defined.")
 
-    def prepend_section_title(self, block):
-        if self.content == "":
-            return f"# --- {self.name} ---\n" + block
-        else:
-            return f"# --- Decision variables ---\n" + block
-
     def get_as_codeblock(self):
+        """
+        From the object-, constants- (json) and decision variable definitions (json) create an OptDSL formulation block.
+        """
         variable_block = ""
         encountered_decision_variables = False
         for definition in self.variables_and_constants:
@@ -337,15 +366,9 @@ class VariablesConstantsNode(TreeNode):
             variable_block += f"{definition["initialization"]}\n"
         return variable_block
 
-    def get_textual_repr(self):
-        return self.parent.parent.content()
-
 class ObjectiveNode(TreeNode):
     def __init__(self, name = "", parent = None):
         super().__init__("Objective", parent, level=3)
-
-    def get_textual_repr(self):
-        return self.parent.parent.parent.content()
 
 class ConstraintsNode(TreeNode):
     def __init__(self, name = "", parent = None, level: int = None):
@@ -358,9 +381,6 @@ class ConstraintsNode(TreeNode):
         self.partial_formulation_up_until_now = self.parent.partial_formulation_up_until_now
         self.content += f"# -- {self.name} --\n"
 
-    def get_textual_repr(self):
-        return self.parent.parent.parent.parent.content()
-
 def is_valid_json(s: str) -> bool:
     try:
         json.loads(s)
@@ -368,21 +388,30 @@ def is_valid_json(s: str) -> bool:
     except ValueError:
         return False
 
-def build_code(node):
+def _build_code(node):
+    """
+    Recursively collect the OptDSL formulation components from node to root to one formulation.
+    Args:
+        node(TreeNode): node to collect formulation component from
+    """
     if node is None or node.level == 0:
         return ""
 
-    return build_code(node.parent) + "\n\n" + node.content
+    return _build_code(node.parent) + "\n\n" + node.content
 
 def check_executability(node: TreeNode, raw_code : str):
+    """
+        Check executability with security checks and OptDSL-translator and MiniZinc solver, if those two tools do not throw any error,
+        we consider the formulation as executable.
+        Args:
+             node (TreeNode): current node in ToT, saves solver metadata (e.g. solvetime, objective value, etc.).
+             raw_code (str): raw code to check.
+    """
     # Construct partial/full formulation up until now, depending on current level
-    if USE_OPTDSL:
-        variable_block = f"\n{node.get_partial_formulation_up_until_now()}\n"
-    else:
-        variable_block = f"from z3 import * \n{node.get_partial_formulation_up_until_now()}\n"
+    variable_block = f"\n{node.get_partial_formulation_up_until_now()}\n"
 
     # Prepare raw constants/variable definitions and add to partial formulation (up until now)
-    if not constants.USE_ALL_AT_ONCE_AND_EXTRACT and node.level == 2:
+    if node.level == 2:
         raw_code = json.loads(raw_code)
         if not isinstance(raw_code, list):
             return """Error, invalid type of definitions. Must be a array of json objects.
@@ -413,7 +442,7 @@ The structure must fulfill following requirements:
             #if "Annotated[list[" in definition["type"] and re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]', definition["type"]):
             #    return f"Error: {definition["type"]}\n, for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool. Including lower (ge) and upper bounds (le). Demonstration example for a list of integers: Annotated[list[Annotated[int, Field(lb=-10,ub=10)]], Len(2,2)]"
             variable_block += f"{definition["initialization"]}\n"
-    elif not constants.USE_ALL_AT_ONCE_AND_EXTRACT:
+    else:
     # Prepare raw obj. function or constraints and add to partial formulation (up until now)
         # Safety check: no json has be returned instead of code
         if is_valid_json(raw_code) or raw_code.startswith("{") or raw_code.startswith("["):
@@ -462,14 +491,19 @@ minimize(objective)
             if "#" not in m.group(1):
                 return f"Error - range incorrectly used. Use range(<val_1>,<val_2>) where val_1 and val_2 must be a constant variable or a integer value: {m.group(2)}"
         variable_block += raw_code
-    else:
-        variable_block += raw_code
 
     # Execute code block of partial/full formulation
     return execute_code_block(variable_block, node, include_solver_execution=(node.level >= 3))
 
 
 def execute_code_block(variable_block: str, node, include_solver_execution: bool = False):
+    """
+        Check executability with security checks and OptDSL-translator and MiniZinc solver, if those two tools do not throw any error,
+        we consider the formulation as executable.
+        Args:
+             variable_block (str): Raw full OptDSL-formulation (roughly checked by security checks for non-empty, range-valid-formulation, format validity etc.).
+             include_solver_execution (bool): if true, also check executabilty by solver.
+    """
     variable_block = initial_clean_up(variable_block)
     try:
         if USE_OPTDSL:
@@ -479,7 +513,7 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
             try:
                 # Semantic CHECK
                 if include_solver_execution:
-                    solution = check_solver_executability(model, node)
+                    solution = _check_solver_executability(model, node)
                     if solution is None: return solution
                     if ("type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in solution or
                         "type error in operator application for `'*''. No matching operator found with left-hand side type `array[int] of bool' and right-hand side type `int" in solution or
@@ -505,34 +539,19 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
         exc_type, exc_value, exc_tb = sys.exc_info()
         stack_trace_str = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
 
-        # Filter error for z3
-        m = re.search(r'(?s).*?(File\s+"<string>",\s*line\s*\d+)(?!.*File\s+"<string>",\s*line\s*\d+)', stack_trace_str)
-        error_message = str(e)
-        if m:
-            m = re.search(r'File\s+"<string>",\s*line\s*(\d+)', m.group(1))
-            line_no = int(m.group(1))
-            lines = variable_block.splitlines()
-            line_with_error = lines[line_no - 1]
-            return f"{error_message} in line {line_no}: {line_with_error}\n"
         # Filter error from optdsl-translator
         m = re.search(r"(?m)^(?P<type>[\w.]+(?:Error|Exception)):\s*(?P<msg>.*)$", stack_trace_str)
         if m:
             exc_type = m.group("type")
             exc_msg = m.group("msg")
-            if exc_msg == 'Unknown type string: DSList':
+            if "KeyError" in exc_msg:
+                return exc_msg + " Did you forget to put a decision variable as function parameter?"
+            elif exc_msg == 'Unknown type string: DSList':
                 return f"Error: Variable list object type definition must adhere to the EBNF\ngrammar <variable_name> : \"DSList\" \"(\" FunArgs([\"length\", \"elem_type\"]) \")\"."
-            elif exc_msg == 'Unknown type string: DSInt':
-                return f"Error: Variable object type definition must adhere to the EBNF\n<variable_name> : grammar \"DSInt\" \"(\" FunArgs([\"lb\", \"ub\"]) \")\"."
-            elif exc_msg == 'Unknown type string: DSFloat':
-                return f"Error: Variable object type definition must not have type DSFloat, but must adhere to the EBNF grammar \"DSFloat\" \"(\" FunArgs([\"lb\", \"ub\"]) \")\"."
-            elif exc_msg == 'Unknown type string: DSBool':
-                return f"Error: Variable object type definition must not have type DSBool, but must adhere to the EBNF grammar \"DSBool\" \"(\" \")\"."
-            elif exc_msg == 'Unknown type string: DSRecord':
-                return f"Error: Variable object type definition must not have type DSRecord, but must adhere to the EBNF grammar \"DSRecord\" \"(\" \"{{\" RecordField (\",\" RecordField)* \"}}\" \")\"."
             elif exc_msg == "'int' object is not subscriptable":
                 return f"Error: Do not perform calculations within index brackets. Instead, calculate it as temporary variable and then use it for accessing the list index."
             elif "attr='append', ctx=Load())," in exc_msg:
-                return f"Error - Do not use function calls append() and extend() for DSList."
+                return f"Error - Do not use function calls append() and extend() for lists."
             elif "Only returning names or tuple of names is supported." in exc_msg:
                 return f"Error - Functions support returning names or tuple of names only. Either do not call return at all, or only return names or tuple of names. Do not return calculation expressions. Do not use \"return\\n\". Do not use \"\\n return <bool>\\n\", where <bool> is True or False."
             elif "tuple[" in exc_msg:
@@ -557,17 +576,25 @@ def execute_code_block(variable_block: str, node, include_solver_execution: bool
                 return f"Check if variable exists at root level at all and if in function, check if has been passed as parameter: {exc_msg}."
             elif "Error processing statement:" in exc_msg:
                 return f"{exc_msg}"
-            return f"{exc_type} - {exc_msg}, occurring at: {error_message.replace("Error processing statement: ", "")}\n"
+            return f"{exc_type} - {exc_msg}, occurring at: {exc_msg.replace("Error processing statement: ", "")}\n"
         return str(e)
 
-def check_solver_executability(model: str, node):
+def _check_solver_executability(model: str, node):
+    """
+    Check that MiniZinc model can be executed and solved with a MiniZinc solver.
+    Args:
+        model (str): MiniZinc model.
+        node (TreeNode): current node in ToT, saves solver metadata (e.g. solvetime, objective value, etc.).
+    """
     # Safety check: replace python True/False with lower case equivalent for OptDSL
     model = model.replace("True", "true").replace("False", "false")
+
     if isinstance(node, TreeNode):
         solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model, node.last_in_progress if node.is_terminal else False)
     else:
         solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model, True)
-    if "Memory violation detected (stack overflow)." in solution:
+
+    if "Memory violation detected (stack overflow)" in solution:
         return "Memory violation detected (stack overflow)."
     elif "Error" in solution:
         return solution
@@ -587,14 +614,9 @@ def check_solver_executability(model: str, node):
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable."
     else:
-        # if "objective" in solution:
-        #     node.objective_val = solution["objective"][len(solution["objective"])-1]
-        #     print(f"Solution for objective is: {solution["objective"]}")
-        # else:
         if "objective" in solution:
-                    print(f"Solution for objective is: {solution["objective"]}")
-                    node.objective_val = solution["objective"][
-                        len(solution["objective"]) - 1]
+            if constants.DEBUG_MODE_ON: print(f"Solution for objective is: {solution["objective"]}")
+            node.objective_val = solution["objective"][len(solution["objective"]) - 1]
         elif constants.ALGOPOLISH_ACTIVE and constants.OBJECTIVE_VARIABLE_NAME in solution:
             node.objective_val = solution[constants.OBJECTIVE_VARIABLE_NAME][len(solution[constants.OBJECTIVE_VARIABLE_NAME])-1]
 
@@ -607,9 +629,14 @@ def check_solver_executability(model: str, node):
         return None
 
 def check_solver_executability_for_plain_model(model: str):
+    """
+    Check executability with MiniZinc solver for MiniZinc model alone (without saving solving metadata to a node).
+    """
     # Safety check: replace python True/False with lower case equivalent for OptDSL
     model = model.replace("True", "true").replace("False", "false")
+
     solution, solve_time = MiniZincSolver().solve_with_command_line_minizinc(model, True)
+    # Check for errors
     if "Error" in solution:
         return solution, None, None
     elif "type error" in solution:
@@ -617,8 +644,6 @@ def check_solver_executability_for_plain_model(model: str):
     elif solution is None:
         print("Solver failed: Invalid encoding yielded invalid solution.")
         return f"Semantic Error, correct the semantics.", None, None
-    #elif "unknown" in str(solution).lower():
-    #    return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" yields no answer at all.", None, None
     elif "unsatisfiable" in str(solution).lower():
         print("Solver yields UNSAT or Unknown.")
         return f"Semantic Error, the code underneath \"# --- Incorrect Code ---\" causes the solver to yield unsatisfiable, but it should be satisfiable.", None, None
@@ -638,22 +663,31 @@ def check_solver_executability_for_plain_model(model: str):
 # ----------- HELPERS -----------
 
 def initial_clean_up(raw_response: str, to_typing: bool = False) -> str:
+    """
+    Cleans up OptDSL code, removes markdown codeblock environments and converts pydantic and
+    typing specific elements to OptDSL code or vice-versa.
+    Args:
+        raw_response (str): raw OptDSL formulation with markdown-codeblock-env and/or pydantic/typing specific elements.
+        to_typing (bool): True, if caller desires to convert OptDSL-specific types back to pydantic elements. Otherwise vice-versa.
+    """
     raw_response = remove_programming_environment(raw_response)
 
     if to_typing:
-        raw_response = convert_OptDSL_to_pydantic(raw_response)
+        raw_response = _convert_OptDSL_to_pydantic(raw_response)
     else:
         # Convert typing-package (Annotated) specific parts to OptDSL
-        if USE_TYPING: raw_response = convert_typing_to_OptDSL(raw_response)
+        if USE_TYPING: raw_response = _convert_typing_to_OptDSL(raw_response)
         # Convert pydantic-package (Field, Annotated) specific parts to OptDSL
-        elif USE_PYDANTIC: raw_response = convert_pydantic_to_OptDSL(raw_response)
+        elif USE_PYDANTIC: raw_response = _convert_pydantic_to_OptDSL(raw_response)
     return raw_response
 
-def remove_programming_environment(raw_response: str, node = None) -> str:
+def remove_programming_environment(raw_response: str) -> str:
+    """
+    Removes markdown codeblock environments.
+    Args:
+        raw_response(str): raw OptDSL formulation from LLM containing markdown code blocks.
+    """
     cleaned = raw_response
-
-    # Remove any line that starts with "from z3" (even with leading spaces)
-    if "from z3" in cleaned: cleaned = re.sub(r'^\s*from z3.*$', '', raw_response, flags=re.MULTILINE)
 
     if "OptDSL" in cleaned: cleaned = cleaned.replace("OptDSL", "")
     if "json" in cleaned: cleaned = cleaned.replace("json", "")
@@ -666,7 +700,7 @@ def remove_programming_environment(raw_response: str, node = None) -> str:
 
     return cleaned.strip()
 
-def convert_to_DSList(match: re.Match) -> str:
+def _convert_to_DSList(match: re.Match) -> str:
     if match:
         elem_type = match.group("elem_type")
         match elem_type:
@@ -678,28 +712,49 @@ def convert_to_DSList(match: re.Match) -> str:
                 elem_type = "DSBool()"
             case _:
                 if "Annotated" in elem_type and "list" in elem_type:
-                    elem_type = convert_typing_to_OptDSL(elem_type)
+                    elem_type = _convert_typing_to_OptDSL(elem_type)
                 if "Annotated" in elem_type:
-                    elem_type = convert_pydantic_to_OptDSL(elem_type)
+                    elem_type = _convert_pydantic_to_OptDSL(elem_type)
 
         mx = match.group("max")
         return f"DSList(length={mx}, elem_type={elem_type})"
     return ""
-def convert_typing_to_OptDSL(code: str, nested: bool = False) -> str:
+
+def _convert_typing_to_OptDSL(code: str, nested: bool = False) -> str:
     if nested:
-        regex = r"Annotated\[list\[(?P<elem_type>[^\]]+\],\s*Len\(\d+,\s*\d+\)])],\s*Len\(\d+,\s*(?P<max>\d+)\)"
+        regex = r"Annotated\[list\[(?P<elem_type>[^\]]+\],\s*Len\(\d+,\s*\d+\)])],\s*Len\(\d+,\s*(?P<max>\d+)\)\]"
     else:
         # Replace all Annotated[list] with pydantic.Field
-        code = re.sub(re.compile(r"Annotated\[list\[(?P<elem_type>[^\]]+?)\],\s*Len\(\s*[^,]+\s*,\s*(?P<max>[^\)]+)\s*\)\]", re.VERBOSE), convert_to_DSList, code)
+        code = re.sub(re.compile(r"Annotated\[list\[(?P<elem_type>[^\]]+?)\],\s*Len\(\s*[^,]+\s*,\s*(?P<max>[^\)]+)\s*\)\]", re.VERBOSE), _convert_to_DSList, code)
         # Replace all Annotated[list] with DS-types
         regex = r"Annotated\[list\[(?P<elem_type>(?:[^\[\]]+|\[[^\[\]]*\])*)\],\s*Len\(\d+,\s*(?P<max>\d+)\)\]"
     pattern = re.compile(
         regex,
         re.VERBOSE
     )
-    return re.sub(pattern, convert_to_DSList, code)
+    return re.sub(pattern, _convert_to_DSList, code)
 
-def convert_to_DSInt_DSFloat(match: re.Match) -> str:
+def _convert_pydantic_to_OptDSL(code: str) -> str:
+    # Convert to DSBool()
+    code = code.replace("Annotated[bool, Field()]", "DSBool()")
+    code = code.replace("Annotated[bool, Field(strict=True)]", "DSBool()")
+
+    # Convert to DSInt() and DSFloat()
+    pattern = re.compile(r"Annotated\[\s*(?P<type>int|float)\s*,\s*Field\(\s*(?:strict\s*=\s*True\s*)?(?:\s*,\s*)?(?:ge\s*=\s*(?P<ge>(?:[^,\(\)]+|\([^\(\)]*\))+))?(?:(?:\s*,\s*)?le\s*=\s*(?P<le>(?:[^,\(\)]+|\([^\(\)]*\))+))?\s*\)\s*\]", re.VERBOSE)
+    code = re.sub(pattern, _convert_to_DSInt_DSFloat, code)
+
+    # Convert nested Annotated Lists to DSList()
+    code = _convert_typing_to_OptDSL(code, nested=True)
+
+    # Convert non-nested Annotated to DSList()
+    code = _convert_typing_to_OptDSL(code)
+
+    # Convert annotated object type ref to OptDS
+    pattern = re.compile(r"Annotated\[\s*(?P<type>\w+)\s*,\s*Field\s*\(\)\s*]", re.VERBOSE)
+    code = re.sub(pattern, _convert_object_type_ref_to_DS, code)
+    return code
+
+def _convert_to_DSInt_DSFloat(match: re.Match) -> str:
     if match:
         elem_type = match.group("type")
         match elem_type:
@@ -717,48 +772,31 @@ def convert_to_DSInt_DSFloat(match: re.Match) -> str:
         else:
             return f"{elem_type}()"
     return ""
-def convert_object_type_ref_to_DS(match: re.Match) -> str:
+
+def _convert_object_type_ref_to_DS(match: re.Match) -> str:
     if match:
         elem_type = match.group("type")
         return elem_type
     return ""
-def convert_pydantic_to_OptDSL(code: str) -> str:
-    # Convert to DSBool()
-    code = code.replace("Annotated[bool, Field()]", "DSBool()")
-    code = code.replace("Annotated[bool, Field(strict=True)]", "DSBool()")
 
-    # Convert to DSInt() and DSFloat()
-    pattern = re.compile(r"Annotated\[\s*(?P<type>int|float)\s*,\s*Field\(\s*(?:strict\s*=\s*True\s*)?(?:\s*,\s*)?(?:ge\s*=\s*(?P<ge>(?:[^,\(\)]+|\([^\(\)]*\))+))?(?:(?:\s*,\s*)?le\s*=\s*(?P<le>(?:[^,\(\)]+|\([^\(\)]*\))+))?\s*\)\s*\]", re.VERBOSE)
-    code = re.sub(pattern, convert_to_DSInt_DSFloat, code)
-
-    # Convert nested Annotated Lists to DSList()
-    code = convert_typing_to_OptDSL(code, nested=True)
-
-    # Convert non-nested Annotated to DSList()
-    code = convert_typing_to_OptDSL(code)
-
-    # Convert annotated object type ref to OptDS
-    pattern = re.compile(r"Annotated\[\s*(?P<type>\w+)\s*,\s*Field\s*\(\)\s*]", re.VERBOSE)
-    code = re.sub(pattern, convert_object_type_ref_to_DS, code)
-    return code
-
-def convert_to_typing_list(match: re.Match) -> str:
-    if match:
-        elem_type = match.group("elem_type")
-        length = match.group("length")
-        if "DSList" in elem_type or "DSInt" in elem_type or "DSFloat" in elem_type or "DSBool" in elem_type:
-            elem_type = convert_OptDSL_to_pydantic(elem_type)
-        return f"Annotated[list[{elem_type}], Len({length}, {length})]"
-    else:
-        return match.group(0)
-def convert_OptDSList_to_typing_list(regex, code: str) -> str:
+def _convert_OptDSList_to_typing_list(regex, code: str) -> str:
     pattern = re.compile(
         regex,
         re.VERBOSE
     )
-    return re.sub(pattern, convert_to_typing_list, code)
+    return re.sub(pattern, _convert_to_typing_list, code)
 
-def convert_object_OptDSList_to_typing_list(match: re.Match):
+def _convert_to_typing_list(match: re.Match) -> str:
+    if match:
+        elem_type = match.group("elem_type")
+        length = match.group("length")
+        if "DSList" in elem_type or "DSInt" in elem_type or "DSFloat" in elem_type or "DSBool" in elem_type:
+            elem_type = _convert_OptDSL_to_pydantic(elem_type)
+        return f"Annotated[list[{elem_type}], Len({length}, {length})]"
+    else:
+        return match.group(0)
+
+def _convert_object_OptDSList_to_typing_list(match: re.Match):
     if match:
         elem_type = match.group("elem_type")
         length = match.group("length")
@@ -769,7 +807,7 @@ def convert_object_OptDSList_to_typing_list(match: re.Match):
     else:
         return match.group(0)
 
-def convert_to_pydantic_int_float(match: re.Match) -> str:
+def _convert_to_pydantic_int_float(match: re.Match) -> str:
     if match:
         elem_type = match.group("type")
         match elem_type:
@@ -787,8 +825,9 @@ def convert_to_pydantic_int_float(match: re.Match) -> str:
         else:
             return f"Annotated[{elem_type}, Field(strict=True)]"
     return ""
-def convert_OptDSL_to_pydantic(code: str) -> str:
-    # Convert to Annotated[bool..]
+
+def _convert_OptDSL_to_pydantic(code: str) -> str:
+    # Convert from DSBool() to Annotated[bool..]
     code = code.replace("DSBool()", "Annotated[bool, Field()]")
     code = code.replace("DSBool()", "Annotated[bool, Field(strict=True)]")
 
@@ -796,18 +835,18 @@ def convert_OptDSL_to_pydantic(code: str) -> str:
     pattern = re.compile(
         r"(?P<type>DSInt|DSFloat)\((?:lb\s*=\s*(?P<lb>[^,\)]+)(?:\s*,\s*)?)?(?:ub\s*=\s*(?P<ub>[^,\)]+)(?:\s*,\s*)?)?\s*\)",
         re.VERBOSE)
-    code = re.sub(pattern, convert_to_pydantic_int_float, code)
+    code = re.sub(pattern, _convert_to_pydantic_int_float, code)
 
     # Convert nested DSList() to Annotated Lists
-    code = convert_OptDSList_to_typing_list(
+    code = _convert_OptDSList_to_typing_list(
         r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=(?P<elem_type>DSList[^]\r\n]+\]\))\)", code)
-    code = convert_OptDSList_to_typing_list(
+    code = _convert_OptDSList_to_typing_list(
         r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=(?P<elem_type>DSList[^)\r\n]+\))\)", code)
 
     # Convert non-nested DSList() to Annotated Lists
-    code = convert_OptDSList_to_typing_list(
+    code = _convert_OptDSList_to_typing_list(
         r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=\s*(?P<elem_type>[^]\r\n]+\])\)", code)
-    code = convert_OptDSList_to_typing_list(
+    code = _convert_OptDSList_to_typing_list(
         r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=\s*(?P<elem_type>.+?)\s*\)", code)
 
     # Convert non-nested DSList() with object-type to Annotated
@@ -815,57 +854,26 @@ def convert_OptDSL_to_pydantic(code: str) -> str:
         r"DSList\(\s*length\s*=\s*(?P<length>[^,]+)\s*,\s*elem_type\s*=\s*(?P<elem_type>[^)]+)\)",
         re.VERBOSE
     )
-    code = re.sub(pattern, convert_object_OptDSList_to_typing_list, code)
+    code = re.sub(pattern, _convert_object_OptDSList_to_typing_list, code)
     return code
 
 def load_sp_file(file_path):
+    """
+    Load system prompt file.
+    Args:
+        file_path: Path to system prompt file.
+    """
     file_path = SYSTEM_PROMPT_FOLDER + file_path
     with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
 
-def load_algopolish_mutation_file(file_path) -> str:
-    file_path = "prompts/algopolish/" + file_path
-    with open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
-
-def decompose_full_polished_definition (full_definition: str):
-    if ("# --- Objects ---".lower() in full_definition.lower() or
-           "# --- Constants ---".lower() in full_definition.lower() or
-           "# --- Decision variables ---".lower() in full_definition.lower() or
-           "# --- Constants and Decision Variables ---".lower() in full_definition.lower() or
-           "# --- Objective ---".lower() in full_definition.lower() or
-           "# --- Auxiliary Variables ---".lower() in full_definition.lower() or
-           "# --- Constraints ---".lower() in full_definition.lower() or
-           "# --- Incorrect Code ---".lower() in full_definition.lower()):
-        full_definition = remove_programming_environment(full_definition)
-        blocks = {}
-        current_key = None
-        temp = []
-
-        for line in full_definition.splitlines():
-            # Detect a block header, e.g. "--- Objects ---"
-            m = re.match(r'(?:^\s*)#\s*--+\s*(\w+(?:\s+\w+)*)\s*--+', line)
-            if m:
-                if not ((m.group(1).strip().lower() == "constraints" or m.group(1).strip().lower() == "auxiliary variables")
-                    and (current_key == "constraints" or current_key == "auxiliary variables")):
-                    current_key = m.group(1).strip().lower()
-                    blocks[current_key] = []
-            else:
-                if current_key is not None:
-                    if len(temp) > 0:
-                        blocks[current_key] = temp + blocks[current_key]
-                        temp = []
-                    blocks[current_key].append(line)
-                else:
-                    if len(line) > 0: temp.append(line)
-
-        # Convert lists into single strings
-        for k in blocks:
-            blocks[k] = "\n".join(blocks[k]).strip()
-        return blocks
-    return None
-
 def decompose_full_definition (full_definition: str):
+    """
+    Decompose full raw formulation from LLM into different components according to format convention
+    for OptDSL formulations taken for this framework.
+    Args:
+        full_definition (str): full raw formulation from LLM
+    """
     if ("# --- Objects ---".lower() in full_definition.lower() or
            "# --- Constants ---".lower() in full_definition.lower() or
            "# --- Decision variables ---".lower() in full_definition.lower() or
@@ -900,18 +908,24 @@ def decompose_full_definition (full_definition: str):
     return None
 
 def check_functions_appear_twice(code_str):
-    names = find_function_names(code_str)
+    """
+    Find function names and check that each function name appears at least twice, ensuring that every defined function is also called.
+    Args:
+        code_str(str): OptDSL formulation code.
+    """
+    names = _find_function_names(code_str)
     appears_less_than_twice = []
     for name in names:
         if len(re.findall(r'\b' + re.escape(names[0]) + r'\b', code_str)) <= 1:
             appears_less_than_twice.append(name)
     return appears_less_than_twice
-def find_function_names(code_str):
+
+def _find_function_names(code_str):
     pattern = r'^\s*def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\('
     names = re.findall(pattern, code_str, flags=re.MULTILINE)
     return names
 
-def _contains_func_that_just_returns_var(func_code: str) -> bool:
+def safety_check_contains_func_that_just_returns_var(func_code: str) -> bool:
     """
     Checks if function consists of more than one return statement of one variable using AST
     """
@@ -935,6 +949,12 @@ def _contains_func_that_just_returns_var(func_code: str) -> bool:
 
 
 def remove_duplicate_variables(variable_definitions, threshold: float):
+    """
+    Iterate through all variables and remove semantic duplicates using sentence-transformer tool to identify semantic similarity.
+    Args:
+        variable_definitions (list): list of variable names
+        threshold (float): threshold for semantic similarity
+    """
     from sentence_transformers import util
     filtered_out_duplicates = []
     for i in range(len(variable_definitions)):
@@ -952,20 +972,12 @@ def remove_duplicate_variables(variable_definitions, threshold: float):
                 print(f"Duplicate variables detected: {variable_definitions[i]}")
     return filtered_out_duplicates
 
-def remove_duplicate_lines(variable_block: str, raw_code: str):
-    # Split each string into lines (preserving distinct lines)
-    lines1 = variable_block.splitlines()
-    lines2 = raw_code.splitlines()
-
-    # Use sets to find which lines are common
-    set1 = set(lines1)
-    set2 = set(lines2)
-    common = set1.intersection(set2)
-
-    # If you want to preserve original order (from str1) of the common lines:
-    return "\n".join([line for line in lines2 if line not in common])
-
 def split_at_outer_equals(s: str):
+    """
+    Splits string code at leftmost outer equals, if present, used to get left or right part of initialization.
+    Args:
+        s (str): String to split, if possible.
+    """
     depth = 0
     for i, ch in enumerate(s):
         if ch == "(":

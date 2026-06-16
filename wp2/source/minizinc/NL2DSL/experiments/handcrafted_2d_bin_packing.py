@@ -6,10 +6,17 @@ from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 from solver import MiniZincSolver
 
 def apply_handcrafted(directory: str, object_types_are_fixed: bool):
+    """
+    Apply handcrafted formulation to list of 2d bin packing instances.
+    Args:
+        directory (str): directory containing the 2d bin packing instances
+        object_types_are_fixed (bool): whether the instances in directory have fixed object types
+    """
     objective_values = []
     solve_times = []
     for filename in os.listdir(directory):
-        if (filename.endswith(".json")): # and "02_020_10" in filename
+        if filename.endswith(".json"):
+            # Extract data from instance
             filepath = os.path.join(directory, filename)
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -27,6 +34,7 @@ def apply_handcrafted(directory: str, object_types_are_fixed: bool):
                 box_height = data["BOX_HEIGHT"]
                 items = data["ITEMS"]
 
+            # Insert instance data into handcrafted formulation
             code = """
 NITEMS : int = {}
 Item = DSRecord({{
@@ -74,7 +82,7 @@ minimize(nr_used_boxes)
 x_y_positions = item_box_assignments
     """.format(len(items), box_width, box_height, json.dumps(items))
 
-
+            # Execute and validate its solution
             translator = MiniZincTranslator(code)
             model = translator.unroll_translation()
             solver = MiniZincSolver()
@@ -104,5 +112,6 @@ solve_times : {solve_times}
 """)
     return objective_values, solve_times
 
-# apply_handcrafted("../problem_descriptions/experiment_2D-BPP_CLASS_flex_shapes/", object_types_are_fixed=False)
+# Example usage:
+# apply_handcrafted("../problem_descriptions/testset_paper_2D-BPP_CLASS/", object_types_are_fixed=False)
 # apply_handcrafted("../problem_descriptions/testset_paper_2D-BPP_CLASS_fixed_objects/", object_types_are_fixed=True)

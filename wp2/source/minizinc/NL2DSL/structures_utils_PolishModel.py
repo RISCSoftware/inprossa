@@ -23,7 +23,7 @@ class PolishModel:
     @staticmethod
     def calculate_fitness(objective_val: float, solve_time: float) -> float:
         """
-        Calculates the algopolish heuristic to determine how fit a formulation is. A low value is desirable.
+        Calculates the AlgoPolish heuristic to determine how fit a formulation is. A low value is desirable.
         Args:
             objective_val (float): The objective value of the formulation.
             solve_time (float): The solve time of the formulation.
@@ -72,6 +72,9 @@ class PolishModel:
         }
 
     def calculate_and_set_fitness(self):
+        """
+        Calculates algopolish heuristic with a test set and sets it as property.
+        """
         self._test_on_testing_set()
         if self.state == State.FAILED:
             return
@@ -120,6 +123,12 @@ class PolishModel:
             testset_solve_times)
 
     def save_model_to_file(self, final_evaluation_result, filename: str = f'mutated_optDSL_models_{datetime.now().strftime("%Y-%m-%d_%H")}.json'):
+        """
+        Write formulation incl. meta data like objective value, successful semantic evaluation to file.
+        Args:
+            final_evaluation_result (): Result from semantic evaluation (with user-given validator).
+            filename (str): The name of the file to save to.
+        """
         data = {
             "problem_description": self.problem_description,
             "llm_generated_objects": self.llm_generated_objects,
@@ -160,22 +169,71 @@ class PolishModel:
             block += constant["initialization"] + "\n"
         return block
 
-    def set_content(self, content, failed: bool = False):
-        self.full_formulation = ""
-        content = remove_programming_environment(content.strip())
-        self.full_formulation += content
 
-        if content.strip() == "" or failed:
-            self.state = State.FAILED
-            self.full_formulation += 1
-        else:
-            if self.state == State.UNINITIALIZED: self.state = State.CORRECT
+def load_algopolish_mutation_file(file_path) -> str:
+    """
+    Load prompt template for AlgoPolish (for merge- or refactoring prompt).
+    Args:
+        file_path (str): Path to the file (prompt template) to load.
+    """
+    file_path = "prompts/algopolish/" + file_path
+    with open(file_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+def decompose_full_polished_definition(full_definition: str):
+    """
+    Decompose full raw formulation from LLM into different components according to format convention
+    for OptDSL formulations taken for this framework.
+    Args:
+        full_definition (str): Full raw formulation from LLM.
+    """
+    if ("# --- Objects ---".lower() in full_definition.lower() or
+        "# --- Constants ---".lower() in full_definition.lower() or
+        "# --- Decision variables ---".lower() in full_definition.lower() or
+        "# --- Constants and Decision Variables ---".lower() in full_definition.lower() or
+        "# --- Objective ---".lower() in full_definition.lower() or
+        "# --- Auxiliary Variables ---".lower() in full_definition.lower() or
+        "# --- Constraints ---".lower() in full_definition.lower() or
+        "# --- Incorrect Code ---".lower() in full_definition.lower()):
+        full_definition = remove_programming_environment(full_definition)
+        blocks = {}
+        current_key = None
+        temp = []
+
+        for line in full_definition.splitlines():
+            # Detect a block header, e.g. "--- Objects ---"
+            m = re.match(r'(?:^\s*)#\s*--+\s*(\w+(?:\s+\w+)*)\s*--+', line)
+            if m:
+                if not ((m.group(1).strip().lower() == "constraints" or m.group(
+                    1).strip().lower() == "auxiliary variables")
+                        and (current_key == "constraints" or current_key == "auxiliary variables")):
+                    current_key = m.group(1).strip().lower()
+                    blocks[current_key] = []
+            else:
+                if current_key is not None:
+                    if len(temp) > 0:
+                        blocks[current_key] = temp + blocks[current_key]
+                        temp = []
+                    blocks[current_key].append(line)
+                else:
+                    if len(line) > 0: temp.append(line)
+
+        # Convert lists into single strings
+        for k in blocks:
+            blocks[k] = "\n".join(blocks[k]).strip()
+        return blocks
+    return None
 
 def check_executability_for_polish(raw_code : str, model: PolishModel):
-    #m = re.search(r'Annotated\[\s*list\[\s*(?P<elem_type>int|float|bool)\s*]\s*,\s*Len\(\s*\d+\s*,\s*(?P<max>\d+)\s*\)\s*]',
-    #          raw_code)
-    #if "Annotated[list[" in raw_code and m:
-    #    return f"Error: for this list elem_type must have a type of typing.Annotated with a pydantic.Field of type int, float, bool: {m.group(0)}\nE.g.: Annotated[list[int], Len(5, 5)]"
+    """
+        Check executability with OptDSL-translator and MiniZinc solver.
+        Note: In contrast, to check_executability from ToT generation, we do not need to consider formulation components of
+        different tree levels, simply the full formulation needs to be checked. Consequently, this method is the lean version of the ToT-version.
+        Args:
+             raw_code (str): Raw full OptDSL-formulation.
+             model (PolishModel): model to eventually hold the formulation from raw_code (incl. solve metadata),
+             if raw_code is syntactically ok and its solution is valid.
+    """
 
     # Safety check: no json has be returned instead of code
     if is_valid_json(raw_code) or raw_code.startswith("{") or raw_code.startswith("["):

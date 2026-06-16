@@ -667,7 +667,7 @@ def send_feedback(node: TreeNode, syntax: bool = True):
 
 def get_icl():
     if USE_OPTDSL:
-        return load_sp_file("ICL_example_3.txt")
+        return load_sp_file("ICL_example.txt")
     else:
         return load_sp_file("ICL_datatypes.txt")
 

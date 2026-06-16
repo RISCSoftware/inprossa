@@ -4,6 +4,12 @@ import re
 SAMPLE_NAMES_FLEX_TESTSET = ['01_020_05.json', '02_020_07.json', '02_020_10.json', '03_020_05.json', '03_020_10.json', '04_020_08.json', '05_020_08.json', '06_020_06.json', '06_020_10.json', '07_020_05.json', '07_020_08.json', '07_020_10.json', '08_020_04.json', '08_020_08.json', '09_020_02.json', '09_020_05.json', '09_020_07.json', '10_020_02.json', '10_020_04.json', '10_020_09.json']
 
 def collect_correctness_results(directories: list[str]):
+    """
+    Util module for data analysis, specifically collecting all correctness results across all correctness_results.txt files,
+    in order to sum or average calculation them.
+    Args:
+        directories (list[str]): list of directories to collect data from
+    """
     collected_results = {}
     for directory in directories:
         files = [

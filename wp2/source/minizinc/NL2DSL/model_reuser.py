@@ -12,10 +12,16 @@ from structures_utils import initial_clean_up, check_solver_executability_for_pl
 from Translator.Objects.MiniZincTranslator import MiniZincTranslator
 
 
-class ModelReuser():
+class ModelReuser:
 
     @staticmethod
     def use_given_model_with_input(model: dict, new_instance_filename: str):
+        """
+        Reuse given model with one given input file.
+        Args:
+            model (dict): Model formulation containing all components of a model.
+            new_instance_filename (str): input instance to be used with the given model, contains object, constants and decision variable definitions from user
+        """
         with open(new_instance_filename, "r", encoding="utf-8") as f:
             new_instance = json.load(f)
 
@@ -29,10 +35,23 @@ class ModelReuser():
 
     @staticmethod
     def use_given_models_with_input(file_path: str, new_instance_filename: str):
+        """Reuse multiple model formulations with one given input file.
+            Args:
+                file_path (str): path to multiple model formulations.
+                new_instance_filename (str): input instance to be used with the given model, contains object, constants and decision variable definitions from user.
+            """
         return ModelReuser._reuse_models_from_file(file_path, new_instance_filename=new_instance_filename)
 
     @staticmethod
     def _reuse_models_from_file(models_file_path: str, new_instance_filename: str):
+        """
+        Reuse multiple model formulations with one given input file.
+        Insert new instance, execute and validate resulting solution.
+        Args:
+            models_file_path (str): path to multiple model formulations.
+            new_instance_filename (str): input instance to be used with the given model, contains object, constants and
+                                         decision variable definitions from user.
+        """
         with open(models_file_path, "r", encoding="utf-8") as f:
             models = json.load(f)
         with open(new_instance_filename, "r", encoding="utf-8") as f:
@@ -54,27 +73,44 @@ class ModelReuser():
         return os.path.join(os.path.dirname(os.path.dirname(models_file_path)), updated_models_filename)
 
     @staticmethod
-    def _update_and_validate_model_with_new_instance(objects, input_variables, output_variables, model,
-                                                     new_instance):
+    def _update_and_validate_model_with_new_instance(objects, input_variables,
+                                                     output_variables, model, new_instance: dict):
+        """
+        Update model formulation with new instance, execute and validate its solution.
+        Args:
+            objects (list): object definitions.
+            input_variables (list): constant variables.
+            output_variables (list): decision variables.
+            model (dict): model formulation containing all components of a formulation.
+            new_instance (dict): input instance to be used with the given model, contains object, constants and
+                                 decision variable definitions from user.
+        """
         model = ModelReuser._update_model_with_new_instance(objects, input_variables, output_variables, model,
                                                             new_instance)
         return ModelReuser._execute_and_validate_model(model)
 
     @staticmethod
     def _extract_new_instance_components(original_model, new_instance: dict):
+        """
+        Update original model with new_instance and return updated components.
+        Args:
+            original_model (dict): original model formulation.
+            new_instance (dict): new instance to be used with the given model, contains object, constants and
+                                 decision variable definitions from user.
+        """
         objects = None
         input_variables = None
         output_variables = None
 
-        # Query object types, data types
+        # Get updated object types, data types
         if "objects" in new_instance:
             objects = InputReader.generate_objects_as_DSL_code(new_instance["objects"])
-        # Query constants
+        # Get updated constants
         if "input_variables" in new_instance:
             input_variables = InputReader.update_data_by_instance(original_model["constants"],
                                                                   new_instance["input_variables"],
                                                                   new_instance["objects"])
-        # Query decision variables
+        # Get updated decision variables
         if "output_variables" in new_instance:
             output_variables = InputReader.update_data_by_instance(original_model["decision_variables"],
                                                                    new_instance["output_variables"],
@@ -83,8 +119,19 @@ class ModelReuser():
 
     @staticmethod
     def _update_model_with_new_instance(objects, input_variables, output_variables, model, new_instance):
+        """
+        Update model formulation with the objects-, constants- and decision variables-components
+        that are already updated with the new instance, and update method signatures of objective fun. and constraints.
+        Args:
+            objects (list): object definitions.
+            input_variables (list(dict)): constant variables.
+            output_variables (list(dict)): decision variables.
+            model (dict): model formulation containing all components of a formulation.
+            new_instance (dict): input instance to be used with the given model, contains object, constants and
+                                 decision variable definitions from user.
+        """
         full_formulation = ""
-        # Query object types, data types
+        # Update object types, data types
         if "objects" in new_instance:
             model.update({"script_generated_objects": objects})
         for _, dsl_initialization in model["script_generated_objects"].items():
@@ -92,13 +139,13 @@ class ModelReuser():
         if model["llm_generated_objects"] != "null":
             full_formulation += model["llm_generated_objects"] + "\n"
 
-        # Query constants
+        # Update constants
         if "input_variables" in new_instance:
             model.update({"constants": input_variables})
         for constant in model["constants"]:
             full_formulation += constant["initialization"] + "\n"
 
-        # Query decision variables
+        # Update decision variables
         if "output_variables" in new_instance:
             model.update({"decision_variables": output_variables})
         for decision_variable in model["decision_variables"]:
@@ -144,6 +191,11 @@ class ModelReuser():
 
     @staticmethod
     def _execute_and_validate_model(model):
+        """
+        Translate OptDSL formulation to MiniZinc, execute the formulation with a solver and validate its result.
+        Args:
+            model (dict): model formulation (in OptDSL).
+        """
         # Execute code block of full formulation
         full_formulation = initial_clean_up(model["full_formulation"])
         full_formulation = full_formulation.replace("\\n", "")

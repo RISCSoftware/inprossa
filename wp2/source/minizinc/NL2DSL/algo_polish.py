@@ -1,4 +1,6 @@
+import argparse
 import copy
+import importlib
 import json
 import random
 import re
@@ -10,10 +12,10 @@ import constants
 from prompt_generation_utils import send_prompt_with_system_prompt, send_polish_feedback, _get_system_prompt, _get_icl, \
     send_prompt_without_system_prompt
 from structures_utils import (initial_clean_up, \
-                              split_at_outer_equals, Type, load_algopolish_mutation_file,
-                              decompose_full_polished_definition,
-                              check_functions_appear_twice, State, _contains_func_that_just_returns_var)
-from structures_utils_PolishModel import PolishModel, check_executability_for_polish
+                              split_at_outer_equals, Type,
+                              check_functions_appear_twice, State, safety_check_contains_func_that_just_returns_var)
+from structures_utils_PolishModel import PolishModel, check_executability_for_polish, load_algopolish_mutation_file, \
+                              decompose_full_polished_definition
 
 LOOP_OF_DOOM_UNSAT_MAX_IT = 2
 LOOP_OF_DOOM_MAX_IT = 4
@@ -36,20 +38,14 @@ class AlgoPolish:
         assert models is not None, "Either file_path or models must be given."
 
         # Convert from OptDSL to pydantic for Mutation by LLM
-        precomputed_fitness = [5.5318, 34.90602, 4.65142, 5.54194, 4.61002, 4.61865, 34.82209, 4.51746, 18.59694, 15.86168, 18.59819, 18.59865, 5.538309999999999, 5.52716, 6.454650000000001, 4.6564] # algopolish_test
-        m =                   [4.51668, 4.51673, 4.51694, 4.51738, 4.51746, 4.5175399999999994, 4.51765, 4.51811, 4.51834, 4.53716]
-        # precomputed_fitness = [5.58076, 29.90574, 4.66428, 5.57684]  # algopolish_test_smoll
-        # precomputed_fitness = [8.68274] # algopolish_test_woodcutter
         for i, model in enumerate(models):
             model_to_be_polished = PolishModel(model)
             model_to_be_polished.objective = initial_clean_up(model_to_be_polished.objective, to_typing=True)
             model_to_be_polished.constraints = initial_clean_up(model_to_be_polished.constraints, to_typing=True)
-            model_to_be_polished.fitness = precomputed_fitness[i]
-            # model_to_be_polished.calculate_and_set_fitness()
+            model_to_be_polished.calculate_and_set_fitness()
             self.models.append(model_to_be_polished)
         fitness_vals = [model.fitness for model in self.models]
         self.cur_avg_fitness = sum(fitness_vals) / len(fitness_vals)
-        #self.min_objective_val = min([model.objective_val for model in self.models])
         self.elites = self._get_elites(self.models, 10)
         constants.ALGOPOLISH_ACTIVE = True
         print(f"Given models' fitness: {[model_to_be_polished.fitness for model_to_be_polished in self.models]}")
@@ -57,7 +53,7 @@ class AlgoPolish:
 
     def polish (self, problem_description: str):
         """
-        Perform polishing of self.models by applying Biased Crossover and Mutation (remove redundancies, refactor obj. func.)
+        Perform polishing of self.models by applying Biased Merge (merge random elite form. with random non-elite form.) and Mutation (remove redundancies, refactor obj. func.)
         Args:
             problem_description (str): Problem description
             (self.models: Models to be polished)
@@ -196,7 +192,7 @@ class AlgoPolish:
 
             # Check fitness
             mutated_model.calculate_and_set_fitness()
-            if mutated_model.state == State.CORRECT and mutated_model.fitness - unmutated_model.fitness < 0.2:
+            if mutated_model.state == State.CORRECT:
                 if mutated_model.fitness < unmutated_model.fitness:
                     print(f"Found formulation with less solvetime: {mutated_model.fitness} < {unmutated_model.fitness}")
                     return mutated_model
@@ -457,7 +453,7 @@ Return your answer in the format
                         execution_error = "Constraints/Objective FormatError"
                         continue
                     # Safety check: function does not consist only of a return of a variable
-                    if _contains_func_that_just_returns_var(new_encoding_comp["objective"]):
+                    if safety_check_contains_func_that_just_returns_var(new_encoding_comp["objective"]):
                         execution_error = "Error: The function within this code does not include any calculation, but only returns an unmodified input variable. Encode the calculation of the objective function mentioned in the last prompt."
                     if execution_error:
                         new_encoding = (self.llm.send_prompt(
@@ -513,17 +509,17 @@ Return your answer in the format
                     return new_encoding
 
             # Switch models
-            self.llm.send_prompt_with_model_id(
+            self.llm.switch_model_id(
                 model_id=(
                     "qwen.qwen3-coder-30b-a3b-v1:0" if self.llm.model_id == "qwen.qwen3-coder-480b-a35b-v1:0" else "qwen.qwen3-coder-480b-a35b-v1:0"),
-                prompt=""
             )
             new_encoding = send_prompt_with_system_prompt(
                 self.current_prompt,
                 self.llm)
-        return ""
+        return None
 
-    def _validate_model(self, model: PolishModel, solution_model: dict):
+    @staticmethod
+    def _validate_model(model: PolishModel, solution_model: dict):
         """
         Validate the solution model
         Args:
@@ -555,12 +551,14 @@ Return your answer in the format
             model.validated = True
         return validation_res
 
-    def _get_elites(self, models: list[PolishModel], top_n: int = 10):
-        elites = sorted(models, key=lambda m: m.fitness) # [model for model in models if model.objective_val <= self.min_objective_val+4
+    @staticmethod
+    def _get_elites(models: list[PolishModel], top_n: int = 10):
+        elites = sorted(models, key=lambda m: m.fitness)
         if top_n is not None and len(elites) > top_n: elites = elites[:top_n]
         return elites
 
-    def _strip_comments(self, code: str):
+    @staticmethod
+    def _strip_comments(code: str):
         return "\n".join(line for line in re.sub(r'(?m)^ #.\n?', '', str(code)).split("\n") if line)
 
 
@@ -568,40 +566,78 @@ def main_bin_packing():
     constants.SOLVE_TIME_TIMEOUT = 15000
 
     # 2D Bin Packing
-    problem_filepath = "problem_descriptions/2d_bin_packing_without_inoutput"
-    with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
-        problem_description_data = json.load(f)
-    problem_description = ""
-    for description_part in problem_description_data.values():
-        if isinstance(description_part, dict): continue
-        problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
+    main_custom(15000,
+                problem_filepath="problem_descriptions/2d_bin_packing_without_inoutput")
+    # problem_filepath = "problem_descriptions/2d_bin_packing_without_inoutput"
+    # with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
+    #     problem_description_data = json.load(f)
+    # problem_description = ""
+    # for description_part in problem_description_data.values():
+    #     if isinstance(description_part, dict): continue
+    #     problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
 
-    polishSomething = AlgoPolish(file_path="models/algopolish_test.json")
-    improved_models = polishSomething.polish(problem_description)
-    print(f"Found models' fitness: {[improved_model.fitness for improved_model in improved_models]}")
+    # polishSomething = AlgoPolish(file_path="models/algopolish_test.json")
+    # improved_models = polishSomething.polish(problem_description)
+    # print(f"Found models' fitness: {[improved_model.fitness for improved_model in improved_models]}")
 
     # Print and save results
-    print_and_save_improved_models(improved_models)
+    # print_and_save_improved_models(improved_models)
 
-    constants.SOLVE_TIME_TIMEOUT = 150000
-    constants.ALGOPOLISH_ACTIVE = False
+    # constants.SOLVE_TIME_TIMEOUT = 150000
+    # constants.ALGOPOLISH_ACTIVE = False
 
 
 def main_woodcutter():
     constants.SOLVE_TIME_TIMEOUT = 15000
 
     # Woodcutter
-    constants.ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_woodcutter"
-    constants.VALIDATE_SOLUTION = WoodCutterValidator.validate_solution
-    constants.OBJECTIVE_VARIABLE_NAME = "total_cost"
-    problem_filepath = "problem_descriptions/woodcutter_without_inoutput"
+    main_custom(15000,
+                problem_filepath="problem_descriptions/woodcutter_without_inoutput",
+                algopolish_testset_path="problem_descriptions/testset_algopolish_woodcutter",
+                validate_solution=WoodCutterValidator.validate_solution,
+                objective_variable_name="total_cost")
+    # constants.ALGOPOLISH_TESTSET_PATH = "problem_descriptions/testset_algopolish_woodcutter"
+    # constants.VALIDATE_SOLUTION = WoodCutterValidator.validate_solution
+    # constants.OBJECTIVE_VARIABLE_NAME = "total_cost"
+    # problem_filepath = "problem_descriptions/woodcutter_without_inoutput"
+    # with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
+    #     problem_description_data = json.load(f)
+    # problem_description = ""
+    # for description_part in problem_description_data.values():
+    #     if isinstance(description_part, dict): continue
+    #     problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
+    # polishSomething = AlgoPolish(file_path="models/algopolish_test_woodcutter.json")
+    # improved_models = polishSomething.polish(problem_description)
+    # print(f"Found models: {[improved_model.fitness for improved_model in improved_models]}")
+
+    # Print and save results
+    # print_and_save_improved_models(improved_models)
+
+    # constants.SOLVE_TIME_TIMEOUT = 150000
+    # constants.ALGOPOLISH_ACTIVE = False
+
+def main_custom(solve_time_timeout: int,
+                path_to_base_formulations: str = None,
+                problem_filepath: str = None,
+                algopolish_testset_path: str = None,
+                validate_solution = None,
+                objective_variable_name: str = None):
+    constants.SOLVE_TIME_TIMEOUT = solve_time_timeout
+
+    # Problem specific settings
+    if path_to_base_formulations is None: path_to_base_formulations = "models/algopolish_test.json"
+    if problem_filepath is None: problem_filepath = "problem_descriptions/2d_bin_packing_without_inoutput"
+    if algopolish_testset_path: constants.ALGOPOLISH_TESTSET_PATH = algopolish_testset_path
+    if validate_solution: constants.VALIDATE_SOLUTION = validate_solution
+    if objective_variable_name: constants.OBJECTIVE_VARIABLE_NAME = objective_variable_name
+
     with open(f"{problem_filepath}.json", "r", encoding="utf-8") as f:
         problem_description_data = json.load(f)
     problem_description = ""
     for description_part in problem_description_data.values():
         if isinstance(description_part, dict): continue
         problem_description += "\n" + description_part if not isinstance(description_part, list) else "\n" + "\n".join(description_part)
-    polishSomething = AlgoPolish(file_path="models/algopolish_test_woodcutter.json")
+    polishSomething = AlgoPolish(file_path=path_to_base_formulations)
     improved_models = polishSomething.polish(problem_description)
     print(f"Found models: {[improved_model.fitness for improved_model in improved_models]}")
 
@@ -623,11 +659,41 @@ def print_and_save_improved_models(improved_models: list[PolishModel]):
               encoding="utf-8") as f:
         json.dump([improved_model.get_as_dict() for improved_model in improved_models], f, indent=4)
 
+def _load_function(path: str):
+    module_name, class_name, method_name = path.rsplit(".", 2)
+
+    module = importlib.import_module(module_name)
+    cls = getattr(module, class_name)
+    return getattr(cls, method_name)
+
 if __name__ == "__main__":
-    while True:
-        try:
-            main_bin_packing()
-            # main_woodcutter()
-            break  # normal exit
-        except Exception as e:
-            print(f"Crashed: {e}")
+    parser = argparse.ArgumentParser(description="AlgoPolish: towards acquiring more qualitative solution through refactoring and merging of existing OptDSL formulations")
+    parser.add_argument("--base_formulations", default=None, type=str, help="Path to file containing base formulations for polishing (.json)")
+    parser.add_argument("--problem_filepath", default=None, type=str, help="Path to problem description (.json)")
+    parser.add_argument("--algopolish_testset_path", type=str, default=None, help="Path to testset instances for evaluating algopolish-heuristic per formulation.")
+    parser.add_argument("--validate_solution", type=str,  default=None, help="Path to dynamically loaded solution-validation function of user-given validator e.g. BinPackingValidator.validate_solution")
+    parser.add_argument("--objective_variable_name", type=str, default=None, help="Name of decision variable representing the objective value.")
+
+    args = parser.parse_args()
+
+    if args.base_formulations or args.problem_filepath or args.algopolish_testset_path or args.validate_solution or args.objective_variable_name:
+        while True:
+            try:
+                main_custom(
+                    15000,
+                    path_to_base_formulations=args.base_formulations,
+                    problem_filepath=args.problem_filepath,
+                    algopolish_testset_path=args.algopolish_testset_path,
+                    validate_solution=_load_function(args.validate_solution),
+                    objective_variable_name=args.objective_variable_name)
+                break  # normal exit
+            except Exception as e:
+                print(f"Crashed: {e}")
+    else:
+        while True:
+            try:
+                main_bin_packing()
+                # main_woodcutter()
+                break  # normal exit
+            except Exception as e:
+                print(f"Crashed: {e}")

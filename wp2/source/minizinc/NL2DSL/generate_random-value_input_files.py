@@ -9,7 +9,7 @@ def generate_randomvalue_input_files_for_flex_shapes():
     Specifically, to input files for formulation generation with flexible shapes.
     """
 
-    general_item_spec = {
+    general_item_spec: dict[str, dict[str, list | dict[str, int | str | dict[str, int]]]] = {
         "objects": {
             "Item": [
                 {
@@ -46,11 +46,10 @@ def generate_randomvalue_input_files_for_flex_shapes():
     }
 
     nr_items = 10
-
     for i in range(1, 21):
         width = random.randint(5, 25)
         height = random.randint(5, 20)
-        target_path = "problem_descriptions/testset_paper_2D-BPP_test/"
+        target_path = "problem_descriptions/testset_paper_2D-BPP_CLASS/"
         general_item_spec["objects"]["Item"][0]["maximum"] = width
         general_item_spec["objects"]["Item"][1]["maximum"] = height
         general_item_spec["input_variables"]["BOX_WIDTH"]["value"] = width
@@ -61,13 +60,12 @@ def generate_randomvalue_input_files_for_flex_shapes():
         with open(target_path + f"test_n{nr_items}_{i}" + ".json", "w") as f:
             json.dump(items, f, indent=4)
 
-
 def generate_randomvalue_input_files_for_fixed_shapes():
     """
     Generate 2d bin packing input files with random values for LLM-prompting Framework.
     Specifically, to input files for formulation generation with fixed shapes.
     """
-    general_item_spec = {
+    general_item_spec: dict[str, dict[str, list | dict[str, int | str | dict[str, int]]]]  = {
       "objects": {
         "Item": [
           {
@@ -140,7 +138,7 @@ def generate_randomvalue_input_files_for_fixed_shapes():
     width = random.randint(1, 20)
     height = random.randint(1, 20)
     nr_items = 20
-    target_path = "problem_descriptions/testset_paper_2D-BPP/"
+    target_path = "problem_descriptions/testset_paper_2D-BPP_CLASS_fixed_shapes/"
     general_item_spec["objects"]["Item"][0]["maximum"] = width
     general_item_spec["objects"]["Item"][1]["maximum"] = height
     general_item_spec["objects"]["X_Y_Position"][0]["maximum"] = width
@@ -165,7 +163,7 @@ def generate_randomvalue_input_files_for_fixed_shapes_woodcutter():
     Generate 2d bin packing input files with random values for LLM-prompting Framework.
     Specifically, to input files for formulation generation with fixed shapes.
     """
-    general_item_spec = {
+    general_item_spec: dict[str, dict[str, list | dict[str, list | int | str | dict[str, int]]]]  = {
         "objects": {},
         "input_variables": {
             "NITEMS": {
@@ -260,4 +258,8 @@ def generate_randomvalue_input_files_for_fixed_shapes_woodcutter():
         with open(target_path + f"test_inst_{i}" + ".json", "w") as f:
             json.dump(general_item_spec, f, indent=4)
 
-generate_randomvalue_input_files_for_fixed_shapes_woodcutter()
+# example usage
+#if __name__ == "__main__":
+    # generate_randomvalue_input_files_for_flex_shapes() # results saved in "problem_descriptions/testset_paper_2D-BPP_flex_shapes/"
+    # generate_randomvalue_input_files_for_fixed_shapes() # results saved in "problem_descriptions/testset_paper_2D-BPP_fixed_shapes/"
+    # generate_randomvalue_input_files_for_fixed_shapes_woodcutter() # results saved in "problem_descriptions/testset_algopolish_woodcutter/"

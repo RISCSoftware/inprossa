@@ -4,7 +4,7 @@ import random
 
 def convert_2DPackLib_to_local_flex_objects(directory: str):
     """
-    Convert instance files from 2DPackLib to locally used 2d bin packing input files for LLM-prompting Framework.
+    Convert instance files from 2DPackLib to locally used 2d bin packing input file format for LLM-prompting Framework.
     Specifically, to input files for formulation generation with flexible shapes.
     Args:
         directory (str): Directory containing instance files.
@@ -21,8 +21,6 @@ def convert_2DPackLib_to_local_flex_objects(directory: str):
         filepath = os.path.join(directory, filename)
         with open(filepath, "r", encoding="utf-8") as f:
             lines = f.read().strip().splitlines()
-
-        nr_items = int(lines[0])
 
         second_line_parts = lines[1].split()
         bin_width = int(second_line_parts[0])
@@ -51,7 +49,7 @@ def convert_2DPackLib_to_local_fixed_objects(directory: str):
     Args:
         directory (str): Directory containing instance files.
     """
-    general_item_spec = {
+    general_item_spec: dict[str, dict[str, list | dict[str, int | str | dict[str, int]]]] = {
         "objects": {
             "Item": [
                 {
@@ -144,7 +142,7 @@ def convert_2DPackLib_to_local_fixed_objects(directory: str):
             third_num = int(parts[2])
             items.append({"width": second_num, "height": third_num})
 
-        target_path = "problem_descriptions/testset_fixed_objects_2D-BPP_CLASS/"
+        target_path = "problem_descriptions/testset_2D-BPP_CLASS_fixed_objects/"
         general_item_spec["objects"]["Item"][0]["maximum"] = width
         general_item_spec["objects"]["Item"][1]["maximum"] = height
         general_item_spec["objects"]["X_Y_Position"][0]["maximum"] = width
@@ -160,6 +158,7 @@ def convert_2DPackLib_to_local_fixed_objects(directory: str):
         with open(target_path + f"2d_bpp_inst_{filename}" + ".json", "w") as f:
             json.dump(general_item_spec, f, indent=4)
 
-if __name__ == "__main__":
-    convert_2DPackLib_to_local_flex_objects("problem_descriptions/2DPackLib/CLASS/CLASS")
-    convert_2DPackLib_to_local_fixed_objects("problem_descriptions/2DPackLib/CLASS/CLASS")
+# Example usage:
+# if __name__ == "__main__":
+#     convert_2DPackLib_to_local_flex_objects("problem_descriptions/2DPackLib/CLASS/CLASS") # output in problem_descriptions/testset_2D-BPP_CLASS/
+#     convert_2DPackLib_to_local_fixed_objects("problem_descriptions/2DPackLib/CLASS/CLASS") # output in problem_descriptions/testset_2D-BPP_CLASS_fixed_objects/

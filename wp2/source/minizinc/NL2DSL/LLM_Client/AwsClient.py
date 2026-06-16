@@ -31,17 +31,29 @@ class AwsClient:
             region_name=self.region_name
         )
 
-    def send_prompt_with_model_id(self, prompt: str, model_id: str, system_prompt: str = None, max_tokens = 70):
+    def switch_model_id(self, model_id: str):
+        """
+        Switch model (ID) to be prompted.
+        Args:
+            model_id (str): model ID.
+        """
         if constants.DEBUG_MODE_ON: print(f"Swaping from {self.model_id} to {model_id}.")
         self.model_id = model_id
         self.set_region_id()
-        #return self.send_prompt(system_prompt=system_prompt, prompt=prompt, max_tokens=max_tokens)
 
     def send_prompt(self,
             system_prompt: str = None,
             prompt: str = None,
             max_tokens = 700,
             temperature = None) -> str:
+        """
+        Send a prompt (system prompt + prompt) to a model (ID) of AWSClient, also defining answer constraints max_token and temperature.
+        Args:
+            system_prompt (str): system prompt.
+            prompt (str): prompt.
+            max_tokens (int): maximum number of tokens of answer.
+            temperature (float): temperature.
+        """
 
         response = ""
 
@@ -173,7 +185,7 @@ class AwsClient:
                 print(f"Unexpected error: {e}")
 
 
-        # Print the response
+        # Extract the response
         if constants.DEBUG_MODE_ON:
             match self.model_id:
                 case "eu.amazon.nova-lite-v1:0" | "eu.amazon.nova-pro-v1:0":

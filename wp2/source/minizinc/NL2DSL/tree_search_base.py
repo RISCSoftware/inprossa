@@ -3,7 +3,7 @@ import json
 
 import constants
 from BinPackingValidator import validate_solution
-from prompt_generation_utils import create_and_send_prompt_for_strictly_iterative_approach, \
+from prompt_generation_utils import create_and_send_prompt, \
     enter_feedback_loop, LOOP_OF_DOOM_MAX_IT, send_feedback
 from structures_utils import RootNode, ObjectsNode, VariablesConstantsNode, \
     ObjectiveNode, ConstraintsNode, State, remove_programming_environment, initial_clean_up, \
@@ -38,9 +38,15 @@ class TreeBase:
         self.nr_valid_leaves = 0
 
     def create_objects_node(self, parent: RootNode):
+        """
+            Create objects node by prompting for respective OptDSL-formulation component with a feedback loop,
+            check its executability (OptDSL-translator + solver).
+            Args:
+                parent (RootNode)
+        """
         # Query object types, data types
         datatypes_node = ObjectsNode(parent=parent)
-        # Fully script generated
+        # Partially script generated (fixed shapes)
         if ((self.objects_spec and self.input_variable_spec and self.output_variable_spec)
                 or (self.objects_spec and not self.input_variable_spec and not self.output_variable_spec)):
             spec = ""
@@ -51,34 +57,32 @@ class TreeBase:
             datatypes_node.set_script_generated_objects(self.objects_spec)
             print(f"Creating object types succeeded: {self.objects_spec}")
             return datatypes_node
-        # LLM generated
-        response = create_and_send_prompt_for_strictly_iterative_approach(datatypes_node,
-                                                                          llm=self.llm,
-                                                                          full_problem_description=self.problem_description)
+        # LLM generated (flexible shapes)
+        response = create_and_send_prompt(datatypes_node,
+                                          llm=self.llm,
+                                          full_problem_description=self.problem_description)
         response = enter_feedback_loop(datatypes_node,
                                        response,
                                        llm=self.llm,
                                        full_problem_description=self.problem_description)
         datatypes_node.set_llm_generated_objects(response)
-        # Partially script generated
-        if self.objects_spec:
-            spec = ""
-            for object_name, object_spec in self.objects_spec.items():
-                spec += object_spec
-            response += f"\n{spec}\n"
-            datatypes_node.set_script_generated_objects(self.objects_spec)
         datatypes_node.set_content(response)
-        # send_feedback(datatypes_node)
-        # print(f"*** Response, global problem/datatypes: {response}\n")
-        if response == "":
+
+        if response == None:
             datatypes_node.increment_n_failed_generations()
             print("Creating object types failed!")
         else:
             print(f"Creating object types succeeded: {response}")
-        if datatypes_node.state == State.FAILED: self.increment_nr_syntactically_invalid_leaves()
+        if datatypes_node.state == State.FAILED: self._increment_nr_syntactically_invalid_leaves_by(constants.NR_MAX_CHILDREN ** 3)
         return datatypes_node
 
     def create_constants_node(self, parent: ObjectsNode):
+        """
+            Create constants node by prompting for respective OptDSL-formulation component with a feedback loop,
+            check its executability (OptDSL-translator + solver).
+            Args:
+                parent (ObjectsNode)
+        """
         ### Query constants ######################################################################################
         constants_variables_node = VariablesConstantsNode(parent=parent)
         # Script generated
@@ -91,9 +95,9 @@ class TreeBase:
         successfully_added = False
         i = 0
         while not successfully_added and i < LOOP_OF_DOOM_MAX_IT:
-            response = create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node,
-                                                                       llm=self.llm,
-                                                                       full_problem_description=self.problem_description)
+            response = create_and_send_prompt(constants_variables_node,
+                                              llm=self.llm,
+                                              full_problem_description=self.problem_description)
             response = enter_feedback_loop(constants_variables_node,
                                            response,
                                            llm=self.llm,
@@ -102,15 +106,23 @@ class TreeBase:
             i += 1
         # send_feedback(constants_variables_node)
         # print(f"*** Response, constants: {response}\n")
-        if response == "" or i == LOOP_OF_DOOM_MAX_IT:
+        if response == None or i == LOOP_OF_DOOM_MAX_IT:
             constants_variables_node.increment_n_failed_generations()
             print("Creating constants failed!")
         else:
             print(f"Creating constants succeeded: {response}")
-        if constants_variables_node.state == State.FAILED: self.increment_nr_syntactically_invalid_leaves()
+        if constants_variables_node.state == State.FAILED: self._increment_nr_syntactically_invalid_leaves_by(constants.NR_MAX_CHILDREN ** 2)
         return constants_variables_node
 
     def create_decision_variables(self, constants_variables_node: VariablesConstantsNode):
+        """
+            Create decision variable node by prompting for respective OptDSL-formulation component with a feedback loop,
+            check its executability (OptDSL-translator + solver).
+            Args:
+                constants_variables_node (VariablesConstantsNode): we will cluster all variables into one node,
+                                                                    meaning the decision variables are saved
+                                                                    into constants_variables_node
+        """
         ### Query decision variables ######################################################################################
         # Script generated
         if self.output_variable_spec:
@@ -122,9 +134,9 @@ class TreeBase:
         i = 0
         while not successfully_added and i < LOOP_OF_DOOM_MAX_IT:
             response = remove_programming_environment(
-                create_and_send_prompt_for_strictly_iterative_approach(constants_variables_node,
-                                                                       llm=self.llm,
-                                                                       full_problem_description=self.problem_description))
+                create_and_send_prompt(constants_variables_node,
+                                       llm=self.llm,
+                                       full_problem_description=self.problem_description))
             response = enter_feedback_loop(constants_variables_node,
                                            response,
                                            llm=self.llm,
@@ -133,20 +145,26 @@ class TreeBase:
             i += 1
         # send_feedback(constants_variables_node)
         # print(f"*** Response (decision) variables: {response}\n")
-        if response == "" or i == LOOP_OF_DOOM_MAX_IT:
+        if response == None or i == LOOP_OF_DOOM_MAX_IT:
             constants_variables_node.increment_n_failed_generations()
             print("Creating decision variables failed!")
         else:
             print(f"Creating decision variables succeeded: {response}")
-        if constants_variables_node.state == State.FAILED: self.increment_nr_syntactically_invalid_leaves()
+        if constants_variables_node.state == State.FAILED: self._increment_nr_syntactically_invalid_leaves_by(constants.NR_MAX_CHILDREN ** 2)
         return constants_variables_node
 
     def create_objective_node(self, parent: VariablesConstantsNode):
+        """
+            Create objective-function node by prompting for respective OptDSL-formulation component with a feedback loop,
+            check its executability (OptDSL-translator + solver).
+            Args:
+                parent (VariablesConstantsNode)
+        """
         # Query objective function
         obj_function_node = ObjectiveNode(parent=parent)
-        response = create_and_send_prompt_for_strictly_iterative_approach(obj_function_node,
-                                                                   llm=self.llm,
-                                                                   full_problem_description=self.problem_description)
+        response = create_and_send_prompt(obj_function_node,
+                                          llm=self.llm,
+                                          full_problem_description=self.problem_description)
         response = enter_feedback_loop(obj_function_node,
                                        response,
                                        llm=self.llm,
@@ -154,17 +172,26 @@ class TreeBase:
 
         obj_function_node.set_content(remove_programming_environment(response))
         # print(f"*** Obj. function: {response}\n")
-        if response == "":
+        if response == None:
             obj_function_node.increment_n_failed_generations()
             print("Creating objective function failed!")
         else:
             print(f"Creating objective function succeeded: {response}")
 
-        if obj_function_node.state == State.FAILED: self.increment_nr_syntactically_invalid_leaves()
+        if obj_function_node.state == State.FAILED: self._increment_nr_syntactically_invalid_leaves_by(constants.NR_MAX_CHILDREN ** 1)
         send_feedback(obj_function_node, llm=self.llm)
         return obj_function_node
 
     def create_constraints_node(self, parent: ObjectiveNode, cur_subproblem_index: int = None):
+        """
+            Create constraints node by prompting for respective OptDSL-formulation component with a feedback loop,
+            check its executability (OptDSL-translator + solver) and validate the resulting solution.
+            Args:
+                parent (ObjectiveNode)
+                cur_subproblem_index (int): subproblem index of the current subproblem,
+                                            only relevant when the constraints of each subproblem are saved
+                                            into their own constraints-node (self.for_each_constraint_one_node == true)
+        """
         # Query constraints
         constraints_node = ConstraintsNode(parent=parent, level=cur_subproblem_index)
 
@@ -178,7 +205,7 @@ class TreeBase:
                 constraints_node = self._generate_constraint_code(constraints_node, i)
 
         if constraints_node.n_failed_generations > 0:
-            self.increment_nr_syntactically_invalid_leaves()
+            self._increment_nr_syntactically_invalid_leaves_by()
             validation_res = None
         else:
             # Validate minizinc solution
@@ -203,14 +230,14 @@ class TreeBase:
             except AssertionError as e:
                 validation_res = f"Failed to validate solution: {e}"
                 constraints_node.state = State.FAILED
-                self.increment_nr_semantically_invalid_leaves()
+                self._increment_nr_semantically_invalid_leaves_by()
             except Exception as e:
                 validation_res = f"Evaluation failed: {e}"
                 constraints_node.state = State.FAILED
-                self.increment_nr_semantically_invalid_leaves()
+                self._increment_nr_semantically_invalid_leaves_by()
             else:
                 validation_res = f"Successfully validated solution."
-                self.increment_nr_valid_leaves()
+                self._increment_nr_valid_leaves()
 
         # Save the model to file, if syntactically and semantically valid
         constraints_node.save_child_to_file(validation_res, problem_description=self.problem_description, filename=self.result_models_file)
@@ -249,17 +276,16 @@ Semantic validation: {validation_res}
     def _generate_constraint_code(self, constraints_node: ConstraintsNode, i: int):
         if i == len(self.problem_description) - 1:
             constraints_node.last_in_progress = True
-        response = create_and_send_prompt_for_strictly_iterative_approach(constraints_node,
-                                                                          llm=self.llm,
-                                                                          subproblem_description=
+        response = create_and_send_prompt(constraints_node,
+                                          llm=self.llm,
+                                          subproblem_description=
                                                                           self.problem_description[i])
         response = enter_feedback_loop(constraints_node,
                                        response,
                                        llm=self.llm,
                                        subproblem_description=self.problem_description[i])
         constraints_node.set_content(response)
-        # print(f"*** Constraints: {response}\n")
-        if response == "":
+        if response == None:
             print("Creating constraints failed!")
         else:
             print(f"Creating constraints succeeded: {response}")
@@ -270,13 +296,13 @@ Semantic validation: {validation_res}
             constraints_node.state == State.CORRECT): send_feedback(constraints_node, llm=self.llm)
         return constraints_node
 
-    def increment_nr_syntactically_invalid_leaves(self):
-        self.nr_syntactically_invalid_leaves += 1
+    def _increment_nr_syntactically_invalid_leaves_by(self, increment_by: int = 1):
+        self.nr_syntactically_invalid_leaves += increment_by
 
-    def increment_nr_semantically_invalid_leaves(self):
-        self.nr_semantically_invalid_leaves += 1
+    def _increment_nr_semantically_invalid_leaves_by(self, increment_by: int = 1):
+        self.nr_semantically_invalid_leaves += increment_by
 
-    def increment_nr_valid_leaves(self):
+    def _increment_nr_valid_leaves(self):
         self.nr_valid_leaves += 1
 
     def _save_correctness_results(self):

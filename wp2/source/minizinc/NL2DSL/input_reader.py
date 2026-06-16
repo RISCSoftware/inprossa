@@ -69,27 +69,28 @@ class InputReader:
                     with open(meta["value"], mode="r", encoding="utf-8") as csvfile:
                         reader = csv.DictReader(csvfile)
                         for row in reader:
-                            value.append(InputReader.generate_value(
-                                meta["type"]["elem_type"], row, None, None, input_data["objects"]))
+                            value.append(
+                                InputReader.generate_value(meta["type"]["elem_type"], row, input_data["objects"], None,
+                                                           None))
                 else:
                     lower_bound = meta["type"]["minimum"] if "minimum" in meta["type"] else None
                     upper_bound = meta["type"]["maximum"] if "maximum" in meta["type"] else None
                     for _ in range(meta["type"]["length"]):
-                        value.append(InputReader.generate_value(
-                            meta["type"]["elem_type"], None, lower_bound, upper_bound, input_data["objects"]))
+                        value.append(InputReader.generate_value(meta["type"]["elem_type"], None, input_data["objects"],
+                                                                lower_bound, upper_bound))
             # Type = int, float, string, object
             else:
                 lower_bound = meta["minimum"] if "minimum" in meta else None
                 upper_bound = meta["maximum"] if "maximum" in meta else None
-                value = InputReader.generate_value(
-                    meta["type"], meta["value"], lower_bound, upper_bound, input_data["objects"])
+                value = InputReader.generate_value(meta["type"], meta["value"], input_data["objects"], lower_bound,
+                                                   upper_bound)
             generated_input_data.update({variable: value})
         return generated_input_data
 
 
     @staticmethod
     def read_problem_description_and_generateDSLcode_from_file(input_var_file_path: str, problem_file_path: str, input_mode):
-        '''
+        """
             Depending on input_mode, the problem specification (by user) is read from file and
             one more of the following parts are hard-coded into dsl (partial model formulation by LLM/script)
                 > object types / shapes
@@ -101,7 +102,7 @@ class InputReader:
                 problem_file_path (str):  path to file containing user-given problem specification
                 input_mode (str): input mode, indicates of DSL-code generation is done for
                                   object types and/or input variables and/or output variables
-        '''
+        """
         with open(input_var_file_path, "r", encoding="utf-8") as f:
             input_data = json.load(f)
 
@@ -174,7 +175,7 @@ class InputReader:
         """
         Generate DSL code for decision variables declaration (output variables)
         Args:
-            input_data (dict): full user-given specification
+            output_data (dict): full user-given specification
         Returns:
             list: variable specifications usable by LLM-Formulation-Generation Framework, each includes:
                   variable_name, variable type, current instance-value, code-template for variable initialization,
@@ -254,8 +255,8 @@ class InputReader:
                     with open(meta["value"], mode="r", encoding="utf-8") as csvfile:
                         reader = csv.DictReader(csvfile)
                         for row in reader:
-                            value.append(InputReader.generate_value(
-                                meta["type"]["elem_type"], row, None, None, input_objects))
+                            value.append(
+                                InputReader.generate_value(meta["type"]["elem_type"], row, input_objects, None, None))
                 # value = custom value
                 elif isinstance(meta["value"], list):
                     if len(meta["value"]) != meta["type"]["length"]:
@@ -264,8 +265,9 @@ class InputReader:
                 # value = random
                 else:
                     for _ in range(meta["type"]["length"]):
-                        value.append(InputReader.generate_value(
-                            meta["type"]["elem_type"], None, lower_bound, upper_bound, input_objects))
+                        value.append(
+                            InputReader.generate_value(meta["type"]["elem_type"], None, input_objects, lower_bound,
+                                                       upper_bound))
                 code_piece = f"{variable} : DSList(length = {{}}, elem_type = {InputReader.generate_dsl_code(None, meta["type"]["elem_type"], lower_bound, upper_bound)}) = {{}}\n"
                 code_piece += f"N_{variable.upper()} : int = {{}}"
                 value = [meta["type"]["length"], value, meta["type"]["length"]]
@@ -273,8 +275,8 @@ class InputReader:
             else:
                 lower_bound = meta["minimum"] if "minimum" in meta else None
                 upper_bound = meta["maximum"] if "maximum" in meta else None
-                value.append(InputReader.generate_value(
-                    meta["type"], meta["value"], lower_bound, upper_bound, input_objects))
+                value.append(
+                    InputReader.generate_value(meta["type"], meta["value"], input_objects, lower_bound, upper_bound))
                 code_piece = InputReader.generate_dsl_code(variable, meta["type"], lower_bound, upper_bound)
             variables.append({
                  "description": "",
@@ -341,8 +343,8 @@ class InputReader:
                 with open(meta["value"], mode="r", encoding="utf-8") as csvfile:
                     reader = csv.DictReader(csvfile)
                     for row in reader:
-                        val.append(InputReader.generate_value(
-                            meta["type"]["elem_type"], row, None, None, input_objects))
+                        val.append(
+                            InputReader.generate_value(meta["type"]["elem_type"], row, input_objects, None, None))
             elif not is_decision_var:
                 # value = custom value
                 if isinstance(meta["value"], list):
@@ -352,16 +354,16 @@ class InputReader:
                 else:
                 # value = random
                     for _ in range(meta["type"]["length"]):
-                        val.append(InputReader.generate_value(
-                            meta["type"]["elem_type"], None, lower_bound, upper_bound, input_objects))
+                        val.append(
+                            InputReader.generate_value(meta["type"]["elem_type"], None, input_objects, lower_bound,
+                                                       upper_bound))
             list_len = meta["type"]["length"]
         # Type = int, float, string, object
         else:
             lower_bound = meta["minimum"] if "minimum" in meta else None
             upper_bound = meta["maximum"] if "maximum" in meta else None
             if not is_decision_var:
-                val = InputReader.generate_value(
-                meta["type"], meta["value"], lower_bound, upper_bound, input_objects)
+                val = InputReader.generate_value(meta["type"], meta["value"], input_objects, lower_bound, upper_bound)
 
         if list_len is not None:  # for list declaration
             value.append(list_len)
@@ -377,7 +379,7 @@ class InputReader:
         return value
 
     @staticmethod
-    def generate_dsl_code(variable: str = None, type: str = None, lower_bound = None, upper_bound = None, is_decision_var: bool = False):
+    def generate_dsl_code(variable: str = None, type: str = None, lower_bound: int | None = None, upper_bound: int | None = None, is_decision_var: bool = False):
         if not type:
             raise ValueError("Invalid input data file: Variables must define a type.")
         match type:
@@ -435,7 +437,7 @@ class InputReader:
         return value
 
     @staticmethod
-    def generate_value(type: str, value, lower_bound, upper_bound, input_objects: dict):
+    def generate_value(type: str, value: dict | str | int | None, input_objects: dict, lower_bound: int | None = None, upper_bound: int | None = None):
         """
         Generate random value according to type, lower_bound, upper_bound OR
         get user-given value, check bound-comformity, convert to correct type
@@ -487,11 +489,10 @@ class InputReader:
                     if value is not None and value != "random":
                         object.update(
                             {attribute["name"]: InputReader.generate_value(attribute["type"], value[attribute["name"]],
-                                                                           lower_bound,
-                                                                           upper_bound,
-                                                                           input_objects)})
+                                                                           input_objects, lower_bound, upper_bound)})
                     else:
                         object.update(
-                            {attribute["name"]: InputReader.generate_value(attribute["type"], None, lower_bound, upper_bound, input_objects)})
+                            {attribute["name"]: InputReader.generate_value(attribute["type"], None, input_objects,
+                                                                           lower_bound, upper_bound)})
                 value = object
         return value
