@@ -16,7 +16,7 @@ Either an Amazon AWS Bedrock LLM or a locally running Vllm is required (respecti
 
 A python environment in order to run the scripts.
 
-Install MiniZinc
+### Install MiniZinc
 ```bash
 wget https://github.com/MiniZinc/MiniZincIDE/releases/latest/download/MiniZincIDE-latest-bundle-linux-x86_64.tgz
 ```
@@ -36,9 +36,19 @@ permanent:
 echo 'export PATH="/path/to/MiniZincIDE-<version>-bundle-linux-x86_64/bin/minizinc:$PATH"' >> ~/.bashrc
 ```
 
-Install sentence-transformer:
+### Install sentence-transformer:
 ```bash
 pip install -U sentence-transformers
+```
+
+### Install boto3 (if using AWSClient)
+```bash
+pip install boto3
+```
+
+### Install pandas
+```bash
+pip install pandas
 ```
 
 **Recommended**: Restart the terminal or/and IDE.

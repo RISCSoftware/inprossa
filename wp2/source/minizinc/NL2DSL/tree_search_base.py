@@ -102,7 +102,7 @@ class TreeBase:
                                            response,
                                            llm=self.llm,
                                            full_problem_description=self.problem_description)
-            successfully_added = constants_variables_node.set_constants(response, self.problem_description[0])
+            successfully_added = constants_variables_node.set_constants(response)
             i += 1
         # send_feedback(constants_variables_node)
         # print(f"*** Response, constants: {response}\n")

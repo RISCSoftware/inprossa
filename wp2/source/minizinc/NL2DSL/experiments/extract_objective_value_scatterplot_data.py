@@ -2,7 +2,7 @@ import json
 import os
 
 import pandas as pd
-from NL2DSL.experiments.handcrafted_2d_bin_packing import apply_handcrafted
+from experiments.handcrafted_2d_bin_packing import apply_handcrafted
 import statistics
 
 scatterplot_folder_path = "scatterplot_data_handcrafted_vs_ToT"

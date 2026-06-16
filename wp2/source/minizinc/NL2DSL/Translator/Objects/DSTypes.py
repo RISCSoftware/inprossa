@@ -10,7 +10,7 @@ And Records will have a dict of field_name:str -> field_type:DS...
 """
 import ast
 from typing import Optional, Union, Dict
-from Translator.helper_tools import ast_to_evaluation_constants, ExpressionRewriter
+from Translator.helper_tools import ExpressionRewriter
 
 
 def remove_ast(input, constant_table: Optional[dict] = None):
@@ -93,7 +93,7 @@ class DSFloat:
     def emit_definition(self):
         declaration = f"type {self.name} = {self.representation()}"
         return declaration
-    
+
     def representation(self, with_vars=False):
         if with_vars:
             representation = "var "
@@ -204,14 +204,14 @@ class DSRecord:
                 field_defs.append(f"{ftype.name}: {fname}")
         fields_str = ",\n    ".join(field_defs)
         return fields_str
-    
+
     def representation(self, with_vars=False):
         self.fields_declar = self.fields_declarations(with_vars=with_vars)
         return f"record(\n    {self.fields_declar}\n)"
 
     def emit_definition(self):
         return f"type {self.name} = {self.representation()}"
-    
+
     def initial_assigned_fields(self):
         return {fname: compute_type(ftype).initial_assigned_fields() for fname, ftype in self.types_dict.items()}
 
