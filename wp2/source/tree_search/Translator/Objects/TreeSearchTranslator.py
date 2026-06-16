@@ -185,7 +185,11 @@ class TreeSearchTranslator:
 
         print("VARIABLES", self.variables)
 
-        # This is not really a good solution
+        # Code to build the `decision variable` data structure 
+        # based on AST of the DSL
+        # ...
+        # Load constraint (and objective) function into
+        # local scope and use those functions in `bfs`
         exec(self.code, self.__dict__)
 
         root_state = State(self.variables)

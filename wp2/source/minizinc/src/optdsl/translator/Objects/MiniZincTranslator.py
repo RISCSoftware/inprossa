@@ -1,0 +1,132 @@
+import ast
+from src.optdsl.translator.Objects.Predicate import Predicate
+from src.optdsl.translator.Objects.CodeBlock import CodeBlock
+from src.optdsl.translator.Objects.DSTypes import DSType
+
+
+class MiniZincTranslator:
+    """
+    Top-level orchestrator:
+      - Parses Python code into AST
+      - Registers function definitions as Predicates
+      - Sends top-level executable statements to a CodeBlock
+      - Assembles final MiniZinc text (predicate defs, symbols, arrays, scalars, constraints, solve)
+    """
+    def __init__(self, code):
+        self.code = code
+        self.constants = dict()          # name -> Constant
+        self.types = dict()              # name -> DS... type
+        self.predicates = dict()         # name -> Predicate
+        self.records = dict()            # class_name -> MiniZincRecord
+        self.top_level_stmts = []
+        # TODO think about how to handle maximising/minimising
+        self.objective = None        # ('minimize', 'expr') or ('maximize', 'expr')
+
+    def unroll_translation(self):
+        """Returns the compiled MiniZinc code that corresponds to the given Python code."""
+        self.parse()
+        return self.compile()
+
+    def parse(self):
+        """
+        Parse the input code collection functions as predicates
+        and creating a list of top-level statements.
+        """
+        tree = ast.parse(self.code)
+        # for node in tree.body:
+        #     print(ast.dump(node, indent=4))
+        for node in tree.body:
+            # 0) Collect Global Constants
+            # if is an annassignment and lhs is uppercase
+            # For now the constant should be defined in annassignment
+            if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id.isupper():
+                const_name = node.target.id
+                 # Evaluate type
+                code_block = CodeBlock(constant_table=self.constants, predicates=self.predicates, types=self.types)
+                code_block.run([node], loop_scope={})
+                self.constants[const_name] = code_block.constant_table[const_name]
+
+            # 1) type definitions -> MiniZinc type definitions
+            if (isinstance(node, ast.Assign) and
+                isinstance(node.value, ast.Call) and  # right-hand side is a call
+                isinstance(node.value.func, ast.Name) and
+                node.value.func.id.startswith("DS")):
+
+                type_name = node.targets[0].id
+                mz_type = DSType(node.value, type_name, known_types=self.types, constant_table=self.constants).return_type()
+                self.types[type_name] = mz_type
+
+            # 2) function definitions -> Predicates
+            elif isinstance(node, ast.FunctionDef):
+                # to ast visualisation
+                pred = Predicate(node,
+                                 predicates=self.predicates,
+                                 constant_table=self.constants,
+                                 types=self.types)
+                self.predicates[pred.name] = pred
+            
+            # 3) Set objective (minimize/maximize) 
+            elif (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and
+                  (node.value.func.id == "minimize" or
+                   node.value.func.id == "maximize")):
+                self.objective = (node.value.func.id, ast.unparse(node.value.args[0]))
+            else:
+                self.top_level_stmts.append(node)
+        return self
+
+    def compile(self):
+        """Execute top-level block with access to registered predicates"""
+        block = CodeBlock(
+            constant_table=self.constants,
+            predicates=self.predicates,
+            types=self.types)
+        block.run(self.top_level_stmts, loop_scope={})
+
+        parts = []
+
+        # 0) Type definitions
+        for name, _type in self.types.items():
+            parts.append(_type.emit_definition())
+
+        # 1) Predicate definitions
+        for name in sorted(self.predicates.keys()):
+            parts.append(self.predicates[name].emit_definition())
+
+        # 2) Constants (symbols)
+        parts += self.get_symbol_declarations(block)
+
+        # 3) Arrays for versioned variables in top-level code
+        parts += self.get_vars_declrs(block)
+
+        # 4) Constraints from top-level code (incl. predicate calls as 'constraint f(...)')
+        parts += self.get_constraints(block)
+
+        # 5) Solve (default)
+        parts.append(self.get_objective(block))
+        return ";\n".join(parts)
+    
+    # TODO these three methods could be moved to CodeBlock?
+
+    def get_symbol_declarations(self, block):
+        """Declare constants as MiniZinc symbols (not evolving)."""
+        decls = []
+        for constant in block.constant_table.values():
+            decls.append(constant.to_minizinc())
+        return decls
+
+    def get_vars_declrs(self, block):
+        """Get all variable declarations (evolving and non-evolving)."""
+        return [declr.to_minizinc() for declr in block.variable_table.values()]
+
+    def get_constraints(self, block):
+        return [str(c) for c in block.constraints if c is not None]
+    
+    def get_objective(self, block):
+        # Look for 'objective' variable in block
+        if self.objective is not None:
+            obj_type, obj_expr = self.objective
+            obj_var = block.variable_table[obj_expr]
+            obj_var_ver_name = obj_var.versioned_name()
+            return f"solve {obj_type} {obj_var_ver_name};"
+        return f"solve satisfy;"
+

@@ -32,6 +32,7 @@ python = "^3.13"
 click = "^8.2.1"
 pydantic = "^2.11.7"
 rich = "^14.0.0"
+pydantic-core = "^2.47.0"
 
 [tool.poetry.group.dev.dependencies]
 # https://python-poetry.org/docs/master/managing-dependencies/
