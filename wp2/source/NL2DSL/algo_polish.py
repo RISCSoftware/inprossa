@@ -42,7 +42,7 @@ class AlgoPolish:
             model_to_be_polished = PolishModel(model)
             model_to_be_polished.objective = initial_clean_up(model_to_be_polished.objective, to_typing=True)
             model_to_be_polished.constraints = initial_clean_up(model_to_be_polished.constraints, to_typing=True)
-            model_to_be_polished.fitness = model_to_be_polished.calculate_and_set_fitness()
+            model_to_be_polished.calculate_and_set_fitness()
             self.models.append(model_to_be_polished)
         fitness_vals = [model.fitness for model in self.models]
         self.cur_avg_fitness = sum(fitness_vals) / len(fitness_vals)
@@ -59,38 +59,39 @@ class AlgoPolish:
             (self.models: Models to be polished)
         """
         if not problem_description: raise ValueError("Problem description cannot be None or empty.")
-        improved_models = self.elites
+        improved_models = []
 
         for m_index in range(AlgoPolish.POLISHING_ITERATIONS):
             # Biased Crossover
             merged_models = set()
             non_elite_models = [x for x in self.models if x not in self.elites]
             merge_it = 0
-            while len(merged_models) < constants.NR_MERGED_MODELS and merge_it < constants.NR_MERGED_MODELS*2:
-                elite = random.choice(self.elites)
-                non_elite_model = random.choice(non_elite_models)
-                elite_encoding = elite.objective + "\n\n" + elite.constraints
-                non_elite_encoding = non_elite_model.objective + "\n\n" + non_elite_model.constraints
-                encoding = send_prompt_with_system_prompt(
-                    load_algopolish_mutation_file("crossover/crossover_biased_80%.txt").format(elite_encoding,
-                                                                                               non_elite_encoding,
-                                                                                               60,
-                                                                                               40),
-                    self.llm)
-                new_model = self._execute_and_validate_model(
-                    copy.deepcopy(elite),
-                    encoding,
-                    elite.full_formulation,
-                    problem_description)
-                if new_model is None: continue
+            if len(self.elites) > 0 and len(non_elite_models) > 0:
+                while len(merged_models) < constants.NR_MERGED_MODELS and merge_it < constants.NR_MERGED_MODELS*2:
+                    elite = random.choice(self.elites)
+                    non_elite_model = random.choice(non_elite_models)
+                    elite_encoding = elite.objective + "\n\n" + elite.constraints
+                    non_elite_encoding = non_elite_model.objective + "\n\n" + non_elite_model.constraints
+                    encoding = send_prompt_with_system_prompt(
+                        load_algopolish_mutation_file("crossover/crossover_biased_80%.txt").format(elite_encoding,
+                                                                                                   non_elite_encoding,
+                                                                                                   60,
+                                                                                                   40),
+                        self.llm)
+                    new_model = self._execute_and_validate_model(
+                        copy.deepcopy(elite),
+                        encoding,
+                        elite.full_formulation,
+                        problem_description)
+                    if new_model is None: continue
 
-                # Check fitness
-                new_model.calculate_and_set_fitness()
-                if new_model.state == State.CORRECT:
-                    merged_models.add(new_model)
-                else:
-                    print(f"Merged model faulty - do nothing.")
-                merge_it += 1
+                    # Check fitness
+                    new_model.calculate_and_set_fitness()
+                    if new_model.state == State.CORRECT:
+                        merged_models.add(new_model)
+                    else:
+                        print(f"Merged model faulty - do nothing.")
+                    merge_it += 1
 
             print(f"Merged models fitness: {[merged_model.fitness for merged_model in merged_models]}")
 
@@ -106,7 +107,7 @@ class AlgoPolish:
                 self.llm,
                 0.4)
 
-            for unmutated_model in improved_models:
+            for unmutated_model in self.elites:
                 # Mutation - redefine objective function
                 old_objective = unmutated_model.objective
                 unmutated_model.objective = "# --- Objective ---\n"
