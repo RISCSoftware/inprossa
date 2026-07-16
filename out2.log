@@ -1,0 +1,407 @@
+/workspace/wp5/mcts/bin_packing/train.py:64: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+  class Config(BaseModel):
+/workspace/wp5/mcts/bin_packing/train.py:369: DeprecationWarning: jax.device_put_replicated is deprecated; use jax.device_put instead.
+  params, opt_state = jax.device_put_replicated((params, opt_state), devices)
+E0312 00:09:39.856914   97107 cuda_timer.cc:87] Delay kernel timed out: measured time has sub-optimal accuracy. There may be a missing warmup execution, please investigate in Nsight Systems.
+max_items=32 min_item_size=0.3 max_item_size=0.7 seed=0 max_num_iters=400 hidden_size=192 depth=12 num_heads=3 selfplay_batch_size=512 num_simulations=64 max_num_steps=32 training_batch_size=128 learning_rate=0.001 weight_decay=0.01 eval_interval=5
+{'iteration': 0, 'hours': 0.0, 'frames': 0}
+{'iteration': 1, 'train/policy_loss': 2.796651010401547, 'train/value_loss': 62.46783486753702, 'hours': 0.042128314971923826, 'frames': 16384}
+{'iteration': 2, 'train/policy_loss': 1.2386074266396463, 'train/value_loss': 0.8830253958003595, 'hours': 0.06501046160856883, 'frames': 32768}
+{'iteration': 3, 'train/policy_loss': 0.9718836038373411, 'train/value_loss': 0.3338673758553341, 'hours': 0.08167740060223473, 'frames': 49152}
+{'iteration': 4, 'train/policy_loss': 1.045301275793463, 'train/value_loss': 0.38798817875795066, 'hours': 0.09844042009777493, 'frames': 65536}
+{'iteration': 5, 'train/policy_loss': 0.9210616950877011, 'train/value_loss': 0.3336308862781152, 'hours': 0.11522470904721153, 'frames': 81920, 'eval/model_optimality_ratio': 0.8626064658164978, 'eval/greedy_optimality_ratio': 0.9097983241081238, 'eval/improvement_vs_greedy': -0.047191817313432693}
+{'iteration': 6, 'train/policy_loss': 1.0020790821872652, 'train/value_loss': 0.24853924300987273, 'hours': 0.13192193660471174, 'frames': 98304}
+{'iteration': 7, 'train/policy_loss': 0.9449504562653601, 'train/value_loss': 0.26417702782782726, 'hours': 0.1485873888598548, 'frames': 114688}
+{'iteration': 8, 'train/policy_loss': 0.8946600784547627, 'train/value_loss': 0.1870778638694901, 'hours': 0.1652490423123042, 'frames': 131072}
+{'iteration': 9, 'train/policy_loss': 0.8799737179651856, 'train/value_loss': 0.2696517730364576, 'hours': 0.1819345474905438, 'frames': 147456}
+{'iteration': 10, 'train/policy_loss': 0.8623341377824545, 'train/value_loss': 0.22744478585082106, 'hours': 0.19869490974479254, 'frames': 163840, 'eval/model_optimality_ratio': 0.8750699758529663, 'eval/greedy_optimality_ratio': 0.9045232534408569, 'eval/improvement_vs_greedy': -0.029453352093696594}
+{'iteration': 11, 'train/policy_loss': 0.8685320573858917, 'train/value_loss': 0.141770679038018, 'hours': 0.21540785219934253, 'frames': 180224}
+{'iteration': 12, 'train/policy_loss': 0.7976334472186863, 'train/value_loss': 0.15718445990933105, 'hours': 0.23213221748669943, 'frames': 196608}
+{'iteration': 13, 'train/policy_loss': 0.8379458300769329, 'train/value_loss': 0.14241421208134852, 'hours': 0.24883372717433505, 'frames': 212992}
+{'iteration': 14, 'train/policy_loss': 0.7031785026192665, 'train/value_loss': 0.13899384130490944, 'hours': 0.26561930815378826, 'frames': 229376}
+{'iteration': 15, 'train/policy_loss': 0.6597328092902899, 'train/value_loss': 0.1383150331384968, 'hours': 0.28237089461750453, 'frames': 245760, 'eval/model_optimality_ratio': 0.9024595022201538, 'eval/greedy_optimality_ratio': 0.9133656024932861, 'eval/improvement_vs_greedy': -0.010906103067100048}
+{'iteration': 16, 'train/policy_loss': 0.7578576928935945, 'train/value_loss': 0.10345344719826244, 'hours': 0.2992846584982342, 'frames': 262144}
+{'iteration': 17, 'train/policy_loss': 0.7034042445011437, 'train/value_loss': 0.14144560741260648, 'hours': 0.31613967451784347, 'frames': 278528}
+{'iteration': 18, 'train/policy_loss': 0.7204494876787066, 'train/value_loss': 0.14030684976023622, 'hours': 0.3328855774137709, 'frames': 294912}
+{'iteration': 19, 'train/policy_loss': 0.727295390330255, 'train/value_loss': 0.10887947931769304, 'hours': 0.3496795399983724, 'frames': 311296}
+{'iteration': 20, 'train/policy_loss': 0.7992125386372209, 'train/value_loss': 0.1001327881240286, 'hours': 0.3664810599221124, 'frames': 327680, 'eval/model_optimality_ratio': 0.9050424098968506, 'eval/greedy_optimality_ratio': 0.9106472134590149, 'eval/improvement_vs_greedy': -0.005604777950793505}
+{'iteration': 21, 'train/policy_loss': 0.6993893934413791, 'train/value_loss': 0.08634345198515803, 'hours': 0.3832245116763645, 'frames': 344064}
+{'iteration': 22, 'train/policy_loss': 0.712272435426712, 'train/value_loss': 0.07359444243775215, 'hours': 0.40003350469801163, 'frames': 360448}
+{'iteration': 23, 'train/policy_loss': 0.7259240415878594, 'train/value_loss': 0.1062844779517036, 'hours': 0.416882513165474, 'frames': 376832}
+{'iteration': 24, 'train/policy_loss': 0.7825577179901302, 'train/value_loss': 0.09059399116085842, 'hours': 0.43359776324696014, 'frames': 393216}
+{'iteration': 25, 'train/policy_loss': 0.7629539528861642, 'train/value_loss': 0.11659873009193689, 'hours': 0.45035101321008475, 'frames': 409600, 'eval/model_optimality_ratio': 0.8830483555793762, 'eval/greedy_optimality_ratio': 0.9062057733535767, 'eval/improvement_vs_greedy': -0.023157481104135513}
+{'iteration': 26, 'train/policy_loss': 0.6788084891159087, 'train/value_loss': 0.07617372668755706, 'hours': 0.4671685102913115, 'frames': 425984}
+{'iteration': 27, 'train/policy_loss': 0.7515161759220064, 'train/value_loss': 0.1047011518094223, 'hours': 0.4838242324855593, 'frames': 442368}
+{'iteration': 28, 'train/policy_loss': 0.6610919879749417, 'train/value_loss': 0.10398446302860975, 'hours': 0.5006056933270561, 'frames': 458752}
+{'iteration': 29, 'train/policy_loss': 0.7308454993180931, 'train/value_loss': 0.11889438156504184, 'hours': 0.5172861933045917, 'frames': 475136}
+{'iteration': 30, 'train/policy_loss': 0.6573440507054329, 'train/value_loss': 0.07439156738109887, 'hours': 0.5341009630759557, 'frames': 491520, 'eval/model_optimality_ratio': 0.9018893241882324, 'eval/greedy_optimality_ratio': 0.910037100315094, 'eval/improvement_vs_greedy': -0.008147809654474258}
+{'iteration': 31, 'train/policy_loss': 0.740879935445264, 'train/value_loss': 0.08635653858073056, 'hours': 0.5508601828416189, 'frames': 507904}
+{'iteration': 32, 'train/policy_loss': 0.6624203438404948, 'train/value_loss': 0.10680064119515009, 'hours': 0.5676663702064091, 'frames': 524288}
+{'iteration': 33, 'train/policy_loss': 0.7962107639759779, 'train/value_loss': 0.1414053656044416, 'hours': 0.5843812606069777, 'frames': 540672}
+{'iteration': 34, 'train/policy_loss': 0.713900453876704, 'train/value_loss': 0.07046736753545702, 'hours': 0.6011393701367909, 'frames': 557056}
+{'iteration': 35, 'train/policy_loss': 0.6843676306307316, 'train/value_loss': 0.08002982646576129, 'hours': 0.6178951788610882, 'frames': 573440, 'eval/model_optimality_ratio': 0.9024425745010376, 'eval/greedy_optimality_ratio': 0.9044901132583618, 'eval/improvement_vs_greedy': -0.00204754201695323}
+{'iteration': 36, 'train/policy_loss': 0.6813408720772713, 'train/value_loss': 0.0811969928763574, 'hours': 0.6346402029196422, 'frames': 589824}
+{'iteration': 37, 'train/policy_loss': 0.651629286352545, 'train/value_loss': 0.06767424795543775, 'hours': 0.6514849790599612, 'frames': 606208}
+{'iteration': 38, 'train/policy_loss': 0.6604499416425824, 'train/value_loss': 0.09209928350173868, 'hours': 0.6682533810536068, 'frames': 622592}
+{'iteration': 39, 'train/policy_loss': 0.7283474132418633, 'train/value_loss': 0.07966510578989983, 'hours': 0.6850106708870994, 'frames': 638976}
+{'iteration': 40, 'train/policy_loss': 0.7579814428463578, 'train/value_loss': 0.08819869178114459, 'hours': 0.701740091972881, 'frames': 655360, 'eval/model_optimality_ratio': 0.8975666761398315, 'eval/greedy_optimality_ratio': 0.9097892045974731, 'eval/improvement_vs_greedy': -0.01222254615277052}
+{'iteration': 41, 'train/policy_loss': 0.68930236203596, 'train/value_loss': 0.07861922142910771, 'hours': 0.7184459615415998, 'frames': 671744}
+{'iteration': 42, 'train/policy_loss': 0.6782524213194847, 'train/value_loss': 0.07916364303673618, 'hours': 0.735263639026218, 'frames': 688128}
+{'iteration': 43, 'train/policy_loss': 0.6946986918337643, 'train/value_loss': 0.06949046409863513, 'hours': 0.7520336182249917, 'frames': 704512}
+{'iteration': 44, 'train/policy_loss': 0.745089101139456, 'train/value_loss': 0.07993214816087857, 'hours': 0.7688251043690576, 'frames': 720896}
+{'iteration': 45, 'train/policy_loss': 0.6751097086817026, 'train/value_loss': 0.08463546639541164, 'hours': 0.7855640986892912, 'frames': 737280, 'eval/model_optimality_ratio': 0.9075340628623962, 'eval/greedy_optimality_ratio': 0.9108850955963135, 'eval/improvement_vs_greedy': -0.0033510150387883186}
+{'iteration': 46, 'train/policy_loss': 0.7256812280975282, 'train/value_loss': 0.09405869992042426, 'hours': 0.8023111197683547, 'frames': 753664}
+{'iteration': 47, 'train/policy_loss': 0.6029358399100602, 'train/value_loss': 0.06693809738499112, 'hours': 0.8190892193714778, 'frames': 770048}
+{'iteration': 48, 'train/policy_loss': 0.6138574839569628, 'train/value_loss': 0.07707642592140473, 'hours': 0.8358572430080838, 'frames': 786432}
+{'iteration': 49, 'train/policy_loss': 1.3749294099397957, 'train/value_loss': 133.16636275601923, 'hours': 0.8525560699568855, 'frames': 802816}
+{'iteration': 50, 'train/policy_loss': 3.3741702307015657, 'train/value_loss': 45.445049557834864, 'hours': 0.869115646812651, 'frames': 819200, 'eval/model_optimality_ratio': 0.9082221984863281, 'eval/greedy_optimality_ratio': 0.9074409008026123, 'eval/improvement_vs_greedy': 0.0007812617113813758}
+{'iteration': 51, 'train/policy_loss': 3.166943984106183, 'train/value_loss': 4.429225597530603, 'hours': 0.8858538225624297, 'frames': 835584}
+{'iteration': 52, 'train/policy_loss': 2.626551281660795, 'train/value_loss': 4.029258633032441, 'hours': 0.9024646121263505, 'frames': 851968}
+{'iteration': 53, 'train/policy_loss': 2.6221710685640574, 'train/value_loss': 3.9683018177747726, 'hours': 0.9190421451462641, 'frames': 868352}
+{'iteration': 54, 'train/policy_loss': 2.378016526810825, 'train/value_loss': 4.0011638682335615, 'hours': 0.9356276616122989, 'frames': 884736}
+{'iteration': 55, 'train/policy_loss': 1.5962511347606778, 'train/value_loss': 4.0104363933205605, 'hours': 0.952233102321625, 'frames': 901120, 'eval/model_optimality_ratio': 0.4097973704338074, 'eval/greedy_optimality_ratio': 0.9098488092422485, 'eval/improvement_vs_greedy': -0.5000513792037964}
+{'iteration': 56, 'train/policy_loss': 1.3530281512066722, 'train/value_loss': 4.1439367067068815, 'hours': 0.9689374054140517, 'frames': 917504}
+{'iteration': 57, 'train/policy_loss': 1.301242114044726, 'train/value_loss': 3.7165586929768324, 'hours': 0.985680295162731, 'frames': 933888}
+{'iteration': 58, 'train/policy_loss': 1.2967117726802826, 'train/value_loss': 4.101571060717106, 'hours': 1.002513263821602, 'frames': 950272}
+{'iteration': 59, 'train/policy_loss': 1.2971066776663065, 'train/value_loss': 3.824034294113517, 'hours': 1.0192183749543298, 'frames': 966656}
+{'iteration': 60, 'train/policy_loss': 1.3054822757840157, 'train/value_loss': 3.7359132152050734, 'hours': 1.0360000093115702, 'frames': 983040, 'eval/model_optimality_ratio': 0.4096677303314209, 'eval/greedy_optimality_ratio': 0.9088869690895081, 'eval/improvement_vs_greedy': -0.49921920895576477}
+{'iteration': 61, 'train/policy_loss': 1.4132534498348832, 'train/value_loss': 4.130536027252674, 'hours': 1.0526830055978564, 'frames': 999424}
+{'iteration': 62, 'train/policy_loss': 1.3251861836761236, 'train/value_loss': 3.8224043045192957, 'hours': 1.0694470334053041, 'frames': 1015808}
+{'iteration': 63, 'train/policy_loss': 1.365897067822516, 'train/value_loss': 3.821426556445658, 'hours': 1.0862493940856723, 'frames': 1032192}
+{'iteration': 64, 'train/policy_loss': 1.687253812327981, 'train/value_loss': 4.110867505893111, 'hours': 1.1031158405542376, 'frames': 1048576}
+{'iteration': 65, 'train/policy_loss': 1.4132488863542676, 'train/value_loss': 3.7939856108278036, 'hours': 1.119840556515588, 'frames': 1064960, 'eval/model_optimality_ratio': 0.409399151802063, 'eval/greedy_optimality_ratio': 0.9088502526283264, 'eval/improvement_vs_greedy': -0.49945104122161865}
+{'iteration': 66, 'train/policy_loss': 1.3560260320082307, 'train/value_loss': 3.404955428093672, 'hours': 1.136581315994263, 'frames': 1081344}
+{'iteration': 67, 'train/policy_loss': 1.3414509557187557, 'train/value_loss': 3.6845673862844706, 'hours': 1.1533369892173346, 'frames': 1097728}
+{'iteration': 68, 'train/policy_loss': 1.4926702054217458, 'train/value_loss': 6.394418117590249, 'hours': 1.1701087525818086, 'frames': 1114112}
+{'iteration': 69, 'train/policy_loss': 3.0656934455037117, 'train/value_loss': 4.417115859687328, 'hours': 1.1867233441935647, 'frames': 1130496}
+{'iteration': 70, 'train/policy_loss': 1.5165585046634078, 'train/value_loss': 1.7679021460935473, 'hours': 1.2034027982420394, 'frames': 1146880, 'eval/model_optimality_ratio': 0.4007057547569275, 'eval/greedy_optimality_ratio': 0.9008256196975708, 'eval/improvement_vs_greedy': -0.5001198053359985}
+{'iteration': 71, 'train/policy_loss': 1.3713535713031888, 'train/value_loss': 0.8701189272105694, 'hours': 1.2202701568603518, 'frames': 1163264}
+{'iteration': 72, 'train/policy_loss': 1.3587322859093547, 'train/value_loss': 0.5017828720156103, 'hours': 1.2370624530977676, 'frames': 1179648}
+{'iteration': 73, 'train/policy_loss': 1.3147131018340588, 'train/value_loss': 0.5565388344693929, 'hours': 1.2538430935144427, 'frames': 1196032}
+{'iteration': 74, 'train/policy_loss': 1.3113146796822548, 'train/value_loss': 0.5093810032121837, 'hours': 1.270617893073294, 'frames': 1212416}
+{'iteration': 75, 'train/policy_loss': 1.319326689466834, 'train/value_loss': 0.5323180870618671, 'hours': 1.2873955521980924, 'frames': 1228800, 'eval/model_optimality_ratio': 0.4142530858516693, 'eval/greedy_optimality_ratio': 0.9106775522232056, 'eval/improvement_vs_greedy': -0.49642449617385864}
+{'iteration': 76, 'train/policy_loss': 1.3051078850403428, 'train/value_loss': 0.529657912440598, 'hours': 1.3041912711991206, 'frames': 1245184}
+{'iteration': 77, 'train/policy_loss': 1.0840758690610528, 'train/value_loss': 0.43081259191967547, 'hours': 1.3209780802991657, 'frames': 1261568}
+{'iteration': 78, 'train/policy_loss': 0.9113416289910674, 'train/value_loss': 0.4520650147460401, 'hours': 1.337904288834996, 'frames': 1277952}
+{'iteration': 79, 'train/policy_loss': 0.8619874268770218, 'train/value_loss': 0.4285687793744728, 'hours': 1.354731431934569, 'frames': 1294336}
+{'iteration': 80, 'train/policy_loss': 0.8777150646783412, 'train/value_loss': 0.4196377722546458, 'hours': 1.3715713938739567, 'frames': 1310720, 'eval/model_optimality_ratio': 0.6981765031814575, 'eval/greedy_optimality_ratio': 0.9118093252182007, 'eval/improvement_vs_greedy': -0.21363282203674316}
+{'iteration': 81, 'train/policy_loss': 0.8304507290013134, 'train/value_loss': 0.2944566130172461, 'hours': 1.388403858939807, 'frames': 1327104}
+{'iteration': 82, 'train/policy_loss': 0.7285847349558026, 'train/value_loss': 0.24808045767713338, 'hours': 1.4052621280484732, 'frames': 1343488}
+{'iteration': 83, 'train/policy_loss': 0.7504728063941002, 'train/value_loss': 0.2654782263562083, 'hours': 1.4221328048573603, 'frames': 1359872}
+{'iteration': 84, 'train/policy_loss': 0.7362458962015808, 'train/value_loss': 0.1856674634036608, 'hours': 1.4389862883090976, 'frames': 1376256}
+{'iteration': 85, 'train/policy_loss': 0.767856880556792, 'train/value_loss': 0.212377245654352, 'hours': 1.4558723296721778, 'frames': 1392640, 'eval/model_optimality_ratio': 0.8634052276611328, 'eval/greedy_optimality_ratio': 0.9130963087081909, 'eval/improvement_vs_greedy': -0.04969107359647751}
+{'iteration': 86, 'train/policy_loss': 0.678798848297447, 'train/value_loss': 0.1611097878194414, 'hours': 1.4726655609077879, 'frames': 1409024}
+{'iteration': 87, 'train/policy_loss': 0.6316848078276962, 'train/value_loss': 0.16440959030296654, 'hours': 1.4894658275445303, 'frames': 1425408}
+{'iteration': 88, 'train/policy_loss': 0.6837170450016856, 'train/value_loss': 0.12635903150658123, 'hours': 1.5062471395730972, 'frames': 1441792}
+{'iteration': 89, 'train/policy_loss': 0.6741682733409107, 'train/value_loss': 0.1545044126396533, 'hours': 1.5230288553237914, 'frames': 1458176}
+{'iteration': 90, 'train/policy_loss': 0.7189871454611421, 'train/value_loss': 0.13031500985380262, 'hours': 1.5397882745663325, 'frames': 1474560, 'eval/model_optimality_ratio': 0.8766195178031921, 'eval/greedy_optimality_ratio': 0.9029590487480164, 'eval/improvement_vs_greedy': -0.026339508593082428}
+{'iteration': 91, 'train/policy_loss': 0.6328618775587529, 'train/value_loss': 0.12391165673034266, 'hours': 1.556529940035608, 'frames': 1490944}
+{'iteration': 92, 'train/policy_loss': 0.7291155718266964, 'train/value_loss': 0.14168478452484123, 'hours': 1.5733498720328014, 'frames': 1507328}
+{'iteration': 93, 'train/policy_loss': 0.601992433425039, 'train/value_loss': 0.1273905354901217, 'hours': 1.590074667069647, 'frames': 1523712}
+{'iteration': 94, 'train/policy_loss': 0.7169054681435227, 'train/value_loss': 0.11359292780980468, 'hours': 1.6067714385853873, 'frames': 1540096}
+{'iteration': 95, 'train/policy_loss': 0.6936874913517386, 'train/value_loss': 0.1408894551859703, 'hours': 1.6234393879440094, 'frames': 1556480, 'eval/model_optimality_ratio': 0.8627808094024658, 'eval/greedy_optimality_ratio': 0.9119037389755249, 'eval/improvement_vs_greedy': -0.04912290349602699}
+{'iteration': 96, 'train/policy_loss': 0.6734602728392929, 'train/value_loss': 0.1401422605267726, 'hours': 1.6401765884293449, 'frames': 1572864}
+{'iteration': 97, 'train/policy_loss': 0.6695416970178485, 'train/value_loss': 0.13126603933051229, 'hours': 1.656910173429383, 'frames': 1589248}
+{'iteration': 98, 'train/policy_loss': 0.6697187342215329, 'train/value_loss': 0.10331248186412267, 'hours': 1.6736373197370102, 'frames': 1605632}
+{'iteration': 99, 'train/policy_loss': 0.6383652063086629, 'train/value_loss': 0.10105657271924429, 'hours': 1.69044314066569, 'frames': 1622016}
+{'iteration': 100, 'train/policy_loss': 0.7236579172313213, 'train/value_loss': 0.12273107588407584, 'hours': 1.7071430296368066, 'frames': 1638400, 'eval/model_optimality_ratio': 0.9034521579742432, 'eval/greedy_optimality_ratio': 0.9097377061843872, 'eval/improvement_vs_greedy': -0.0062855081632733345}
+{'iteration': 101, 'train/policy_loss': 0.6665234360843897, 'train/value_loss': 0.11676723381970078, 'hours': 1.7238871253861319, 'frames': 1654784}
+{'iteration': 102, 'train/policy_loss': 0.7310212589800358, 'train/value_loss': 0.10378629039041698, 'hours': 1.7405868560075757, 'frames': 1671168}
+{'iteration': 103, 'train/policy_loss': 0.6473130322992802, 'train/value_loss': 0.12041540365316905, 'hours': 1.7573236222399602, 'frames': 1687552}
+{'iteration': 104, 'train/policy_loss': 0.7469845269806683, 'train/value_loss': 0.12808202649466693, 'hours': 1.7740504184696406, 'frames': 1703936}
+{'iteration': 105, 'train/policy_loss': 0.6182260471396148, 'train/value_loss': 0.09301833197241649, 'hours': 1.7907783939441042, 'frames': 1720320, 'eval/model_optimality_ratio': 0.8927526473999023, 'eval/greedy_optimality_ratio': 0.9086242914199829, 'eval/improvement_vs_greedy': -0.01587159000337124}
+{'iteration': 106, 'train/policy_loss': 0.6406316040083766, 'train/value_loss': 0.08871111494954675, 'hours': 1.8075603892405825, 'frames': 1736704}
+{'iteration': 107, 'train/policy_loss': 0.6843674182891846, 'train/value_loss': 0.10891894358792342, 'hours': 1.8242883129914598, 'frames': 1753088}
+{'iteration': 108, 'train/policy_loss': 0.7227157861925662, 'train/value_loss': 0.10704205356887542, 'hours': 1.8409860097037418, 'frames': 1769472}
+{'iteration': 109, 'train/policy_loss': 0.6304652611725032, 'train/value_loss': 0.10374133233563043, 'hours': 1.8577019800742465, 'frames': 1785856}
+{'iteration': 110, 'train/policy_loss': 1.098603809485212, 'train/value_loss': 6.002463369659381, 'hours': 1.874425178700023, 'frames': 1802240, 'eval/model_optimality_ratio': 0.44206702709198, 'eval/greedy_optimality_ratio': 0.9116866588592529, 'eval/improvement_vs_greedy': -0.46961963176727295}
+{'iteration': 111, 'train/policy_loss': 1.1664363062009215, 'train/value_loss': 2.908658111235127, 'hours': 1.8910534181197483, 'frames': 1818624}
+{'iteration': 112, 'train/policy_loss': 1.0072476854547858, 'train/value_loss': 1.1522390632890165, 'hours': 1.907804515229331, 'frames': 1835008}
+{'iteration': 113, 'train/policy_loss': 0.9167822739109397, 'train/value_loss': 0.1875664625549689, 'hours': 1.9245124871200985, 'frames': 1851392}
+{'iteration': 114, 'train/policy_loss': 0.8258204571902752, 'train/value_loss': 0.1806825430248864, 'hours': 1.9412373700406815, 'frames': 1867776}
+{'iteration': 115, 'train/policy_loss': 0.8472503693774343, 'train/value_loss': 0.1399996146792546, 'hours': 1.9579330820507472, 'frames': 1884160, 'eval/model_optimality_ratio': 0.8048208951950073, 'eval/greedy_optimality_ratio': 0.9075521230697632, 'eval/improvement_vs_greedy': -0.10273117572069168}
+{'iteration': 116, 'train/policy_loss': 0.8657293901778758, 'train/value_loss': 0.1339934157440439, 'hours': 1.974631480442153, 'frames': 1900544}
+{'iteration': 117, 'train/policy_loss': 0.7748936545103788, 'train/value_loss': 0.14291091193445027, 'hours': 1.9913615864515304, 'frames': 1916928}
+{'iteration': 118, 'train/policy_loss': 0.7658791202120483, 'train/value_loss': 0.14203911909135059, 'hours': 2.0080600704087153, 'frames': 1933312}
+{'iteration': 119, 'train/policy_loss': 0.6498945618513972, 'train/value_loss': 0.11734720322419889, 'hours': 2.0248447322183187, 'frames': 1949696}
+{'iteration': 120, 'train/policy_loss': 0.6811718160752207, 'train/value_loss': 0.10732426220783964, 'hours': 2.04154382136133, 'frames': 1966080, 'eval/model_optimality_ratio': 0.9054545760154724, 'eval/greedy_optimality_ratio': 0.9071077704429626, 'eval/improvement_vs_greedy': -0.0016531809233129025}
+{'iteration': 121, 'train/policy_loss': 0.6534078326076269, 'train/value_loss': 0.10169085647794418, 'hours': 2.058287427160475, 'frames': 1982464}
+{'iteration': 122, 'train/policy_loss': 0.6692362285684794, 'train/value_loss': 0.07167132056201808, 'hours': 2.075012132194307, 'frames': 1998848}
+{'iteration': 123, 'train/policy_loss': 0.6889824168756604, 'train/value_loss': 0.07907474506646395, 'hours': 2.091768889360958, 'frames': 2015232}
+{'iteration': 124, 'train/policy_loss': 0.6413533391896635, 'train/value_loss': 0.07080943207256496, 'hours': 2.108555453485913, 'frames': 2031616}
+{'iteration': 125, 'train/policy_loss': 0.631989934714511, 'train/value_loss': 0.0708801704167854, 'hours': 2.1253367059760624, 'frames': 2048000, 'eval/model_optimality_ratio': 0.8896832466125488, 'eval/greedy_optimality_ratio': 0.9073007106781006, 'eval/improvement_vs_greedy': -0.017617497593164444}
+{'iteration': 126, 'train/policy_loss': 0.6370481140911579, 'train/value_loss': 0.074579000036465, 'hours': 2.142180638578203, 'frames': 2064384}
+{'iteration': 127, 'train/policy_loss': 0.6527896870393306, 'train/value_loss': 0.0639458077494055, 'hours': 2.158943150175942, 'frames': 2080768}
+{'iteration': 128, 'train/policy_loss': 0.6961829839274287, 'train/value_loss': 0.08169431827263907, 'hours': 2.1757506634129418, 'frames': 2097152}
+{'iteration': 129, 'train/policy_loss': 0.6808949746191502, 'train/value_loss': 0.06234261790814344, 'hours': 2.1925480661127303, 'frames': 2113536}
+{'iteration': 130, 'train/policy_loss': 0.6731654277537018, 'train/value_loss': 0.06521234998945147, 'hours': 2.209316321677632, 'frames': 2129920, 'eval/model_optimality_ratio': 0.8965518474578857, 'eval/greedy_optimality_ratio': 0.9078333973884583, 'eval/improvement_vs_greedy': -0.01128148753196001}
+{'iteration': 131, 'train/policy_loss': 0.7790273851715028, 'train/value_loss': 0.09399766119895503, 'hours': 2.2260595850149794, 'frames': 2146304}
+{'iteration': 132, 'train/policy_loss': 0.6113614293280989, 'train/value_loss': 0.07186138673569076, 'hours': 2.2428619655635624, 'frames': 2162688}
+{'iteration': 133, 'train/policy_loss': 0.7243650197051466, 'train/value_loss': 0.06276565173175186, 'hours': 2.2596991015142867, 'frames': 2179072}
+{'iteration': 134, 'train/policy_loss': 0.6370313290972263, 'train/value_loss': 0.07220398607023526, 'hours': 2.2764569938845107, 'frames': 2195456}
+{'iteration': 135, 'train/policy_loss': 0.5745664876885712, 'train/value_loss': 0.05832014804764185, 'hours': 2.2932570103142, 'frames': 2211840, 'eval/model_optimality_ratio': 0.8999609351158142, 'eval/greedy_optimality_ratio': 0.9056391716003418, 'eval/improvement_vs_greedy': -0.005678271409124136}
+{'iteration': 136, 'train/policy_loss': 0.7022556499578059, 'train/value_loss': 0.06416960808564909, 'hours': 2.309998984204398, 'frames': 2228224}
+{'iteration': 137, 'train/policy_loss': 0.720462610013783, 'train/value_loss': 0.0665674413612578, 'hours': 2.32670942319764, 'frames': 2244608}
+{'iteration': 138, 'train/policy_loss': 0.7094028503634036, 'train/value_loss': 0.08152779756346717, 'hours': 2.343409778939353, 'frames': 2260992}
+{'iteration': 139, 'train/policy_loss': 0.7685485314577818, 'train/value_loss': 0.07034971291432157, 'hours': 2.360144203768836, 'frames': 2277376}
+{'iteration': 140, 'train/policy_loss': 0.7137240897864103, 'train/value_loss': 0.07009204183123074, 'hours': 2.3769834357500077, 'frames': 2293760, 'eval/model_optimality_ratio': 0.9022898077964783, 'eval/greedy_optimality_ratio': 0.9120572209358215, 'eval/improvement_vs_greedy': -0.009767444804310799}
+{'iteration': 141, 'train/policy_loss': 0.716003053355962, 'train/value_loss': 0.07076342412619852, 'hours': 2.3936734616094166, 'frames': 2310144}
+{'iteration': 142, 'train/policy_loss': 0.6716155759058893, 'train/value_loss': 0.06438978255027905, 'hours': 2.4103780090146594, 'frames': 2326528}
+{'iteration': 143, 'train/policy_loss': 0.8405203139409423, 'train/value_loss': 0.09808432863792405, 'hours': 2.4270920227633583, 'frames': 2342912}
+{'iteration': 144, 'train/policy_loss': 0.6471584686078131, 'train/value_loss': 0.06492199942294974, 'hours': 2.443849953611692, 'frames': 2359296}
+{'iteration': 145, 'train/policy_loss': 0.7136558424681425, 'train/value_loss': 0.06489471811801195, 'hours': 2.4604976030853063, 'frames': 2375680, 'eval/model_optimality_ratio': 0.8911826014518738, 'eval/greedy_optimality_ratio': 0.9114550352096558, 'eval/improvement_vs_greedy': -0.020272448658943176}
+{'iteration': 146, 'train/policy_loss': 0.6658528528641909, 'train/value_loss': 0.06681610122905113, 'hours': 2.4771928460068176, 'frames': 2392064}
+{'iteration': 147, 'train/policy_loss': 0.6669701316859573, 'train/value_loss': 0.0756799932278227, 'hours': 2.493985361390644, 'frames': 2408448}
+{'iteration': 148, 'train/policy_loss': 0.7311783325858414, 'train/value_loss': 0.06841171480482444, 'hours': 2.5107098654243685, 'frames': 2424832}
+{'iteration': 149, 'train/policy_loss': 0.676937896758318, 'train/value_loss': 0.05884234784753062, 'hours': 2.5273759595553082, 'frames': 2441216}
+{'iteration': 150, 'train/policy_loss': 0.6735117121133953, 'train/value_loss': 0.06050579762086272, 'hours': 2.5440870139333938, 'frames': 2457600, 'eval/model_optimality_ratio': 0.9103173017501831, 'eval/greedy_optimality_ratio': 0.9140551090240479, 'eval/improvement_vs_greedy': -0.0037378398701548576}
+{'iteration': 151, 'train/policy_loss': 0.7571436981670558, 'train/value_loss': 0.05809987071552314, 'hours': 2.560760252012147, 'frames': 2473984}
+{'iteration': 152, 'train/policy_loss': 0.83922033989802, 'train/value_loss': 0.06585442982031964, 'hours': 2.5774650520086286, 'frames': 2490368}
+{'iteration': 153, 'train/policy_loss': 1.772551445523277, 'train/value_loss': 5.499857600341784, 'hours': 2.59420280277729, 'frames': 2506752}
+{'iteration': 154, 'train/policy_loss': 1.0859638615511358, 'train/value_loss': 3.885097622871399, 'hours': 2.6109146876467597, 'frames': 2523136}
+{'iteration': 155, 'train/policy_loss': 1.049383018631488, 'train/value_loss': 3.4269948340952396, 'hours': 2.627532217701276, 'frames': 2539520, 'eval/model_optimality_ratio': 0.41042017936706543, 'eval/greedy_optimality_ratio': 0.9093466997146606, 'eval/improvement_vs_greedy': -0.49892646074295044}
+{'iteration': 156, 'train/policy_loss': 0.952246471773833, 'train/value_loss': 3.4510593842715025, 'hours': 2.644285763170984, 'frames': 2555904}
+{'iteration': 157, 'train/policy_loss': 0.9707809896208346, 'train/value_loss': 3.307299178093672, 'hours': 2.660937220056852, 'frames': 2572288}
+{'iteration': 158, 'train/policy_loss': 0.9762339447624981, 'train/value_loss': 3.1076493319123983, 'hours': 2.677689926624298, 'frames': 2588672}
+{'iteration': 159, 'train/policy_loss': 1.0050465050153434, 'train/value_loss': 3.3179965997114778, 'hours': 2.694329465693898, 'frames': 2605056}
+{'iteration': 160, 'train/policy_loss': 1.1603531017899513, 'train/value_loss': 0.8071849886327982, 'hours': 2.711020831730631, 'frames': 2621440, 'eval/model_optimality_ratio': 0.6307181119918823, 'eval/greedy_optimality_ratio': 0.912068784236908, 'eval/improvement_vs_greedy': -0.281350702047348}
+{'iteration': 161, 'train/policy_loss': 1.0357257453724742, 'train/value_loss': 0.3475343220634386, 'hours': 2.7278368321392277, 'frames': 2637824}
+{'iteration': 162, 'train/policy_loss': 0.9438103949651122, 'train/value_loss': 0.28262061916757375, 'hours': 2.7445580812295285, 'frames': 2654208}
+{'iteration': 163, 'train/policy_loss': 0.8358237268403172, 'train/value_loss': 0.34762778459116817, 'hours': 2.7613216323985, 'frames': 2670592}
+{'iteration': 164, 'train/policy_loss': 0.831017404794693, 'train/value_loss': 0.3380453750723973, 'hours': 2.7780490811665857, 'frames': 2686976}
+{'iteration': 165, 'train/policy_loss': 0.7305231504142284, 'train/value_loss': 0.3002434859517962, 'hours': 2.794822910494275, 'frames': 2703360, 'eval/model_optimality_ratio': 0.794527530670166, 'eval/greedy_optimality_ratio': 0.9084647297859192, 'eval/improvement_vs_greedy': -0.11393722891807556}
+{'iteration': 166, 'train/policy_loss': 0.6448731177952141, 'train/value_loss': 0.28887714142911136, 'hours': 2.811580750346184, 'frames': 2719744}
+{'iteration': 167, 'train/policy_loss': 0.6358437885064632, 'train/value_loss': 0.26788287749513984, 'hours': 2.8284522361225553, 'frames': 2736128}
+{'iteration': 168, 'train/policy_loss': 0.6309063772205263, 'train/value_loss': 0.25140366377308965, 'hours': 2.845173624753952, 'frames': 2752512}
+{'iteration': 169, 'train/policy_loss': 0.6212009612936527, 'train/value_loss': 0.2691145754652098, 'hours': 2.862006779379315, 'frames': 2768896}
+{'iteration': 170, 'train/policy_loss': 0.7029023612849414, 'train/value_loss': 0.262955017387867, 'hours': 2.878764795396063, 'frames': 2785280, 'eval/model_optimality_ratio': 0.8689419031143188, 'eval/greedy_optimality_ratio': 0.9108090400695801, 'eval/improvement_vs_greedy': -0.041867054998874664}
+{'iteration': 171, 'train/policy_loss': 0.6703665107488632, 'train/value_loss': 0.2252845603507012, 'hours': 2.895554286705123, 'frames': 2801664}
+{'iteration': 172, 'train/policy_loss': 0.8243491407483816, 'train/value_loss': 0.25473525968845934, 'hours': 2.9122513824701306, 'frames': 2818048}
+{'iteration': 173, 'train/policy_loss': 0.7066916152834892, 'train/value_loss': 0.2317867885576561, 'hours': 2.9290313685602607, 'frames': 2834432}
+{'iteration': 174, 'train/policy_loss': 0.7839837889187038, 'train/value_loss': 0.3440870720660314, 'hours': 2.9458645743793905, 'frames': 2850816}
+{'iteration': 175, 'train/policy_loss': 0.6885359506122768, 'train/value_loss': 0.25164163240697235, 'hours': 2.96264205581612, 'frames': 2867200, 'eval/model_optimality_ratio': 0.8367630243301392, 'eval/greedy_optimality_ratio': 0.9096710681915283, 'eval/improvement_vs_greedy': -0.07290797680616379}
+{'iteration': 176, 'train/policy_loss': 0.7476768870837986, 'train/value_loss': 0.20384387316880748, 'hours': 2.979349644184112, 'frames': 2883584}
+{'iteration': 177, 'train/policy_loss': 0.7413735138252378, 'train/value_loss': 0.26811471418477595, 'hours': 2.9961398579014666, 'frames': 2899968}
+{'iteration': 178, 'train/policy_loss': 0.7759460820816457, 'train/value_loss': 0.23875069775385782, 'hours': 3.0129458017481694, 'frames': 2916352}
+{'iteration': 179, 'train/policy_loss': 0.748677818570286, 'train/value_loss': 0.21511405985802412, 'hours': 3.0297565399275883, 'frames': 2932736}
+{'iteration': 180, 'train/policy_loss': 0.7170561873354018, 'train/value_loss': 0.23256105004111305, 'hours': 3.046486885945002, 'frames': 2949120, 'eval/model_optimality_ratio': 0.8495792150497437, 'eval/greedy_optimality_ratio': 0.9118646383285522, 'eval/improvement_vs_greedy': -0.06228545308113098}
+{'iteration': 181, 'train/policy_loss': 0.7551576793193817, 'train/value_loss': 0.24366042111068964, 'hours': 3.0633224020401637, 'frames': 2965504}
+{'iteration': 182, 'train/policy_loss': 0.9545679595321417, 'train/value_loss': 0.26575941196642816, 'hours': 3.0800454530451034, 'frames': 2981888}
+{'iteration': 183, 'train/policy_loss': 0.7034803212154657, 'train/value_loss': 0.17511344357626513, 'hours': 3.0968691489431595, 'frames': 2998272}
+{'iteration': 184, 'train/policy_loss': 0.6684717456810176, 'train/value_loss': 0.20704493077937514, 'hours': 3.1136321220795313, 'frames': 3014656}
+{'iteration': 185, 'train/policy_loss': 0.841750028077513, 'train/value_loss': 0.23925939109176397, 'hours': 3.1303677522473863, 'frames': 3031040, 'eval/model_optimality_ratio': 0.8769841194152832, 'eval/greedy_optimality_ratio': 0.9099271297454834, 'eval/improvement_vs_greedy': -0.032943010330200195}
+{'iteration': 186, 'train/policy_loss': 0.7994029661640525, 'train/value_loss': 0.25441952364053577, 'hours': 3.1470544265376197, 'frames': 3047424}
+{'iteration': 187, 'train/policy_loss': 0.7107439767569304, 'train/value_loss': 0.221985123003833, 'hours': 3.1638360429472394, 'frames': 3063808}
+{'iteration': 188, 'train/policy_loss': 0.7511882637627423, 'train/value_loss': 0.22996241837972775, 'hours': 3.1806958919763564, 'frames': 3080192}
+{'iteration': 189, 'train/policy_loss': 0.7152857356704772, 'train/value_loss': 0.2013076064758934, 'hours': 3.197460865577062, 'frames': 3096576}
+{'iteration': 190, 'train/policy_loss': 0.7100575801450759, 'train/value_loss': 0.1984837872441858, 'hours': 3.214295139114062, 'frames': 3112960, 'eval/model_optimality_ratio': 0.872650146484375, 'eval/greedy_optimality_ratio': 0.9120076298713684, 'eval/improvement_vs_greedy': -0.0393575020134449}
+{'iteration': 191, 'train/policy_loss': 0.7353695379570127, 'train/value_loss': 0.1909958545002155, 'hours': 3.2310618748267492, 'frames': 3129344}
+{'iteration': 192, 'train/policy_loss': 0.6707391480449587, 'train/value_loss': 0.20320018572965637, 'hours': 3.2478595376676984, 'frames': 3145728}
+{'iteration': 193, 'train/policy_loss': 0.6264702663756907, 'train/value_loss': 0.1975322637008503, 'hours': 3.2646799189514586, 'frames': 3162112}
+{'iteration': 194, 'train/policy_loss': 0.730849337298423, 'train/value_loss': 0.19770365860313177, 'hours': 3.2815252430571453, 'frames': 3178496}
+{'iteration': 195, 'train/policy_loss': 0.7081474899314344, 'train/value_loss': 0.18817049131030217, 'hours': 3.298398180339072, 'frames': 3194880, 'eval/model_optimality_ratio': 0.8650357127189636, 'eval/greedy_optimality_ratio': 0.9082887172698975, 'eval/improvement_vs_greedy': -0.04325302317738533}
+{'iteration': 196, 'train/policy_loss': 0.6288921991363168, 'train/value_loss': 0.1996038124198094, 'hours': 3.3151803309387633, 'frames': 3211264}
+{'iteration': 197, 'train/policy_loss': 0.6855876427143812, 'train/value_loss': 0.20178920787293464, 'hours': 3.3319726004865435, 'frames': 3227648}
+{'iteration': 198, 'train/policy_loss': 0.8423058104235679, 'train/value_loss': 1.8242298158584163, 'hours': 3.348763126730919, 'frames': 3244032}
+{'iteration': 199, 'train/policy_loss': 1.3563878210261464, 'train/value_loss': 2.876852593384683, 'hours': 3.3655624426735775, 'frames': 3260416}
+{'iteration': 200, 'train/policy_loss': 0.946128070820123, 'train/value_loss': 0.45438449759967625, 'hours': 3.3822803086042406, 'frames': 3276800, 'eval/model_optimality_ratio': 0.4548715651035309, 'eval/greedy_optimality_ratio': 0.9066725969314575, 'eval/improvement_vs_greedy': -0.451801061630249}
+{'iteration': 201, 'train/policy_loss': 0.9550547525286674, 'train/value_loss': 0.28878259658813477, 'hours': 3.3990481555461884, 'frames': 3293184}
+{'iteration': 202, 'train/policy_loss': 0.9559612278826535, 'train/value_loss': 0.31346581410616636, 'hours': 3.415837510757976, 'frames': 3309568}
+{'iteration': 203, 'train/policy_loss': 0.8575645801611245, 'train/value_loss': 0.26909728022292256, 'hours': 3.4325949580139583, 'frames': 3325952}
+{'iteration': 204, 'train/policy_loss': 0.7900774264708161, 'train/value_loss': 0.21255765587557107, 'hours': 3.449382431705793, 'frames': 3342336}
+{'iteration': 205, 'train/policy_loss': 0.7949325246736407, 'train/value_loss': 0.21413675718940794, 'hours': 3.466177490088675, 'frames': 3358720, 'eval/model_optimality_ratio': 0.8454065918922424, 'eval/greedy_optimality_ratio': 0.9087811708450317, 'eval/improvement_vs_greedy': -0.06337456405162811}
+{'iteration': 206, 'train/policy_loss': 0.7934589991346002, 'train/value_loss': 0.1829291348112747, 'hours': 3.48287173807621, 'frames': 3375104}
+{'iteration': 207, 'train/policy_loss': 0.7894389135763049, 'train/value_loss': 0.20785608899313956, 'hours': 3.499620734718111, 'frames': 3391488}
+{'iteration': 208, 'train/policy_loss': 0.7315853694453835, 'train/value_loss': 0.20724558259826154, 'hours': 3.516392050186793, 'frames': 3407872}
+{'iteration': 209, 'train/policy_loss': 0.7280769348144531, 'train/value_loss': 0.20861476380378008, 'hours': 3.533233484890726, 'frames': 3424256}
+{'iteration': 210, 'train/policy_loss': 0.780830152798444, 'train/value_loss': 0.2013367653125897, 'hours': 3.5498953090111414, 'frames': 3440640, 'eval/model_optimality_ratio': 0.8302140235900879, 'eval/greedy_optimality_ratio': 0.909048855304718, 'eval/improvement_vs_greedy': -0.07883486151695251}
+{'iteration': 211, 'train/policy_loss': 0.7462623952887952, 'train/value_loss': 0.19736019882839173, 'hours': 3.566632209089067, 'frames': 3457024}
+{'iteration': 212, 'train/policy_loss': 0.7245934810489416, 'train/value_loss': 0.20410416927188635, 'hours': 3.583333635793792, 'frames': 3473408}
+{'iteration': 213, 'train/policy_loss': 0.6957973018288612, 'train/value_loss': 0.19825224968371913, 'hours': 3.6000860128800074, 'frames': 3489792}
+{'iteration': 214, 'train/policy_loss': 0.7046368345618248, 'train/value_loss': 0.19562490814132616, 'hours': 3.6168252862824333, 'frames': 3506176}
+{'iteration': 215, 'train/policy_loss': 0.7363562076352537, 'train/value_loss': 0.19183574535418302, 'hours': 3.6335588256518045, 'frames': 3522560, 'eval/model_optimality_ratio': 0.8260748982429504, 'eval/greedy_optimality_ratio': 0.9082987308502197, 'eval/improvement_vs_greedy': -0.0822238028049469}
+{'iteration': 216, 'train/policy_loss': 0.7228927731048316, 'train/value_loss': 0.18247406545560807, 'hours': 3.6504186926285427, 'frames': 3538944}
+{'iteration': 217, 'train/policy_loss': 0.7077932944521308, 'train/value_loss': 0.18263953225687146, 'hours': 3.6671277374691433, 'frames': 3555328}
+{'iteration': 218, 'train/policy_loss': 0.7198418094776571, 'train/value_loss': 0.18895833066198975, 'hours': 3.683854628933801, 'frames': 3571712}
+{'iteration': 219, 'train/policy_loss': 1.6550210430286825, 'train/value_loss': 3.40509653580375, 'hours': 3.7006106523010467, 'frames': 3588096}
+{'iteration': 220, 'train/policy_loss': 1.1778950644657016, 'train/value_loss': 1.565268506295979, 'hours': 3.7173693602614932, 'frames': 3604480, 'eval/model_optimality_ratio': 0.8393970131874084, 'eval/greedy_optimality_ratio': 0.9080488681793213, 'eval/improvement_vs_greedy': -0.06865185499191284}
+{'iteration': 221, 'train/policy_loss': 1.1442869771271944, 'train/value_loss': 0.24212168692611158, 'hours': 3.7339784168534806, 'frames': 3620864}
+{'iteration': 222, 'train/policy_loss': 0.8995016282424331, 'train/value_loss': 0.2401431993348524, 'hours': 3.750734984808498, 'frames': 3637248}
+{'iteration': 223, 'train/policy_loss': 0.8452634955756366, 'train/value_loss': 0.20527719368692487, 'hours': 3.7673775198724533, 'frames': 3653632}
+{'iteration': 224, 'train/policy_loss': 0.8400435387156904, 'train/value_loss': 0.20515657076612115, 'hours': 3.7840647143787804, 'frames': 3670016}
+{'iteration': 225, 'train/policy_loss': 0.8629406373947859, 'train/value_loss': 0.19556258339434862, 'hours': 3.80071785390377, 'frames': 3686400, 'eval/model_optimality_ratio': 0.8283841609954834, 'eval/greedy_optimality_ratio': 0.9091902375221252, 'eval/improvement_vs_greedy': -0.08080604672431946}
+{'iteration': 226, 'train/policy_loss': 0.8020986737683415, 'train/value_loss': 0.20088262320496142, 'hours': 3.8174152684874, 'frames': 3702784}
+{'iteration': 227, 'train/policy_loss': 0.8476059040986001, 'train/value_loss': 0.23388871224597096, 'hours': 3.834112587637371, 'frames': 3719168}
+{'iteration': 228, 'train/policy_loss': 0.7822526888921857, 'train/value_loss': 0.2406141081592068, 'hours': 3.850830668807029, 'frames': 3735552}
+{'iteration': 229, 'train/policy_loss': 0.8277740348130465, 'train/value_loss': 0.22879870526958257, 'hours': 3.867602760593096, 'frames': 3751936}
+{'iteration': 230, 'train/policy_loss': 0.7735154191032052, 'train/value_loss': 0.1878071110113524, 'hours': 3.884296440548366, 'frames': 3768320, 'eval/model_optimality_ratio': 0.8924864530563354, 'eval/greedy_optimality_ratio': 0.9100940227508545, 'eval/improvement_vs_greedy': -0.01760748028755188}
+{'iteration': 231, 'train/policy_loss': 0.7369701648131013, 'train/value_loss': 0.19685523654334247, 'hours': 3.9010365669594864, 'frames': 3784704}
+{'iteration': 232, 'train/policy_loss': 0.7528810105286539, 'train/value_loss': 0.1859734077588655, 'hours': 3.9177120924658237, 'frames': 3801088}
+{'iteration': 233, 'train/policy_loss': 0.7684654910117388, 'train/value_loss': 0.19243342417757958, 'hours': 3.934430295825004, 'frames': 3817472}
+{'iteration': 234, 'train/policy_loss': 0.7709029163233936, 'train/value_loss': 0.19469811080489308, 'hours': 3.9511059114668097, 'frames': 3833856}
+{'iteration': 235, 'train/policy_loss': 0.7223967318423092, 'train/value_loss': 0.18529559555463493, 'hours': 3.96777550458908, 'frames': 3850240, 'eval/model_optimality_ratio': 0.8834114670753479, 'eval/greedy_optimality_ratio': 0.908799409866333, 'eval/improvement_vs_greedy': -0.025388013571500778}
+{'iteration': 236, 'train/policy_loss': 0.7815160742029548, 'train/value_loss': 0.18718227074714378, 'hours': 3.9845163157913412, 'frames': 3866624}
+{'iteration': 237, 'train/policy_loss': 0.7302146889269352, 'train/value_loss': 0.18608059675898403, 'hours': 4.001208356685108, 'frames': 3883008}
+{'iteration': 238, 'train/policy_loss': 0.7212565080262721, 'train/value_loss': 0.17896879668114707, 'hours': 4.017850868503253, 'frames': 3899392}
+{'iteration': 239, 'train/policy_loss': 0.7956345449201763, 'train/value_loss': 0.25930096657248214, 'hours': 4.034435269633929, 'frames': 3915776}
+{'iteration': 240, 'train/policy_loss': 0.7277009654790163, 'train/value_loss': 0.2239250181009993, 'hours': 4.05113044877847, 'frames': 3932160, 'eval/model_optimality_ratio': 0.8784058094024658, 'eval/greedy_optimality_ratio': 0.9052104949951172, 'eval/improvement_vs_greedy': -0.026804644614458084}
+{'iteration': 241, 'train/policy_loss': 0.7847042037174106, 'train/value_loss': 0.1629936364479363, 'hours': 4.067710679769515, 'frames': 3948544}
+{'iteration': 242, 'train/policy_loss': 0.7496871640905738, 'train/value_loss': 0.19452981994254515, 'hours': 4.084399022526211, 'frames': 3964928}
+{'iteration': 243, 'train/policy_loss': 0.6776425903663039, 'train/value_loss': 0.16115707234712318, 'hours': 4.101142446862326, 'frames': 3981312}
+{'iteration': 244, 'train/policy_loss': 0.6832373104989529, 'train/value_loss': 0.17523483361583203, 'hours': 4.117881774041387, 'frames': 3997696}
+{'iteration': 245, 'train/policy_loss': 0.7391091557219625, 'train/value_loss': 0.19063372717937455, 'hours': 4.13459091828929, 'frames': 4014080, 'eval/model_optimality_ratio': 0.9008157849311829, 'eval/greedy_optimality_ratio': 0.9144331216812134, 'eval/improvement_vs_greedy': -0.013617325574159622}
+{'iteration': 246, 'train/policy_loss': 0.6994229750707746, 'train/value_loss': 0.17009147303178906, 'hours': 4.151309625705083, 'frames': 4030464}
+{'iteration': 247, 'train/policy_loss': 1.041661273688078, 'train/value_loss': 1.239180234260857, 'hours': 4.168022300402323, 'frames': 4046848}
+{'iteration': 248, 'train/policy_loss': 0.8963889479637146, 'train/value_loss': 0.2046353277983144, 'hours': 4.18467252711455, 'frames': 4063232}
+{'iteration': 249, 'train/policy_loss': 0.7768390709534287, 'train/value_loss': 0.1825560232391581, 'hours': 4.2013858654763965, 'frames': 4079616}
+{'iteration': 250, 'train/policy_loss': 0.7310072139371186, 'train/value_loss': 0.18462217709748074, 'hours': 4.2181860104534366, 'frames': 4096000, 'eval/model_optimality_ratio': 0.8747704029083252, 'eval/greedy_optimality_ratio': 0.9101003408432007, 'eval/improvement_vs_greedy': -0.03532993793487549}
+{'iteration': 251, 'train/policy_loss': 0.7636758610606194, 'train/value_loss': 0.17974593973485753, 'hours': 4.234853784971768, 'frames': 4112384}
+{'iteration': 252, 'train/policy_loss': 0.7301947032101452, 'train/value_loss': 0.1654670825228095, 'hours': 4.25160036040677, 'frames': 4128768}
+{'iteration': 253, 'train/policy_loss': 0.7194471638649702, 'train/value_loss': 0.16541030106600374, 'hours': 4.268315218951967, 'frames': 4145152}
+{'iteration': 254, 'train/policy_loss': 0.6989922286011279, 'train/value_loss': 0.18629615887766704, 'hours': 4.285044953160816, 'frames': 4161536}
+{'iteration': 255, 'train/policy_loss': 0.7278886460699141, 'train/value_loss': 0.1581194945028983, 'hours': 4.30180803583728, 'frames': 4177920, 'eval/model_optimality_ratio': 0.8735287189483643, 'eval/greedy_optimality_ratio': 0.9058442711830139, 'eval/improvement_vs_greedy': -0.03231554850935936}
+{'iteration': 256, 'train/policy_loss': 0.7180912643671036, 'train/value_loss': 0.17089308059075847, 'hours': 4.318569252557225, 'frames': 4194304}
+{'iteration': 257, 'train/policy_loss': 0.6918009780347347, 'train/value_loss': 0.16129859123611823, 'hours': 4.335459646052785, 'frames': 4210688}
+{'iteration': 258, 'train/policy_loss': 0.6882213349454105, 'train/value_loss': 0.16929332743166015, 'hours': 4.35219027572208, 'frames': 4227072}
+{'iteration': 259, 'train/policy_loss': 0.7200408433564007, 'train/value_loss': 0.1845227589365095, 'hours': 4.3690098591645565, 'frames': 4243456}
+{'iteration': 260, 'train/policy_loss': 0.6979659097269177, 'train/value_loss': 0.17478059901623055, 'hours': 4.38579756975174, 'frames': 4259840, 'eval/model_optimality_ratio': 0.8834341764450073, 'eval/greedy_optimality_ratio': 0.912846565246582, 'eval/improvement_vs_greedy': -0.02941238135099411}
+{'iteration': 261, 'train/policy_loss': 0.7063815547153354, 'train/value_loss': 0.18018015410052612, 'hours': 4.4025573245684315, 'frames': 4276224}
+{'iteration': 262, 'train/policy_loss': 0.6448403678368777, 'train/value_loss': 0.16257036570459604, 'hours': 4.419326542814574, 'frames': 4292608}
+{'iteration': 263, 'train/policy_loss': 0.685647473204881, 'train/value_loss': 0.17703854979481548, 'hours': 4.436050899624825, 'frames': 4308992}
+{'iteration': 264, 'train/policy_loss': 0.7009430206380785, 'train/value_loss': 0.1726564519922249, 'hours': 4.452863277461795, 'frames': 4325376}
+{'iteration': 265, 'train/policy_loss': 0.6896448615007102, 'train/value_loss': 0.16000832576537505, 'hours': 4.469613117708101, 'frames': 4341760, 'eval/model_optimality_ratio': 0.8754054307937622, 'eval/greedy_optimality_ratio': 0.9032070636749268, 'eval/improvement_vs_greedy': -0.027801696211099625}
+{'iteration': 266, 'train/policy_loss': 0.6938577368855476, 'train/value_loss': 0.16057391808135435, 'hours': 4.48636366168658, 'frames': 4358144}
+{'iteration': 267, 'train/policy_loss': 0.7182087297551334, 'train/value_loss': 0.15429578145267442, 'hours': 4.503055740594864, 'frames': 4374528}
+{'iteration': 268, 'train/policy_loss': 0.7153547871857882, 'train/value_loss': 0.18673017772380263, 'hours': 4.519816074437566, 'frames': 4390912}
+{'iteration': 269, 'train/policy_loss': 0.6802135999314487, 'train/value_loss': 0.1741842942428775, 'hours': 4.5366209493080785, 'frames': 4407296}
+{'iteration': 270, 'train/policy_loss': 0.6687546176835895, 'train/value_loss': 0.16446102637564763, 'hours': 4.553351265456943, 'frames': 4423680, 'eval/model_optimality_ratio': 0.8857465386390686, 'eval/greedy_optimality_ratio': 0.9043513536453247, 'eval/improvement_vs_greedy': -0.018604764714837074}
+{'iteration': 271, 'train/policy_loss': 0.676817107014358, 'train/value_loss': 0.16586566547630355, 'hours': 4.570189634693995, 'frames': 4440064}
+{'iteration': 272, 'train/policy_loss': 0.699939850019291, 'train/value_loss': 0.1567354328581132, 'hours': 4.586940963731873, 'frames': 4456448}
+{'iteration': 273, 'train/policy_loss': 0.7307024733163416, 'train/value_loss': 0.17801711813081056, 'hours': 4.603669140140217, 'frames': 4472832}
+{'iteration': 274, 'train/policy_loss': 0.692810298409313, 'train/value_loss': 0.18602266680682078, 'hours': 4.620388346778023, 'frames': 4489216}
+{'iteration': 275, 'train/policy_loss': 0.7105619963258505, 'train/value_loss': 0.15198586985934526, 'hours': 4.637105581098134, 'frames': 4505600, 'eval/model_optimality_ratio': 0.8711931705474854, 'eval/greedy_optimality_ratio': 0.9097910523414612, 'eval/improvement_vs_greedy': -0.038597919046878815}
+{'iteration': 276, 'train/policy_loss': 0.7362434880342335, 'train/value_loss': 0.17416946653975174, 'hours': 4.653792351285618, 'frames': 4521984}
+{'iteration': 277, 'train/policy_loss': 0.7243246040306985, 'train/value_loss': 0.1700574827264063, 'hours': 4.6705824795696484, 'frames': 4538368}
+{'iteration': 278, 'train/policy_loss': 0.6783280957024544, 'train/value_loss': 0.15497487707762048, 'hours': 4.687274539271992, 'frames': 4554752}
+{'iteration': 279, 'train/policy_loss': 0.6646804511547089, 'train/value_loss': 0.1663372055045329, 'hours': 4.7040121779839215, 'frames': 4571136}
+{'iteration': 280, 'train/policy_loss': 0.7044463660567999, 'train/value_loss': 0.16592931502964348, 'hours': 4.720692908234068, 'frames': 4587520, 'eval/model_optimality_ratio': 0.8910688757896423, 'eval/greedy_optimality_ratio': 0.9105468988418579, 'eval/improvement_vs_greedy': -0.01947809010744095}
+{'iteration': 281, 'train/policy_loss': 0.6866904310882092, 'train/value_loss': 0.15895275812363252, 'hours': 4.7373982471227665, 'frames': 4603904}
+{'iteration': 282, 'train/policy_loss': 0.697299423860386, 'train/value_loss': 0.18068268877686933, 'hours': 4.754103514220981, 'frames': 4620288}
+{'iteration': 283, 'train/policy_loss': 0.6613832204602659, 'train/value_loss': 0.16354885714827105, 'hours': 4.770785304109257, 'frames': 4636672}
+{'iteration': 284, 'train/policy_loss': 0.6913500728551298, 'train/value_loss': 0.16388503520283848, 'hours': 4.78752942648199, 'frames': 4653056}
+{'iteration': 285, 'train/policy_loss': 0.6620187028311193, 'train/value_loss': 0.1489429475623183, 'hours': 4.804236897892424, 'frames': 4669440, 'eval/model_optimality_ratio': 0.8693472743034363, 'eval/greedy_optimality_ratio': 0.9078155159950256, 'eval/improvement_vs_greedy': -0.03846823796629906}
+{'iteration': 286, 'train/policy_loss': 0.699250316247344, 'train/value_loss': 0.1617935877875425, 'hours': 4.820940275589627, 'frames': 4685824}
+{'iteration': 287, 'train/policy_loss': 0.6984754400327802, 'train/value_loss': 0.15684343065368012, 'hours': 4.837607354190617, 'frames': 4702208}
+{'iteration': 288, 'train/policy_loss': 0.6721548966597766, 'train/value_loss': 0.16361983149545267, 'hours': 4.854316038952936, 'frames': 4718592}
+{'iteration': 289, 'train/policy_loss': 0.6391511675901711, 'train/value_loss': 0.17385320452740416, 'hours': 4.871025246116853, 'frames': 4734976}
+{'iteration': 290, 'train/policy_loss': 0.6576022021472454, 'train/value_loss': 0.16384467633906752, 'hours': 4.887698272599117, 'frames': 4751360, 'eval/model_optimality_ratio': 0.895915150642395, 'eval/greedy_optimality_ratio': 0.9077420234680176, 'eval/improvement_vs_greedy': -0.011826817877590656}
+{'iteration': 291, 'train/policy_loss': 0.7160516106523573, 'train/value_loss': 0.1629130014916882, 'hours': 4.904526312814821, 'frames': 4767744}
+{'iteration': 292, 'train/policy_loss': 0.7089948495849967, 'train/value_loss': 0.16742777259787545, 'hours': 4.9212434977955315, 'frames': 4784128}
+{'iteration': 293, 'train/policy_loss': 0.7138241603970528, 'train/value_loss': 0.1647085813456215, 'hours': 4.937994685305492, 'frames': 4800512}
+{'iteration': 294, 'train/policy_loss': 0.6967506469227374, 'train/value_loss': 0.17002872453304008, 'hours': 4.954701732065946, 'frames': 4816896}
+{'iteration': 295, 'train/policy_loss': 0.6465031488332897, 'train/value_loss': 0.14990196254802868, 'hours': 4.971450871427857, 'frames': 4833280, 'eval/model_optimality_ratio': 0.8870140314102173, 'eval/greedy_optimality_ratio': 0.9103212952613831, 'eval/improvement_vs_greedy': -0.02330724149942398}
+{'iteration': 296, 'train/policy_loss': 0.7123011983931065, 'train/value_loss': 0.17347099090693519, 'hours': 4.988176505631873, 'frames': 4849664}
+{'iteration': 297, 'train/policy_loss': 0.6842356231063604, 'train/value_loss': 0.15658442658605054, 'hours': 5.004855184091465, 'frames': 4866048}
+{'iteration': 298, 'train/policy_loss': 0.7123199994675815, 'train/value_loss': 0.14440152159659192, 'hours': 5.021661090321014, 'frames': 4882432}
+{'iteration': 299, 'train/policy_loss': 0.66575734061189, 'train/value_loss': 0.16015567717840895, 'hours': 5.038377041419349, 'frames': 4898816}
+{'iteration': 300, 'train/policy_loss': 0.6662951218895614, 'train/value_loss': 0.1579466624534689, 'hours': 5.055078443951079, 'frames': 4915200, 'eval/model_optimality_ratio': 0.9146435856819153, 'eval/greedy_optimality_ratio': 0.909915030002594, 'eval/improvement_vs_greedy': 0.004728611093014479}
+{'iteration': 301, 'train/policy_loss': 0.6944143678992987, 'train/value_loss': 0.18919901660410687, 'hours': 5.071758492390317, 'frames': 4931584}
+{'iteration': 302, 'train/policy_loss': 0.6605783861596137, 'train/value_loss': 0.17581422766670585, 'hours': 5.088485392994353, 'frames': 4947968}
+{'iteration': 303, 'train/policy_loss': 0.646644800901413, 'train/value_loss': 0.16003620758419856, 'hours': 5.1051638923751, 'frames': 4964352}
+{'iteration': 304, 'train/policy_loss': 0.64041543379426, 'train/value_loss': 0.1510502874152735, 'hours': 5.121874658862752, 'frames': 4980736}
+{'iteration': 305, 'train/policy_loss': 0.6493858494795859, 'train/value_loss': 0.14446849789237604, 'hours': 5.138640585144363, 'frames': 4997120, 'eval/model_optimality_ratio': 0.887060821056366, 'eval/greedy_optimality_ratio': 0.9084683060646057, 'eval/improvement_vs_greedy': -0.0214074794203043}
+{'iteration': 306, 'train/policy_loss': 0.6314239904750139, 'train/value_loss': 0.14610181096941233, 'hours': 5.155301550361847, 'frames': 5013504}
+{'iteration': 307, 'train/policy_loss': 0.6626928898040205, 'train/value_loss': 0.15026792779099196, 'hours': 5.171980210343999, 'frames': 5029888}
+{'iteration': 308, 'train/policy_loss': 0.6621759694535285, 'train/value_loss': 0.14038789441110566, 'hours': 5.18870452033149, 'frames': 5046272}
+{'iteration': 309, 'train/policy_loss': 0.6700956930872053, 'train/value_loss': 0.13602448540041223, 'hours': 5.205389361050395, 'frames': 5062656}
+{'iteration': 310, 'train/policy_loss': 0.6971901939250529, 'train/value_loss': 0.1433487506583333, 'hours': 5.222071330613561, 'frames': 5079040, 'eval/model_optimality_ratio': 0.8793596625328064, 'eval/greedy_optimality_ratio': 0.9102940559387207, 'eval/improvement_vs_greedy': -0.030934398993849754}
+{'iteration': 311, 'train/policy_loss': 0.6727428024169058, 'train/value_loss': 0.14606628683395684, 'hours': 5.238711443609662, 'frames': 5095424}
+{'iteration': 312, 'train/policy_loss': 0.6673051628749818, 'train/value_loss': 0.16380613157525659, 'hours': 5.2554589149024755, 'frames': 5111808}
+{'iteration': 313, 'train/policy_loss': 0.6367932741995901, 'train/value_loss': 0.137962588458322, 'hours': 5.272122846775585, 'frames': 5128192}
+{'iteration': 314, 'train/policy_loss': 0.6525029763579369, 'train/value_loss': 0.13856112625217065, 'hours': 5.288779426746899, 'frames': 5144576}
+{'iteration': 315, 'train/policy_loss': 0.7037159968167543, 'train/value_loss': 0.15551734052132815, 'hours': 5.305407686299748, 'frames': 5160960, 'eval/model_optimality_ratio': 0.8649612665176392, 'eval/greedy_optimality_ratio': 0.9094533920288086, 'eval/improvement_vs_greedy': -0.04449208453297615}
+{'iteration': 316, 'train/policy_loss': 0.632726949872449, 'train/value_loss': 0.14921800361480564, 'hours': 5.3221132538716, 'frames': 5177344}
+{'iteration': 317, 'train/policy_loss': 0.6665963749401271, 'train/value_loss': 0.1856318661593832, 'hours': 5.338871047364341, 'frames': 5193728}
+{'iteration': 318, 'train/policy_loss': 0.6695649558678269, 'train/value_loss': 0.1805933499126695, 'hours': 5.35560951034228, 'frames': 5210112}
+{'iteration': 319, 'train/policy_loss': 0.6570109354797751, 'train/value_loss': 0.1843625411274843, 'hours': 5.372401322523753, 'frames': 5226496}
+{'iteration': 320, 'train/policy_loss': 0.6917680585756898, 'train/value_loss': 0.17949915392091498, 'hours': 5.389104854000939, 'frames': 5242880, 'eval/model_optimality_ratio': 0.8838257789611816, 'eval/greedy_optimality_ratio': 0.9114288091659546, 'eval/improvement_vs_greedy': -0.027602966874837875}
+{'iteration': 321, 'train/policy_loss': 0.6621001947205514, 'train/value_loss': 0.1763292380492203, 'hours': 5.405804098579618, 'frames': 5259264}
+{'iteration': 322, 'train/policy_loss': 0.7061396860517561, 'train/value_loss': 0.18072800867957994, 'hours': 5.4225032430887214, 'frames': 5275648}
+{'iteration': 323, 'train/policy_loss': 0.6389853181317449, 'train/value_loss': 0.18284970591776073, 'hours': 5.439250395827822, 'frames': 5292032}
+{'iteration': 324, 'train/policy_loss': 0.6845213300548494, 'train/value_loss': 0.18492920679273084, 'hours': 5.456026107006602, 'frames': 5308416}
+{'iteration': 325, 'train/policy_loss': 0.7221278194338083, 'train/value_loss': 0.19472780416253954, 'hours': 5.472815198567178, 'frames': 5324800, 'eval/model_optimality_ratio': 0.8870787024497986, 'eval/greedy_optimality_ratio': 0.9103723764419556, 'eval/improvement_vs_greedy': -0.023293660953640938}
+{'iteration': 326, 'train/policy_loss': 0.6730515491217375, 'train/value_loss': 0.1854953194851987, 'hours': 5.4897144187158995, 'frames': 5341184}
+{'iteration': 327, 'train/policy_loss': 0.7053028969094157, 'train/value_loss': 0.18299835489597172, 'hours': 5.506460589435364, 'frames': 5357568}
+{'iteration': 328, 'train/policy_loss': 0.6959179011173546, 'train/value_loss': 0.16436137160053477, 'hours': 5.523260537584622, 'frames': 5373952}
+{'iteration': 329, 'train/policy_loss': 0.6339561296626925, 'train/value_loss': 0.17735458281822503, 'hours': 5.540065402123663, 'frames': 5390336}
+{'iteration': 330, 'train/policy_loss': 0.733106080442667, 'train/value_loss': 0.20245705707930028, 'hours': 5.556869155830807, 'frames': 5406720, 'eval/model_optimality_ratio': 0.9154825210571289, 'eval/greedy_optimality_ratio': 0.9073086977005005, 'eval/improvement_vs_greedy': 0.008173739537596703}
+{'iteration': 331, 'train/policy_loss': 0.7718310267664492, 'train/value_loss': 0.16147387109231204, 'hours': 5.57364576584763, 'frames': 5423104}
+{'iteration': 332, 'train/policy_loss': 0.7252410538494587, 'train/value_loss': 0.1633205996477045, 'hours': 5.590515161421564, 'frames': 5439488}
+{'iteration': 333, 'train/policy_loss': 0.704541964456439, 'train/value_loss': 0.1773815737105906, 'hours': 5.607323270506329, 'frames': 5455872}
+{'iteration': 334, 'train/policy_loss': 0.6691237641498446, 'train/value_loss': 0.1650465622660704, 'hours': 5.624146990709835, 'frames': 5472256}
+{'iteration': 335, 'train/policy_loss': 0.6496587751898915, 'train/value_loss': 0.156110372452531, 'hours': 5.640901572439406, 'frames': 5488640, 'eval/model_optimality_ratio': 0.8764045238494873, 'eval/greedy_optimality_ratio': 0.9090553522109985, 'eval/improvement_vs_greedy': -0.032650791108608246}
+{'iteration': 336, 'train/policy_loss': 0.6560070919804275, 'train/value_loss': 0.140384606202133, 'hours': 5.657659258710013, 'frames': 5505024}
+{'iteration': 337, 'train/policy_loss': 0.6987713752314448, 'train/value_loss': 0.16764454293297604, 'hours': 5.67453217168649, 'frames': 5521408}
+{'iteration': 338, 'train/policy_loss': 0.6792149068787694, 'train/value_loss': 0.17827921360731125, 'hours': 5.69138967792193, 'frames': 5537792}
+{'iteration': 339, 'train/policy_loss': 0.6711766249500215, 'train/value_loss': 0.17586060415487736, 'hours': 5.70828554338879, 'frames': 5554176}
+{'iteration': 340, 'train/policy_loss': 0.6949654766358435, 'train/value_loss': 0.18151675612898543, 'hours': 5.725116011897723, 'frames': 5570560, 'eval/model_optimality_ratio': 0.8906526565551758, 'eval/greedy_optimality_ratio': 0.903816819190979, 'eval/improvement_vs_greedy': -0.013164124451577663}
+{'iteration': 341, 'train/policy_loss': 0.6971504108514637, 'train/value_loss': 0.15934621129417792, 'hours': 5.74185799744394, 'frames': 5586944}
+{'iteration': 342, 'train/policy_loss': 0.670766219496727, 'train/value_loss': 0.16288458334747702, 'hours': 5.758612548245323, 'frames': 5603328}
+{'iteration': 343, 'train/policy_loss': 0.6885675783269107, 'train/value_loss': 0.16791019844822586, 'hours': 5.775431014762984, 'frames': 5619712}
+{'iteration': 344, 'train/policy_loss': 0.6650807780679315, 'train/value_loss': 0.15785114211030304, 'hours': 5.79223959657881, 'frames': 5636096}
+{'iteration': 345, 'train/policy_loss': 0.7485629757866263, 'train/value_loss': 0.23010136128868908, 'hours': 5.8089730866087805, 'frames': 5652480, 'eval/model_optimality_ratio': 0.8718409538269043, 'eval/greedy_optimality_ratio': 0.9077940583229065, 'eval/improvement_vs_greedy': -0.0359531044960022}
+{'iteration': 346, 'train/policy_loss': 0.7145822369493544, 'train/value_loss': 0.2393996766768396, 'hours': 5.825782427522871, 'frames': 5668864}
+{'iteration': 347, 'train/policy_loss': 0.6799630615860224, 'train/value_loss': 0.1579121311660856, 'hours': 5.842479897671275, 'frames': 5685248}
+{'iteration': 348, 'train/policy_loss': 0.6627644107211381, 'train/value_loss': 0.1689579132362269, 'hours': 5.859240488277541, 'frames': 5701632}
+{'iteration': 349, 'train/policy_loss': 0.6907853800803423, 'train/value_loss': 0.16204620426287875, 'hours': 5.87599479648802, 'frames': 5718016}
+{'iteration': 350, 'train/policy_loss': 0.6801003708969802, 'train/value_loss': 0.13905538496328518, 'hours': 5.892766928076743, 'frames': 5734400, 'eval/model_optimality_ratio': 0.9083603024482727, 'eval/greedy_optimality_ratio': 0.9037041068077087, 'eval/improvement_vs_greedy': 0.004656217060983181}
+{'iteration': 351, 'train/policy_loss': 0.6972824549302459, 'train/value_loss': 0.15792515402426943, 'hours': 5.909504219426048, 'frames': 5750784}
+{'iteration': 352, 'train/policy_loss': 0.6606766916811466, 'train/value_loss': 0.16632934735389426, 'hours': 5.926272938119039, 'frames': 5767168}
+{'iteration': 353, 'train/policy_loss': 0.6862958278506994, 'train/value_loss': 0.16953487828141078, 'hours': 5.94312631090482, 'frames': 5783552}
+{'iteration': 354, 'train/policy_loss': 0.6638778771739453, 'train/value_loss': 0.14086834026966244, 'hours': 5.959896612630949, 'frames': 5799936}
+{'iteration': 355, 'train/policy_loss': 0.6320218690671027, 'train/value_loss': 0.157488735683728, 'hours': 5.976647793584399, 'frames': 5816320, 'eval/model_optimality_ratio': 0.8945696353912354, 'eval/greedy_optimality_ratio': 0.9066707491874695, 'eval/improvement_vs_greedy': -0.012101132422685623}
+{'iteration': 356, 'train/policy_loss': 0.6454777112230659, 'train/value_loss': 0.15818903385661542, 'hours': 5.993363459176487, 'frames': 5832704}
+{'iteration': 357, 'train/policy_loss': 0.7052838779054582, 'train/value_loss': 0.15980549831874669, 'hours': 6.01010760711299, 'frames': 5849088}
+{'iteration': 358, 'train/policy_loss': 0.7272202526219189, 'train/value_loss': 0.15848476608516648, 'hours': 6.0267981278896325, 'frames': 5865472}
+{'iteration': 359, 'train/policy_loss': 0.649894175119698, 'train/value_loss': 0.16587170772254467, 'hours': 6.043528108596801, 'frames': 5881856}
+{'iteration': 360, 'train/policy_loss': 0.6695873814169317, 'train/value_loss': 0.1564896895433776, 'hours': 6.060281557771894, 'frames': 5898240, 'eval/model_optimality_ratio': 0.9140461087226868, 'eval/greedy_optimality_ratio': 0.9080307483673096, 'eval/improvement_vs_greedy': 0.006015329621732235}
+{'iteration': 361, 'train/policy_loss': 0.7094213175587356, 'train/value_loss': 0.13423051196150482, 'hours': 6.077011879086494, 'frames': 5914624}
+{'iteration': 362, 'train/policy_loss': 0.6535720566753298, 'train/value_loss': 0.14673329092329368, 'hours': 6.0937609059280815, 'frames': 5931008}
+{'iteration': 363, 'train/policy_loss': 0.6750093312002718, 'train/value_loss': 0.14636355597758666, 'hours': 6.110516256954934, 'frames': 5947392}
+{'iteration': 364, 'train/policy_loss': 0.6908294400200248, 'train/value_loss': 0.1411265205242671, 'hours': 6.1272568423880465, 'frames': 5963776}
+{'iteration': 365, 'train/policy_loss': 0.6596996742300689, 'train/value_loss': 0.16088188253343105, 'hours': 6.144000247584448, 'frames': 5980160, 'eval/model_optimality_ratio': 0.9159623384475708, 'eval/greedy_optimality_ratio': 0.9065473675727844, 'eval/improvement_vs_greedy': 0.009414954110980034}
+{'iteration': 366, 'train/policy_loss': 0.7040825835429132, 'train/value_loss': 0.15910085442010313, 'hours': 6.160770535998873, 'frames': 5996544}
+{'iteration': 367, 'train/policy_loss': 0.7030103001743555, 'train/value_loss': 0.1715323079843074, 'hours': 6.177610706090926, 'frames': 6012928}
+{'iteration': 368, 'train/policy_loss': 0.6893761265091598, 'train/value_loss': 0.16969715006416664, 'hours': 6.194329764511849, 'frames': 6029312}
+{'iteration': 369, 'train/policy_loss': 0.6657004610169679, 'train/value_loss': 0.15863848611479625, 'hours': 6.211105519930521, 'frames': 6045696}
+{'iteration': 370, 'train/policy_loss': 0.6693568150512874, 'train/value_loss': 0.142176347959321, 'hours': 6.227788084679179, 'frames': 6062080, 'eval/model_optimality_ratio': 0.8721808195114136, 'eval/greedy_optimality_ratio': 0.9063742756843567, 'eval/improvement_vs_greedy': -0.034193433821201324}
+{'iteration': 371, 'train/policy_loss': 0.6991776004433632, 'train/value_loss': 0.15189280331833288, 'hours': 6.244512076775232, 'frames': 6078464}
+{'iteration': 372, 'train/policy_loss': 0.668399125803262, 'train/value_loss': 0.14291115902597085, 'hours': 6.261182579663064, 'frames': 6094848}
+{'iteration': 373, 'train/policy_loss': 0.6750381123274565, 'train/value_loss': 0.16247029119404033, 'hours': 6.277892024119694, 'frames': 6111232}
+{'iteration': 374, 'train/policy_loss': 0.6618303507566452, 'train/value_loss': 0.13779531966429204, 'hours': 6.294683783385488, 'frames': 6127616}
+{'iteration': 375, 'train/policy_loss': 0.6553534937556833, 'train/value_loss': 0.14606685732724145, 'hours': 6.311411340766482, 'frames': 6144000, 'eval/model_optimality_ratio': 0.9071714282035828, 'eval/greedy_optimality_ratio': 0.9061279296875, 'eval/improvement_vs_greedy': 0.0010434905998408794}
+{'iteration': 376, 'train/policy_loss': 0.6879116990603507, 'train/value_loss': 0.1699161009164527, 'hours': 6.328147238890329, 'frames': 6160384}
+{'iteration': 377, 'train/policy_loss': 0.6805852183606476, 'train/value_loss': 0.15837555739562958, 'hours': 6.344913581609725, 'frames': 6176768}
+{'iteration': 378, 'train/policy_loss': 0.6692081531509757, 'train/value_loss': 0.16733741149073467, 'hours': 6.36170283516248, 'frames': 6193152}
+{'iteration': 379, 'train/policy_loss': 0.6424914319068193, 'train/value_loss': 0.16270382073707879, 'hours': 6.378489204910066, 'frames': 6209536}
+{'iteration': 380, 'train/policy_loss': 0.6699235285632312, 'train/value_loss': 0.1723877951153554, 'hours': 6.395235599279403, 'frames': 6225920, 'eval/model_optimality_ratio': 0.8956056237220764, 'eval/greedy_optimality_ratio': 0.9085574150085449, 'eval/improvement_vs_greedy': -0.012951770797371864}
+{'iteration': 381, 'train/policy_loss': 0.6723511517047882, 'train/value_loss': 0.1579391704290174, 'hours': 6.412079854011536, 'frames': 6242304}
+{'iteration': 382, 'train/policy_loss': 0.6642204932868481, 'train/value_loss': 0.15542756504146382, 'hours': 6.42875999185774, 'frames': 6258688}
+{'iteration': 383, 'train/policy_loss': 0.6623286390677094, 'train/value_loss': 0.16193012445000932, 'hours': 6.4454833820793365, 'frames': 6275072}
+{'iteration': 384, 'train/policy_loss': 0.692020723130554, 'train/value_loss': 0.27344614395406097, 'hours': 6.462261988917986, 'frames': 6291456}
+{'iteration': 385, 'train/policy_loss': 0.6935726711526513, 'train/value_loss': 0.1755119822337292, 'hours': 6.478993744121658, 'frames': 6307840, 'eval/model_optimality_ratio': 0.8852261304855347, 'eval/greedy_optimality_ratio': 0.9074921011924744, 'eval/improvement_vs_greedy': -0.02226599119603634}
+{'iteration': 386, 'train/policy_loss': 0.7635556273162365, 'train/value_loss': 0.15218188718426973, 'hours': 6.495771416359478, 'frames': 6324224}
+{'iteration': 387, 'train/policy_loss': 0.7038012242410332, 'train/value_loss': 0.15258834086125717, 'hours': 6.512619921565056, 'frames': 6340608}
+{'iteration': 388, 'train/policy_loss': 0.6351393130607903, 'train/value_loss': 0.1461245275568217, 'hours': 6.529429712494215, 'frames': 6356992}
+{'iteration': 389, 'train/policy_loss': 0.6842019031755626, 'train/value_loss': 0.15606896858662367, 'hours': 6.546204550266267, 'frames': 6373376}
+{'iteration': 390, 'train/policy_loss': 0.7114446847699583, 'train/value_loss': 0.16964748373720795, 'hours': 6.562981890439988, 'frames': 6389760, 'eval/model_optimality_ratio': 0.9119749665260315, 'eval/greedy_optimality_ratio': 0.9102157354354858, 'eval/improvement_vs_greedy': 0.0017591554205864668}
+{'iteration': 391, 'train/policy_loss': 0.696245324332267, 'train/value_loss': 0.16654066770570353, 'hours': 6.5797279908921995, 'frames': 6406144}
+{'iteration': 392, 'train/policy_loss': 0.6914790133014321, 'train/value_loss': 0.14726820396026596, 'hours': 6.596482214993902, 'frames': 6422528}
+{'iteration': 393, 'train/policy_loss': 0.6536307071801275, 'train/value_loss': 0.15977615246083587, 'hours': 6.613288760715061, 'frames': 6438912}
+{'iteration': 394, 'train/policy_loss': 0.6661127330735326, 'train/value_loss': 0.15213636722182855, 'hours': 6.630162968039513, 'frames': 6455296}
+{'iteration': 395, 'train/policy_loss': 0.677957383915782, 'train/value_loss': 0.15554372465703636, 'hours': 6.646933228969575, 'frames': 6471680, 'eval/model_optimality_ratio': 0.9139173626899719, 'eval/greedy_optimality_ratio': 0.9099024534225464, 'eval/improvement_vs_greedy': 0.004014965146780014}
+{'iteration': 396, 'train/policy_loss': 0.6719611384905875, 'train/value_loss': 0.1570155131048523, 'hours': 6.663670106132826, 'frames': 6488064}
+{'iteration': 397, 'train/policy_loss': 0.6923812059685588, 'train/value_loss': 0.17899985035182908, 'hours': 6.680444979535209, 'frames': 6504448}
+{'iteration': 398, 'train/policy_loss': 0.6895113210193813, 'train/value_loss': 0.16266988904681057, 'hours': 6.697202601565255, 'frames': 6520832}
+{'iteration': 399, 'train/policy_loss': 0.6523997480981052, 'train/value_loss': 0.13349190721055493, 'hours': 6.713938939505153, 'frames': 6537216}
+{'iteration': 400, 'train/policy_loss': 0.6489844105672091, 'train/value_loss': 0.1404444228974171, 'hours': 6.730688601997164, 'frames': 6553600, 'eval/model_optimality_ratio': 0.9268201589584351, 'eval/greedy_optimality_ratio': 0.9095223546028137, 'eval/improvement_vs_greedy': 0.01729780063033104}

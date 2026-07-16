@@ -34,8 +34,8 @@
                 "ms-toolsai.vscode-jupyter-slideshow",
                 "njpwerner.autodocstring",
                 "tamasfe.even-better-toml",
-                "yzhang.markdown-all-in-one",
-                "Anthropic.claude-code"
+                "Anthropic.claude-code",
+                "shd101wyy.markdown-preview-enhanced"
             ],
             "settings": {
                 "terminal.integrated.shell.linux": "/bin/bash",
