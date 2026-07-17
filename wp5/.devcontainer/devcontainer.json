@@ -35,7 +35,8 @@
                 "njpwerner.autodocstring",
                 "tamasfe.even-better-toml",
                 "Anthropic.claude-code",
-                "shd101wyy.markdown-preview-enhanced"
+                "yzhang.markdown-all-in-one",
+                "saoudrizwan.claude-dev"
             ],
             "settings": {
                 "terminal.integrated.shell.linux": "/bin/bash",

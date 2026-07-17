@@ -1,0 +1,67 @@
+"""Example environment configurations (sets of constants) to try."""
+
+from mcts.glulam.env import EnvConfig
+
+EXAMPLE_CONFIGS: dict[str, EnvConfig] = {
+    "small": EnvConfig(
+        LAYER_LEN=20,
+        NUM_LAYERS=3,
+        MIN_PIECE_LEN=3,
+        MAX_PIECE_LEN=12,
+        MIN_BOARD_LEN_SUM=15,
+        MAX_BOARD_LEN=30,
+        INI_BOARDS=6,
+        INI_PIECES=14,
+        OBSERVABLE_BOARDS=2,
+        seed=0,
+    ),
+    "medium": EnvConfig(
+        LAYER_LEN=40,
+        NUM_LAYERS=4,
+        MIN_PIECE_LEN=4,
+        MAX_PIECE_LEN=20,
+        MIN_BOARD_LEN_SUM=25,
+        MAX_BOARD_LEN=50,
+        INI_BOARDS=8,
+        INI_PIECES=24,
+        OBSERVABLE_BOARDS=3,
+        seed=7,
+    ),
+    "narrow_window": EnvConfig(
+        LAYER_LEN=30,
+        NUM_LAYERS=2,
+        MIN_PIECE_LEN=5,
+        MAX_PIECE_LEN=15,
+        MIN_BOARD_LEN_SUM=20,
+        MAX_BOARD_LEN=35,
+        INI_BOARDS=5,
+        INI_PIECES=12,
+        OBSERVABLE_BOARDS=1,
+        seed=42,
+    ),
+    # Larger instances with the `medium` constants (same piece/board bounds).
+    "large_50": EnvConfig(
+        LAYER_LEN=40,
+        NUM_LAYERS=4,
+        MIN_PIECE_LEN=4,
+        MAX_PIECE_LEN=20,
+        MIN_BOARD_LEN_SUM=25,
+        MAX_BOARD_LEN=50,
+        INI_BOARDS=50,
+        INI_PIECES=150,
+        OBSERVABLE_BOARDS=3,
+        seed=7,
+    ),
+    "xlarge_200": EnvConfig(
+        LAYER_LEN=40,
+        NUM_LAYERS=4,
+        MIN_PIECE_LEN=4,
+        MAX_PIECE_LEN=20,
+        MIN_BOARD_LEN_SUM=25,
+        MAX_BOARD_LEN=50,
+        INI_BOARDS=200,
+        INI_PIECES=600,
+        OBSERVABLE_BOARDS=3,
+        seed=7,
+    ),
+}

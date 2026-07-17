@@ -36,3 +36,4 @@ services:
     volumes:
       # Mounts the project folder to '/workspace'.
       - ../../:/workspace:cached
+      - ../../../ffg_inprossa-worktrees:/worktrees:cached

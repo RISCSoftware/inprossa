@@ -22,7 +22,6 @@ dependencies = [
   # "tensorflow-metadata>=1.0",  # for gemma
   "omegaconf>=2.3.0",
   "pandas>=3.0.1",
-  "pgx>=2.6.0",
   "pydantic>=2.12.5",
   "torch>=2.10.0,<2.11.0",
   "transformers>=5.3.0",
