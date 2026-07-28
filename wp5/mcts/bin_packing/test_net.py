@@ -1,8 +1,5 @@
 """Tests for to_tokens in net.py."""
 
-import os
-import sys
-
 import jax.numpy as jnp
 import numpy as np
 import pytest

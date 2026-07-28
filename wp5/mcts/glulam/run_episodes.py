@@ -1,4 +1,4 @@
-"""Run random-policy episodes and save each as a set of PNG frames plus a GIF.
+"""Run weighted-random-policy episodes and save each as PNG frames plus a GIF.
 
 Usage:
     uv run python -m mcts.glulam.run_episodes
@@ -25,16 +25,17 @@ from mcts.glulam.env import EnvConfig, action_name, current_layer_left
 from mcts.glulam.policy import run_episode, weighted_policy
 from mcts.glulam.visualization import VizConfig, compute_layout, render
 
-OUT_ROOT = Path("logs/glulam/weighted")  # weighted random policy runs
+OUT_ROOT = Path("logs/glulam")
 
-# (config name, policy seeds, seconds per step in the GIF, PNG dpi).
+# (config name, policy seeds, seconds per step in the GIF, PNG dpi, VIZ_NUM_FINISHED_BEAMS).
 # Smaller episodes get 0.5 s per step, the larger ones 0.2 s.
-EPISODE_PLAN: list[tuple[str, list[int], float, int]] = [
-    ("small", [0, 1, 2], 0.5, 110),
-    ("medium", [0, 1, 2], 0.5, 110),
-    ("narrow_window", [0, 1, 2], 0.5, 110),
-    ("large_50", [0, 1, 2], 0.2, 100),
-    ("xlarge_200", [0], 0.2, 90),  # ~2000 steps; one policy seed keeps output manageable
+# VIZ_NUM_FINISHED_BEAMS=None shows all (only feasible for small configs).
+EPISODE_PLAN: list[tuple[str, list[int], float, int, int | None]] = [
+    ("small", [0, 1, 2], 0.5, 110, None),
+    ("medium", [0, 1, 2], 0.5, 110, None),
+    ("narrow_window", [0, 1, 2], 0.5, 110, None),
+    ("large_50", [0, 1, 2], 0.2, 100, 3),
+    ("xlarge_200", [0], 0.2, 90, 3),
 ]
 
 
@@ -74,13 +75,17 @@ def save_episode(
     frame_seconds: float = 0.5,
     dpi: int = 110,
     out_root: Path = OUT_ROOT,
+    viz_num_finished: int | None = None,
 ) -> Path:
-    states, actions, rewards = run_episode(cfg, policy_seed, policy=weighted_policy)
-    layout = compute_layout(states[0], cfg)
-    viz = VizConfig()
+    viz = VizConfig(VIZ_NUM_FINISHED_BEAMS=viz_num_finished)
 
     ep_dir = out_root / f"{name}_env{cfg.seed}_pol{policy_seed}"
     ep_dir.mkdir(parents=True, exist_ok=True)
+    for stale in ep_dir.glob("frame_*.png"):  # a shorter episode must not leave orphan frames behind
+        stale.unlink()
+
+    states, actions, rewards, stuck_progress_steps = run_episode(cfg, policy_seed, policy=weighted_policy)
+    layout = compute_layout(states[0], cfg, viz, states=states)  # size the frame to this rollout
 
     fig, ax = plt.subplots(figsize=_figsize(layout))
     frame_paths = []
@@ -92,7 +97,7 @@ def save_episode(
         title = (
             f"{name} pol_seed={policy_seed}  step {t}/{len(actions)}  {head}  |  "
             f"layer {state.current_layer} left {current_layer_left(state, cfg)}  |  "
-            f"beams {state.finished_beams}  discarded {state.discarded_total}"
+            f"beams {len(state.finished_beams)}  discarded {state.discarded_total}"
         )
         ax.clear()
         render(ax, state, cfg, layout, viz, title=title)
@@ -106,18 +111,20 @@ def save_episode(
     total_reward = sum(rewards)
     print(
         f"{ep_dir}: {len(states)} frames + episode.gif ({frame_seconds} s/step), "
-        f"{states[-1].finished_beams} beams, discarded {states[-1].discarded_total}, "
-        f"return {total_reward}",
+        f"{len(states[-1].finished_beams)} beams, discarded {states[-1].discarded_total}, "
+        f"return {total_reward}, {stuck_progress_steps} stuck-progress steps",
         flush=True,
     )
     return ep_dir
 
 
 def main() -> None:
-    for name, policy_seeds, frame_seconds, dpi in EPISODE_PLAN:
+    for name, policy_seeds, frame_seconds, dpi, viz_num_finished in EPISODE_PLAN:
         cfg = EXAMPLE_CONFIGS[name]
         for policy_seed in policy_seeds:
-            save_episode(name, cfg, policy_seed, frame_seconds=frame_seconds, dpi=dpi)
+            save_episode(
+                name, cfg, policy_seed, frame_seconds=frame_seconds, dpi=dpi, viz_num_finished=viz_num_finished
+            )
 
 
 if __name__ == "__main__":
