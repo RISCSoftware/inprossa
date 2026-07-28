@@ -198,7 +198,6 @@ def demo():
 
 
 def demo_gpu():
-    import pgx
 
     # os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.9"
     os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"

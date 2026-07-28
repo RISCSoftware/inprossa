@@ -23,7 +23,6 @@ Eval policy note:
 import datetime
 import os
 import pickle
-import sys
 import time
 from functools import partial
 from typing import NamedTuple
@@ -32,7 +31,6 @@ import jax
 import jax.numpy as jnp
 import mctx
 import optax
-import pandas as pd
 import wandb
 from omegaconf import OmegaConf
 from pydantic import BaseModel
@@ -46,7 +44,12 @@ from mcts.bin_packing.env import (
     init,
     step_env,
 )
-from mcts.bin_packing.net import TOKEN_DIM, BinPackingNet, make_attention_mask, to_tokens
+from mcts.bin_packing.net import (
+    TOKEN_DIM,
+    BinPackingNet,
+    make_attention_mask,
+    to_tokens,
+)
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 os.environ["JAX_TRACEBACK_FILTERING"] = "off"

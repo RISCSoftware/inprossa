@@ -161,9 +161,25 @@ Each directory contains checkpoints from iteration 0 to 400 in steps of 5.
 
 # Part 2 — Glulam Beam Assembly Problem (Leimbinder)
 
-> **Status: Not yet implemented.**
+> **Status: Framework-free reference environment implemented and tested.**
+>
+> The reference implementation (`mcts/glulam/`) is a pure-Python simulation
+> environment — no JAX, no gym, no neural networks. Its purpose is threefold:
+> serve as an executable completeness test of the spec, provide a random policy
+> for rollout generation, and produce step-by-step visualizations.
 
-Placeholder for a future AlphaZero / Gumbel MuZero approach to the glulam beam
-assembly (Leimbinder) problem. The implementation will follow the same
-architecture as bin packing — JAX environment, transformer policy/value network,
-self-play training with `mctx`, and evaluation against greedy baselines.
+The authoritative specification is
+[`glulam_beam_problem_description.md`](glulam_beam_problem_description.md); the
+companion implementation plan is
+[`glulam_implementation_plan.md`](glulam_implementation_plan.md).
+
+## Modules
+
+| Module | Purpose |
+|--------|---------|
+| `mcts/glulam/env.py` | Config, immutable state, `reset`, `observe`, `legal_actions`, `step` |
+| `mcts/glulam/policy.py` | Uniform and weighted random policies, `run_episode` |
+| `mcts/glulam/configs.py` | Five example configs (small to xlarge_200) |
+| `mcts/glulam/visualization.py` | Multi-region `render`, `compute_layout`, GIF helpers |
+| `mcts/glulam/test_env.py` | Invariant assertions, spec-completeness rollouts |
+| `mcts/glulam/run_episodes.py` | Episode runner: PNG frames + animated GIFs |

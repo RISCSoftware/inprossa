@@ -38,7 +38,6 @@ from mcts.bin_packing.env import (
 )
 from mcts.bin_packing.net import BinPackingNet, make_attention_mask, to_tokens
 
-
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
 os.environ["JAX_TRACEBACK_FILTERING"] = "off"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
@@ -286,7 +285,7 @@ def main():
     mcts_ratio = mcts_final.n_bins_opt / mcts_final.n_bins_used
 
     # --- FFD greedy evaluation -----------------------------------------------
-    print(f"\nRunning FFD greedy evaluation ...")
+    print("\nRunning FFD greedy evaluation ...")
 
     @jax.pmap
     def greedy_body(state: BinPackingState):
