@@ -28,9 +28,10 @@ The encoding below follows the same set of design philosophies as the rest of th
   never precomputed yes/no answers; masks enforce legality at the logits — one instance of the
   observation → policy-input boundary (see [Layers and boundaries](#layers-and-boundaries)).
 - **Permutation invariance as a semantic principle.** Token identity flows through features, never
-  through positions — invariance exactly where the problem is a set (queue contents aside from
-  order, intervals), explicit ordering features only where order is load-bearing (distance to the
-  saw).
+  through *sequence* positions: a token is identified by which feature block it occupies and by the
+  values in it. Invariance holds exactly where the problem is a set (conveyor contents aside from
+  order, intervals), with explicit ordering features only where order is load-bearing (distance to
+  the saw).
 - **Configs as jointly feasible objects.** Constants come with constraint tables and base-case
   feasibility checks; violation raises a named error instead of degenerate instances.
 - **JIT-friendliness by design, not adaptation.** Fixed capacities, padding, and masks from the
@@ -64,8 +65,8 @@ The sections below define, in order: the [layers and boundaries](#layers-and-bou
 env state, observation, and policy input; the [policy input](#policy-input) itself, as scalars and
 lists; how the beam is reduced to
 [allowed intervals](#the-assembled-beam-as-allowed-intervals); and how
-[instance sets and bounds](#instance-sets-and-bounds) fix static shapes. The token-encoding
-sections that follow are **deprecated pending rework** (see the callout there), and
+[instance sets and bounds](#instance-sets-and-bounds) fix static shapes; and the
+[token encoding](#token-encoding) that turns the policy input into a fixed-shape tensor.
 [Not yet specified](#not-yet-specified) lists the parts of the scope above that this document does
 not cover yet.
 
@@ -78,8 +79,6 @@ Scope this document is intended to cover, still to be written:
 - **Transformer architecture** — depth, attention heads, hidden size, normalisation, parameter
   sharing; the hyperparameters that constitute "architecture" under the capacity-independence
   philosophy.
-- **Tokenisation and tensorisation** — policy input and actions to tokens to JAX arrays; padding,
-  attention masks, output heads. Supersedes the deprecated sections below.
 - **MCTS** — action priors from the policy head, value estimate, search parameters, how legality
   masks enter the search.
 - **Planning without a transition model** — MuZero-style learned dynamics; what replaces the
@@ -125,6 +124,12 @@ It says nothing about token dimensions, positions, dtypes, capacities, or bounds
 expressed relative to the instance's `LAYER_LEN`, so an exact fill is always `1`. Ratios below are
 the defined quantities themselves, not an encoding of something else.
 
+Derived quantities are fed only when producing them needs arithmetic the linear embedding cannot
+do. A quantity the model can reach by attending to a token that already holds it is a lookup, and
+duplicating it would breach "the same information is never fed twice". This rule decides the two
+non-linear scalars below, the cut tokens' saw remainder, and the absence of info positions on the
+six named actions.
+
 The content falls into two categories.
 
 ### Scalars
@@ -136,6 +141,8 @@ Fixed cardinality, dedicated positions.
 | `saw_piece_len / LAYER_LEN` (0 = empty)             | the piece being cut; `cut_k` acts on it                                                                                             |
 | `out_piece_len / LAYER_LEN` (0 = empty)             | the piece at `out_pos`; `put_buf`, `assemble_out`, `discard_out` act on it; an empty slot is a real state                          |
 | `buf_piece_len / LAYER_LEN` (0 = empty)             | the piece at `buf_pos`; `assemble_buf`, `discard_buf` act on it; an empty slot is a real state                                      |
+| `current_layer_len / LAYER_LEN`                     | the current layer's fill. The interval lists are expressed over test-piece length, relative to this fill, while forbidden intervals are absolute beam positions — without it the model cannot locate itself in absolute coordinates |
+| beam progress `(current_layer + current_layer_len / LAYER_LEN) / NUM_LAYERS` | 0 for an empty beam, 1 for a full one. Exact from two observables, since finished layers are full by definition. Fed because it is a *product* of quantities already present, hence non-linear, and because it is the cost of `discard_beam` |
 | `current_layer / NUM_LAYERS`                        | progress within the beam                                                                                                            |
 | `1 / NUM_LAYERS`                                    | one layer as a fraction of the beam; distinguishes 1/2 from 5/10                                                                    |
 | `boards_left / INI_BOARDS`                          | progress through the pile (`boards_left`: boards not yet on the conveyor; see the spec's observable-variables table)                |
@@ -181,8 +188,9 @@ Each with its reason — this is where the "minimal, set-based" philosophy becom
 - `assemble_legal_mask` — consumed only by the interval derivation; its geometric content reaches
   the model as the interval lists. (This is a different array from the legal-action mask of
   `legal_actions`, which is applied at the output logits and is not policy input either.)
-- `current_layer_len` / `current_layer_left` — approximately redundant with the interval geometry;
-  the loss is accepted, and both stay observable env-side.
+- `current_layer_left` — equals `1 −` the fill above, a *linear* function of a fed quantity, so the
+  embedding reconstructs it for free. (`current_layer_len` itself is no longer excluded; see
+  Scalars.)
 - `LAYER_LEN` — the unit; all lengths are relative to it.
 - `INI_PIECES` — not policy-visible; it would expose the count of hidden pieces.
 - `OBSERVABLE_BOARDS` — parameterises the observation mechanism, not the problem; its effect is
@@ -302,327 +310,137 @@ instance yields identical input under any instance set.
 plus the six named actions, for every instance. Candidates permanently illegal for an instance
 (`k < MIN_PIECE_LEN`, `k > MAX_PIECE_LEN`) are still present and are masked at the output.
 
-The shapes `S`, `Q`, `I`, `N` used in the deprecated sections below are to be re-derived from
-`BOUND_*` when the token encoding is reworked.
+## Token encoding
 
-## Transformer token encoding
+The policy input becomes a sequence of `S` tokens, each a `TOKEN_DIM`-dimensional feature vector
+with `TOKEN_DIM = 27`. The feature space is partitioned into **disjoint blocks**: the scalars own
+one block, each list owns one block, and no two blocks share a position. A token writes its own
+block and leaves every other position at zero.
 
-> **Deprecated — pending rework.** The sections from here to the end of the document describe the
-> previous token layout, feature table, padding, heads, and action mapping. They are retained for
-> reference and will be rewritten against the
-> [Policy input](#policy-input), [The assembled beam as allowed
-> intervals](#the-assembled-beam-as-allowed-intervals), and
-> [Instance sets and bounds](#instance-sets-and-bounds) sections above. Shapes named here
-> (`S`, `Q`, `I`, `N`) are to be re-derived from `BOUND_*`. Known pending fixes:
->
-> - The `board_frac` warning must say the leak enters the token features directly from env state,
->   bypassing the observation, and must separate the hidden-variable violation from the
->   label-hygiene one.
-> - The `board_frac` row of the feature table must use `board_id / max(1, INI_BOARDS - 1)`, as its
->   own long-form definition already does; written without the guard it divides by zero at the legal
->   config boundary `INI_BOARDS = 1`.
-> - The token-diagram script and image referenced below do not exist. Note that `docs/` is
->   gitignored, so a diagram kept there is absent from a fresh clone — as the existing
->   bin-packing diagram links already are. The rework should either produce the diagram and commit
->   it somewhere tracked, or drop the reference.
+Disjointness does the work that type flags used to do. A token's kind is readable from which block
+it occupies, so nothing carries an `is_…` marker — no location one-hot, no interval flag, no value
+or action marker. The accepted cost is that a length in one block shares no weights with a length
+in another: a conveyor piece's length, an interval endpoint and a cut length are the same physical
+quantity in the same units, and the model learns each separately. In exchange, the single
+embedding `Dense(TOKEN_DIM → hidden)` acts as a separate linear encoder per list, so per-list
+parameters come free of per-list machinery.
 
-The network input is a sequence of fixed-length tokens, each a `TOKEN_DIM`-dimensional feature
-vector (`TOKEN_DIM = 21`), following the pattern established by the bin-packing net in this
-workspace. One *value token* sits at sequence position 0 (its network head carries the value
-readout); all subsequent tokens represent either a **piece** in a specific location, an **allowed
-assembly interval**, a **cut action**, or an **action** such as `put_buf`, `assemble_out`,
-`assemble_buf`, `discard_out`, `discard_buf`, `discard_beam`.
+Every block width is fixed by the problem's rules and by this encoding, never by an instance or a
+bound, which is what keeps one model valid across an instance set.
 
-### Token layout
+### Blocks
 
-Named constants:
+| block                   | positions | contents                                                                                  |
+| ----------------------- | --------- | ----------------------------------------------------------------------------------------- |
+| global                  | 0–11      | the twelve [scalars](#scalars), in table order                                             |
+| conveyor piece          | 12–13     | length over `LAYER_LEN`; position toward the saw                                           |
+| interval, current layer | 14–15     | start, end                                                                                 |
+| interval, next layer    | 16–17     | start, end                                                                                 |
+| action                  | 18–26     | seven one-hot positions, then two info positions                                           |
 
-- `P = 3` — piece-slot tokens (saw, out, buf), one each, always present (an empty slot is a token
-  with `nlen = 0` and its location flag set).
-- `Q = MAX_OBSERVABLE_PIECES` — queue piece tokens (see
-  [conveyor pieces](#policy-input)).
-- `I = 2 * MAX_INTERVALS` — [allowed-interval tokens](#the-assembled-beam-as-allowed-intervals).
-  Each forbidden interval (from
-  `FORBIDDEN_INTERVALS`, or centred on a previous-layer meeting position) can split the allowed
-  length region at most once more, and the previous layer has fewer than `LAYER_LEN / MIN_PIECE_LEN`
-  meeting positions, so `MAX_INTERVALS = #FORBIDDEN_INTERVALS + LAYER_LEN // MIN_PIECE_LEN + 2` is
-  a safe per-layer compile-time bound; the factor 2 covers the current and the next layer.
-- `N = MAX_PIECE_LEN` — cut tokens, one per possible cut length `k = 1..N` (index `k-1`), so the
-  cut token number directly equals the cut length — mirroring the action indexing in the spec's
-  legal-actions section.
-- `A = 6` — action tokens, in the spec's fixed action order: `put_buf`, `assemble_out`,
-  `assemble_buf`, `discard_out`, `discard_buf`, `discard_beam`.
+The action block in full:
+
+| position | meaning                                                                 |
+| -------- | ------------------------------------------------------------------------ |
+| 18       | `cut` — set on **every** cut token, shared                                |
+| 19–24    | `put_buf`, `assemble_out`, `assemble_buf`, `discard_out`, `discard_buf`, `discard_beam` — one position each |
+| 25       | cut length `k / LAYER_LEN`                                                |
+| 26       | saw remainder `(saw_piece_len − k) / LAYER_LEN`                           |
+
+Cut tokens share position 18 and are told apart by positions 25–26. The six named actions each own
+a position and leave 25–26 at zero: everything they would carry is a lookup in the global token,
+so feeding it would duplicate. The remainder at position 26 is the opposite case — it exists
+nowhere and needs a subtraction across two tokens — and it is what signals that a cut strands
+waste when the remainder falls below `MIN_PIECE_LEN`.
+
+Those two info positions belong to the whole action block, so a named action can be given a value
+later without changing `TOKEN_DIM` or the architecture.
+
+### Sequence layout
+
+One token per item, in this order:
 
 ```
-token 0                     : value token
-tokens 1 .. 3               : saw token, out token, buf token
-tokens 4 .. 3+Q             : queue piece tokens
-tokens 4+Q .. 3+Q+I         : allowed-interval tokens (current layer, then next layer)
-tokens 4+Q+I .. 3+Q+I+N     : cut tokens cut_1 .. cut_N
-tokens 4+Q+I+N .. 3+Q+I+N+5 : action tokens
+position 0                       value/global token
+next BOUND_MAX_OBSERVABLE_PIECES conveyor pieces
+next BOUND_MAX_INTERVALS         current-layer intervals
+next BOUND_MAX_INTERVALS         next-layer intervals
+next BOUND_MAX_PIECE_LEN + 6     actions
 ```
 
-Sequence length `S = 4 + Q + I + N + 6` is a compile-time constant per config.
+`S = 1 + BOUND_MAX_OBSERVABLE_PIECES + 2 · BOUND_MAX_INTERVALS + BOUND_MAX_PIECE_LEN + 6`, a
+compile-time constant for an instance set. Which of those positions carry information varies every
+step — conveyor tokens drain and refill, interval tokens appear and vanish as the geometry
+changes, and the legal subset of actions changes — but the forward pass always runs on all `S`
+positions. Variation is handled through the attention mask and the legality mask, never through a
+change of shape.
 
-The assembled beam does **not** appear as piece tokens. What the policy needs from the beam is the
-geometry of which test-piece lengths may still be assembled into the current layer — and, for
-planning cuts ahead, into the layer after it. That geometry is a union of disjoint allowed-length
-intervals for each layer, encoded directly as
-[interval tokens](#the-assembled-beam-as-allowed-intervals). The full `beam` remains a
-hidden variable, as in the spec.
+### Padding and the attention mask
 
-### Token encoding tables
+Padding is the **all-zero token**, and no real token can be all-zero:
 
-The token sequence is `S = 4 + Q + I + N + 6` tokens of `TOKEN_DIM = 21` features each. A rendered
-image of the full (token × feature) grid, in the style of
-[docs/scripts/transformer_diagram.py](docs/scripts/transformer_diagram.py) (the bin-packing token
-diagram), supplements the tables below:
+- the global token always carries `1 / NUM_LAYERS`;
+- a conveyor piece has length at least `MIN_PIECE_LEN`;
+- an interval's start is at least `MIN_PIECE_LEN / LAYER_LEN`;
+- every action token sets exactly one one-hot position.
 
-**Image (to be generated):** `docs/scripts/glulam_token_diagram.py` →
-![Glulam token encoding diagram](docs/glulam_token_diagram.png)
+So validity needs no flag and no special case: a token is valid iff it is not all-zero. The global
+token and all action tokens are always valid; conveyor and interval tokens are valid iff the item
+exists at this step. With `valid ∈ {0,1}^S`, the attention mask is
 
-**Token types.** One row per token type, in layout order (see [token layout](#token-layout)).
+$$\text{mask}_{ij} = \text{valid}_i \land \text{valid}_j,$$
 
-| token type (index range) | description                                                        | features set                                                    |
-| ------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------------- |
-| value (0)                | the single value-readout token; carries `current_layer`            | `is_value`, `is_value_act`, `nlen = current_layer / NUM_LAYERS` |
-| saw (1)                  | the piece at the saw position (`nlen = 0` if the queue is empty)   | `is_saw_piece`, `nlen`, `board_frac`                            |
-| out (2)                  | the piece at `out_pos` (`nlen = 0` if empty)                       | `is_out_piece`, `nlen`, `board_frac`                            |
-| buf (3)                  | the piece at `buf_pos` (`nlen = 0` if empty)                       | `is_buf_piece`, `nlen`, `board_frac`                            |
-| queue piece (4 .. 3+Q)   | one observable queue piece, in `ord_frac` order                    | `is_queue_piece`, `nlen`, `ord_frac`, `board_frac`              |
-| interval (4+Q .. 3+Q+I)  | one allowed assembly-length [interval](#the-assembled-beam-as-allowed-intervals), current or next layer | `is_curr_iv` or `is_next_iv`, `iv_start`, `iv_end`              |
-| cut `k` (3+Q+I+k)        | action token for `cut_k`; `nlen = k / LAYER_LEN` identifies `k`    | `is_action`, `is_cut_act`, `nlen`                               |
-| `put_buf`                | action token for `put_buf`                                         | `is_action`, `is_put_buf_act`                                   |
-| `assemble_out`           | action token for `assemble_out`                                    | `is_action`, `is_assemble_out_act`                              |
-| `assemble_buf`           | action token for `assemble_buf`                                    | `is_action`, `is_assemble_buf_act`                              |
-| `discard_out`            | action token for `discard_out`                                     | `is_action`, `is_discard_out_act`                               |
-| `discard_buf`            | action token for `discard_buf`                                     | `is_action`, `is_discard_buf_act`                               |
-| `discard_beam`           | action token for `discard_beam`                                    | `is_action`, `is_discard_beam_act`                              |
+so padding neither attends nor is attended, and its residual stream passes through untouched.
 
-**Feature positions.** One row per dim (or dim block) of the `TOKEN_DIM = 21` vector.
+### No positional encoding
 
-| dim  | name                                                                                                                                                            | set on                            | description                                                                                                      |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 0    | `is_value`                                                                                                                                                      | value token                       | marks the single value token; its output head carries the value readout ([heads](#network-output-heads))         |
-| 1–4  | `is_queue_piece`, `is_saw_piece`, `is_out_piece`, `is_buf_piece`                                                                                                | exactly one per slot/queue piece  | location one-hot for the four in-flight piece positions                                                          |
-| 5–12 | `is_cut_act`, `is_put_buf_act`, `is_assemble_out_act`, `is_assemble_buf_act`, `is_discard_out_act`, `is_discard_buf_act`, `is_discard_beam_act`, `is_value_act` | exactly one per action-side token | action-type one-hot (7 action groups + value) — makes tokens [self-identifying without positional encoding](#no-positional-encoding-so-every-token-is-self-identifying) |
-| 13   | `nlen`                                                                                                                                                          | all piece + cut + value tokens    | normalised length `len / LAYER_LEN`; value token carries `current_layer / NUM_LAYERS`                            |
-| 14   | `ord_frac`                                                                                                                                                      | queue pieces only                 | position of the piece in the observation window, `j / n_obs` (saw end = 1)                                       |
-| 15   | `board_frac`                                                                                                                                                    | all piece tokens                  | origin `board_id / (INI_BOARDS - 1)`; ⚠ hidden-variable leak, must be 0 in compliant runs                        |
-| 16   | `iv_start`                                                                                                                                                      | interval tokens                   | allowed-start bound of the interval, `L_i / LAYER_LEN`                                                           |
-| 17   | `iv_end`                                                                                                                                                        | interval tokens                   | allowed-end bound of the interval, `U_i / LAYER_LEN` (inclusive)                                                 |
-| 18   | `is_curr_iv`                                                                                                                                                    | current-layer interval tokens     | one of the two interval flags: this interval describes the current layer's test piece                            |
-| 19   | `is_next_iv`                                                                                                                                                    | next-layer interval tokens        | the other interval flag: this interval describes the next layer's test piece                                     |
-| 20   | `is_action`                                                                                                                                                     | all action tokens                 | marks tokens whose output head is an action logit ([heads](#network-output-heads))                               |
+No position ids, sinusoids or learned positional embeddings are added. A bare transformer is
+permutation-invariant over its input positions, so every token must be identifiable from its
+features alone — and under disjoint blocks it is: the block says what kind of token this is, and
+the values within the block say which one.
 
-Feature definitions (long form):
+Within a block, items separate by value. Conveyor pieces carry their position toward the saw, the
+one ordering the problem makes load-bearing. Intervals carry endpoints, which are distinct and
+ordered by construction. Cut tokens carry their length. The six named actions each own a position.
+Nothing is left ambiguous, and nothing depends on where a token sits in the sequence.
 
-- **`is_value`** (dim 0): marks the single value token at position 0. Its output head carries the
-  value readout ([network output heads](#network-output-heads)); its `nlen` field carries the
-  scalar observable `current_layer` (exception:
-  this one entry is a normalised id, not a length — see `nlen` below).
-- **Location one-hot** (dims 1–4): `is_queue_piece`, `is_saw_piece`, `is_out_piece`,
-  `is_buf_piece`. Exactly one is set on every queue/saw/out/buf piece token (including empty
-  saw/out/buf slots, which keep their flag with `nlen = 0`).
-- **Action-type one-hot** (dims 5–12): mutually exclusive; exactly one is set on every action-side
-  token (value, cut, and the six action tokens). This is what makes those tokens **self-identifying
-  independent of sequence position** (see
-  [no positional encoding](#no-positional-encoding-so-every-token-is-self-identifying)): the
-  transformer does not need to know a token's index to know which env action it feeds. The eight
-  types are the seven env action groups — `is_cut_act`
-  (shared by all `N` cut tokens), `is_put_buf_act`, `is_assemble_out_act`, `is_assemble_buf_act`,
-  `is_discard_out_act`, `is_discard_buf_act`, `is_discard_beam_act` — plus `is_value_act` as the
-  eighth type, carried by the value token so every action-side token has exactly one action-type
-  bit set. Interval tokens are self-identifying through their own `is_curr_iv` / `is_next_iv`
-  one-hot (below), and the all-zero token is [padding](#padding-tokens). Cut tokens are told apart
-  **within** the cut type by `nlen = k / LAYER_LEN`.
-- **`nlen`** (dim 13): the normalised length, `len / LAYER_LEN`, of any length-valued quantity —
-  a piece's length, a cut token's nominal cut length `k`, the saw/out/buf slot contents (0 when
-  the slot is empty). The env itself keeps integer length units (spec: "Lengths of all wood
-  pieces are integers"); the division happens at the tokenisation boundary, so the network sees
-  fractional lengths while env-side legality stays exact on integers. Values lie in `[0, 1]`
-  under the constraint `MAX_PIECE_LEN <= LAYER_LEN` (recommended); configs with
-  `MAX_PIECE_LEN > LAYER_LEN` (permitted by the spec) produce `nlen > 1` on queue/saw/out/buf
-  and cut tokens (`k > LAYER_LEN` stays a legal, effectively wasted env action), and the
-  encoding tolerates those values without clipping. The single
-  exception is the value token, whose `nlen` field carries `current_layer` / `NUM_LAYERS` (a
-  normalised *id*, not a length); for the six action tokens it is 0.
-- **`ord_frac`** (dim 14): the piece's position in the observation window, normalised to `(0, 1]`
-  as `j / n_obs` where `n_obs` is the current number of observable pieces and `j = 1 … n_obs` is
-  the left-to-right index of the piece within the observable window (`j = n_obs` at the saw end).
-  **Carried by queue pieces only** — and meaningless on slot/action/interval tokens. This is the
-  encoding's only ordinal feature and replaces any positional embedding for the one block where
-  order genuinely matters (distance to the saw determines which piece is cut next).
-- **`board_frac`** (dim 15): the piece's origin `board_id` normalised to `[0, 1]` as
-  `board_id / max(1, INI_BOARDS - 1)` (the `max` guards the boundary config `INI_BOARDS = 1`,
-  where every `board_id` is 0), or 0 for non-piece tokens — including **empty** saw/out/buf
-  slot tokens, which are piece-location tokens carrying no piece. ⚠ **Spec deviation — hidden-variable
-  leak.** `board_id` is a hidden variable per the spec's hidden-variables table, and board
-  boundaries within the observation window are explicitly "not observable". Encoding it here leaks
-  hidden information into the observation and **relaxes the problem**. It is included as an
-  experimental ablation axis (the board-drop event drives window movement, which the value
-  function benefits from), and must be set to all-zeros for spec-compliant runs. Compliant runs
-  replace this feature by 0; the token layout and `TOKEN_DIM` are unchanged.
-- **`iv_start`, `iv_end`** (dims 16–17): the inclusive allowed-length bounds `[L_i, U_i]` of one
-  interval, both normalised by `LAYER_LEN`;
-  [the interval construction](#the-assembled-beam-as-allowed-intervals) defines how the intervals
-  are computed. An
-  assemble action with piece length `k` is exactly-legal iff `k` lies in one of the current
-  layer's intervals; a cut producing length `k` is geometrically sensible iff `k` lies in one of
-  the current layer's intervals at the moment the piece reaches assembly.
-- **`is_curr_iv`, `is_next_iv`** (dims 18–19): the interval-layer one-hot — which layer the
-  interval describes (see [allowed intervals](#the-assembled-beam-as-allowed-intervals)). Two
-  flags rather than one, in the same style as the location and
-  action one-hots: a token without a type flag is unidentifiable under permutation invariance.
-- **`is_action`** (dim 20): 1 on every token whose output head is an action logit — all cut and
-  action tokens; 0 on the value token, all piece tokens, and all interval tokens. Used to mask
-  non-action positions to $-\infty$ before the softmax (see
-  [network output heads](#network-output-heads)).
+### Output heads
 
-The scalar observables `current_layer_len` and `current_layer_left` are **not** given their own
-feature, by redundancy rather than recoverability: both are highly correlated with the interval
-geometry (roughly, the last current-layer interval's `iv_end` approximates the remaining gap —
-up to the layer-gap guard, and strictly below `current_layer_left` whenever constraint 4 has
-pruned the exact fill), and the "stuck" state (no current-layer intervals at all) is directly
-visible. Neither observable is *exactly* recoverable from the tokens, which is accepted:
-`current_layer_left` remains directly observable
-[env-side](#layers-and-boundaries) and only the network's input is
-kept minimal. `current_layer` rides on the value token's `nlen` field (see above), so it is
-available to every token after one attention step. Note that the two meet-position indicator
-vectors from the [observation](#layers-and-boundaries)
-(`prev_meet_positions`, `current_meet_positions`) do **not** become token
-features: the interval tokens are their replacement as network input — they remain in the
-observation as the quantities from which the intervals are derived.
+The network embeds each token with `Dense(hidden_size)`, runs the transformer backbone, and applies
+**one shared scalar head** `Dense(1)` to every final hidden state, giving `scalars ∈ ℝ^S`. Two
+readouts:
 
-`assemble_legal_mask` (see [observation](#layers-and-boundaries)) is likewise
-not encoded into tokens: it is derivable state, provided to the policy only as a legality mask on
-the output logits ([action-logit mapping](#action-logit-mapping)), never as network input. That
-observation array is consumed by the
-[interval construction](#the-assembled-beam-as-allowed-intervals) — and by nothing else in this
-document; it
-is kept in the observation because it is an authoritative observable of the spec. (The
-current-layer interval tokens already carry the mask's geometric content; the mask exists
-env-side for exact integer legality.)
+| token           | head output                                                                    |
+| --------------- | -------------------------------------------------------------------------------- |
+| global (0)      | the value estimate, read directly from `scalars[0]`                            |
+| action tokens   | the raw pre-softmax logit for that action                                      |
+| all others      | discarded — they share the head but are unused                                 |
 
-### Padding tokens
+The separate value token of the previous layout is gone: the global token carries the value
+readout. Non-action positions are forced to $-\infty$ before the softmax, which then runs across the
+action tokens only.
 
-Every variable-length block is filled up to its fixed token count with padding tokens — the
-all-zero token (`TOKEN_DIM` zeros, no flags set). See
-[padding and attention mask](#padding-and-attention-mask) for how padding is masked out of
-attention.
+### Action-logit mapping
 
-### Variable token count per step; no positional encoding
+Let `A = 1 + BOUND_MAX_OBSERVABLE_PIECES + 2 · BOUND_MAX_INTERVALS` be the first action position.
+The action tokens are in one-to-one correspondence with the environment's fixed action indexing:
 
-Two properties of this encoding are worth stating explicitly, because both diverge from
-"canonical" transformer usage:
+| env action index          | env action         | token position      |
+| ------------------------- | ------------------ | ------------------- |
+| 0 .. `BOUND_MAX_PIECE_LEN`−1 | `cut_1` .. `cut_N` | `A` .. `A + N − 1`  |
+| `N`                       | `put_buf`          | `A + N`             |
+| `N + 1`                   | `assemble_out`     | `A + N + 1`         |
+| `N + 2`                   | `assemble_buf`     | `A + N + 2`         |
+| `N + 3`                   | `discard_out`      | `A + N + 3`         |
+| `N + 4`                   | `discard_buf`      | `A + N + 4`         |
+| `N + 5`                   | `discard_beam`     | `A + N + 5`         |
 
-#### The token count varies across the episode
+with `N = BOUND_MAX_PIECE_LEN`. The legal-action mask has length `N + 6` and maps
+position-for-position onto this range: illegal actions go to $-\infty$ before the softmax or the
+MCTS prior. Cut tokens that no instance can ever use — `k < MIN_PIECE_LEN` or `k > MAX_PIECE_LEN`
+for this instance — exist in the layout so that token order matches cut length, and never receive
+finite probability.
 
-`S = 4 + Q + I + N + 6` fixes the
-*capacity* of the sequence, not the number of tokens that actually carry information at a given
-step. At different steps of the same episode the valid-token count differs: queue piece tokens
-drain as boards are consumed, the observation window refills as boards drop, interval tokens shift
-and (dis)appear as assemblies change the allowed-length geometry of both the current and the next
-layer, and the saw/out/buf slots are filled and emptied by cutting, buffering, assembly, and
-discarding. The same statement holds on the **output side**: the value head is always one scalar,
-but the effective policy head is only ever the subset of action tokens whose env action is legal at
-that step ([action-logit mapping](#action-logit-mapping)) — that subset changes size and
-composition at every step. The transformer forward
-pass, however, always runs on all `S` positions; variation is handled exclusively through the
-[attention mask](#padding-and-attention-mask) and the
-[legality mask](#action-logit-mapping), never through a change of array shapes. This is
-what keeps the network JIT-compilable over an entire episode.
-
-#### No positional encoding so every token is self-identifying
-
-Every token must be self-identifying, and the action one-hot is therefore **not optional**. No
-position ids, sinusoids, or learned positional embeddings are added.
-A bare transformer is permutation-invariant over its input positions; without positional encodings
-it can tell two tokens apart **only** through their feature vectors. That has a sharp consequence
-for action tokens: if `put_buf`, `assemble_out`, `assemble_buf`, `discard_out`, `discard_buf`,
-and `discard_beam` all carried the same features, the network would map them to the **same**
-output logit regardless of their layout position — the
-[action-logit slicing](#action-logit-mapping) could not recover six distinct
-actions from six permuted copies of identical logits. The eight-way
-[action-type one-hot](#token-encoding-tables)
-exists precisely to break that symmetry: it makes each of the seven action groups — and the value
-token — distinguishable by feature alone, with cut tokens told apart within their group by
-`nlen = k / LAYER_LEN`. The same argument applies on the piece side to the four location one-hots,
-and on the interval side to the `is_curr_iv` / `is_next_iv` pair.
-
-Within the remaining feature-identical groups, permutation invariance is *desired*:
-
-- **Queue tokens** carry `ord_frac` (dim 14), so each queue token is unique and their mutual order
-  is a feature, not a position. The spec grants the policy no ordering preference *among* pieces
-  beyond their lengths and positions toward the saw; `ord_frac` encodes exactly that and nothing
-  more. Queue pieces of equal length at the same position cannot exist (positions are unique per
-  step), so no true ambiguity remains.
-- **Interval tokens** carry their endpoints `iv_start` / `iv_end`: earlier intervals have strictly
-  smaller bounds, and the interval set of each layer is a set — so interval tokens are
-  permutation-invariant by design, with all ordering information readable from their values.
-- Padding tokens are all-zero, carry no flags, and are excluded by the
-  [attention mask](#padding-and-attention-mask).
-
-An empty saw/out/buf slot is still a real token (its location one-hot set, `nlen = 0`), and a
-"stuck" layer simply contributes no interval tokens at all — both states are legible from the
-token set.
-
-## Padding and attention mask
-
-Padding follows the bin-packing recipe exactly: unused slots in the queue block, the interval
-block, and any token position beyond the real entries are **all-zero vectors** (all flags 0).
-Because an empty saw/out/buf slot has `nlen = 0` but keeps its location one-hot, the validity
-distinguishing "real token" from "padding" is:
-
-- token 0, the three slot tokens (saw, out, buf), all cut tokens, and all action tokens:
-  always valid (cut/action tokens remain valid even when illegal — legality is enforced at the
-  logits, see [action-logit mapping](#action-logit-mapping));
-- queue tokens: valid iff `is_queue_piece = 1`;
-- interval tokens: valid iff `is_curr_iv = 1` or `is_next_iv = 1`.
-
-Let `valid ∈ {0,1}^S` be that vector. The attention mask is
-
-$$\text{mask}_{ij} = \text{valid}_i \land \text{valid}_j \in \{0,1\}^{S \times S},$$
-
-i.e. both query and key must be non-padding. Padding tokens attend and are attended by nothing;
-their residual stream passes through unchanged (see the bin-packing implementation for the softmax
-numerics that guarantee this).
-
-## Network output heads
-
-The network embeds each `TOKEN_DIM`-dimensional token with a linear layer
-(`Dense(hidden_size)`), runs the transformer backbone, and applies **one shared scalar head**
-(`Dense(1)`) to every token's final hidden state, giving `scalars ∈ ℝ^S`. Two readouts:
-
-| token type                       | head output                                                                                                                                 |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| value token (0)                  | the scalar value estimate $v = \text{scalars}_0 \cdot \text{is\_value}_0$ (masked sum over the sequence, which has exactly one value token) |
-| action tokens (`is_action = 1`)  | raw (pre-softmax) action logit at that token's position; all non-action positions are forced to $-\infty$ before the softmax                |
-| piece tokens and interval tokens | discarded (their head output shares the same `Dense(1)` layer but is unused)                                                                |
-
-Softmax across the action-token logits gives the action-selection probabilities, exactly the
-bin-packing pattern ("apply softmax across bin token outputs" → here: across action tokens).
-
-## Action-logit mapping
-
-The action tokens are in one-to-one correspondence with the spec's fixed action indexing
-(mask length `MAX_PIECE_LEN + 6`):
-
-| env action index | env action         | token index (from [token layout](#token-layout)) |
-| ---------------- | ------------------ | ----------------------- |
-| 0 .. N-1         | `cut_1` .. `cut_N` | 3+Q+I+1 .. 3+Q+I+N      |
-| N                | `put_buf`          | 3+Q+I+N+1               |
-| N+1              | `assemble_out`     | 3+Q+I+N+2               |
-| N+2              | `assemble_buf`     | 3+Q+I+N+3               |
-| N+3              | `discard_out`      | 3+Q+I+N+4               |
-| N+4              | `discard_buf`      | 3+Q+I+N+5               |
-| N+5              | `discard_beam`     | 3+Q+I+N+6               |
-
-The action logits sliced from the token outputs are combined with the environment's legal-action
-mask (spec's "Legal actions" section, materialised in JAX as a fixed-shape boolean array of length
-`MAX_PIECE_LEN + 6`): illegal actions are set to $-\infty$ prior to the softmax / MCTS prior, so
-legality is enforced identically at the output even though all action tokens are always "valid"
-for attention (see [padding and attention mask](#padding-and-attention-mask)). The permanently
-illegal `cut_1` .. `cut_(MIN_PIECE_LEN-1)` tokens therefore
-exist in the layout (so the cut token number equals the cut length) but never receive finite
-probability.
+**Diagram (to be generated).** A rendered (token × feature) grid would make the block structure
+legible at a glance. None exists yet, and note that `docs/` is gitignored, so a diagram kept there
+is absent from a fresh clone; it should be committed somewhere tracked or the reference dropped.
