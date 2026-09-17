@@ -76,7 +76,7 @@ Besides the sub-`MIN_PIECE_LEN` remainder lost at the saw, pieces that cannot be
 
 ## Informal definition of the RL environment
 
-### Constants
+### Instance constants
 
 The table below defines all environment constants. Meeting positions are the strictly interior prefix sums of piece lengths in a layer (`0 < p < LAYER_LEN`); the beam ends (0 and `LAYER_LEN`) are not meeting positions.
 
@@ -94,7 +94,16 @@ The table below defines all environment constants. Meeting positions are the str
 | `FORBIDDEN_INTERVALS`      | List of (start, end) absolute integer intervals in the beam where no two pieces in any layer may meet. Constraint: every entry satisfies `0 <= start < end <= LAYER_LEN`. Entries may overlap (the constraint is effectively a union). For example, three intervals of a fixed small width (a few length units, not a percentage of `LAYER_LEN`, so that a longer layer is not also a more constrained one), centered at 0.2·`LAYER_LEN`, 0.5·`LAYER_LEN`, and 0.8·`LAYER_LEN`, rounded to integers. |
 | `PREV_MEET_FORBIDDEN_HALF` | Half-width of the forbidden interval around each meeting position of the previous layer. Constraint: `PREV_MEET_FORBIDDEN_HALF >= 0`. For each meeting position `p` in the previous layer, the interval `(p - PREV_MEET_FORBIDDEN_HALF, p + PREV_MEET_FORBIDDEN_HALF)` is forbidden in the current layer. Setting `PREV_MEET_FORBIDDEN_HALF = 0` makes the interval empty and effectively disables constraint 3.                                                                                     |
 
-Additional constraints: `MIN_PIECE_LEN >= 1`; `MIN_PIECE_LEN <= MAX_PIECE_LEN`; `MIN_PIECE_LEN <= LAYER_LEN`; `NUM_LAYERS >= 1`; `OBSERVABLE_BOARDS >= 1`. If `MAX_PIECE_LEN > LAYER_LEN`, cuts producing pieces longer than `LAYER_LEN` can never be assembled and are effectively wasted. Additionally, the config must pass a base-case feasibility check (`reachable(0)`, defined in assemble constraint 4 below, using only the global forbidden intervals since layer 0 has no previous layer) to ensure the first layer of a beam can always be finished.
+Policy visibility: all instance constants are known to the policy, with two qualifications. `INI_PIECES` is **not** available to the policy (it would reveal the number of hidden pieces). `FORBIDDEN_INTERVALS` reaches the policy only through the geometry it induces (the allowed assembly intervals), never as a list.
+
+All constraints in this section hold **per instance** (see "Instances and instance sets" below). Additional constraints: `MIN_PIECE_LEN >= 1`; `MIN_PIECE_LEN <= MAX_PIECE_LEN`; `MIN_PIECE_LEN <= LAYER_LEN`; `NUM_LAYERS >= 1`; `OBSERVABLE_BOARDS >= 1`. If `MAX_PIECE_LEN > LAYER_LEN`, cuts producing pieces longer than `LAYER_LEN` can never be assembled and are effectively wasted. Additionally, the config must pass a base-case feasibility check (`reachable(0)`, defined in assemble constraint 4 below, using only the global forbidden intervals since layer 0 has no previous layer) to ensure the first layer of a beam can always be finished.
+
+### Instances and instance sets
+
+- **Problem class** — the rules defined in this document.
+- **Instance** — one assignment of the instance constants **plus the concrete generated boards** (board and piece lengths). Every entry of the instance-constants table may differ between instances. Replaying an instance replays the same boards.
+- **Episode** — one trajectory through an instance. Many episodes per instance is normal (search, rollouts), so "constant within an instance" and "constant within an episode" are different claims.
+- **Instance set** — a training or evaluation set is a set of instances; one policy is trained across a set. The board generation distribution is a property of the instance set, not of an instance.
 
 ### Observable variables
 
@@ -110,6 +119,7 @@ Additional constraints: `MIN_PIECE_LEN >= 1`; `MIN_PIECE_LEN <= MAX_PIECE_LEN`; 
 | `prev_meet_positions`    | The set of meeting positions (strictly interior prefix sums) in the immediately preceding layer. Empty if `current_layer == 0`. Upper bound on size: `ceil(LAYER_LEN / MIN_PIECE_LEN) - 1`; for a neural policy, a fixed-length indicator vector of length `LAYER_LEN` is a natural encoding. This gives the policy enough information to reason about constraint 3 without seeing the full beam.                                                                                                                                                                                                                                                                                                                                                           |
 | `current_meet_positions` | The set of meeting positions (strictly interior prefix sums) in the current layer so far. Same bound and encoding as `prev_meet_positions`. This gives the policy enough information to anticipate constraint 4's next-layer check without seeing the full beam.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `assemble_legal_mask`    | A boolean list of length `N` (`N` = `MAX_PIECE_LEN`) where entry `k-1` is `True` if a piece of length `k`, placed at the current position in the current layer, would satisfy all assemble constraints (layer-gap, global forbidden intervals, previous-layer forbidden intervals, and finishability). This tells the policy which cut lengths produce an assembleable piece; it does not constrain cuts and effectively proxies "assemblable from `out_pos` immediately after the cut". The mask is fully derivable from the other observables plus the constants (no hidden information), and is provided as a convenience. Entries for `k < MIN_PIECE_LEN` are forced `False` (no such piece can exist); entries for `k > LAYER_LEN` are always `False`. |
+| `boards_left`            | The number of boards on the pile, i.e. not yet on the conveyor (not in the observation window). A bare count: it decrements exactly when a board enters the window and carries no piece-to-board structure, so it is consistent with board boundaries being unobservable. Env-side it is the number of boards in `hidden_pieces`. |
 
 Note: the meeting-position observables (`prev_meet_positions` and `current_meet_positions`) are set-level projections of the hidden `beam` state, not a leak of piece-level hidden information.
 
@@ -253,7 +263,7 @@ Each region consumes the following hidden variables and observable variables:
 
 Variable availability:
 
-- **Observable** (available to the policy): `current_layer`, `current_layer_len`, `current_layer_left`, `observable_pieces`, `out_piece_len`, `buf_piece_len`, `saw_piece_len`, `prev_meet_positions`, `current_meet_positions`, `assemble_legal_mask`.
+- **Observable** (available to the policy): `current_layer`, `current_layer_len`, `current_layer_left`, `observable_pieces`, `out_piece_len`, `buf_piece_len`, `saw_piece_len`, `prev_meet_positions`, `current_meet_positions`, `assemble_legal_mask`, `boards_left`.
 - **Hidden** (not observable): `hidden_pieces`, `piece_id`, `board_id`, `beam`, `finished_beams`, `discarded_pieces`.
 - **Bookkeeping** (not observable): `discarded_total`, `last_reward`, `terminated`.
 
