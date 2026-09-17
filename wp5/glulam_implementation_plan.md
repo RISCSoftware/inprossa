@@ -1,6 +1,6 @@
 # Glulam Beam Env — Implementation Plan
 
-Companion to [glulam_beam_problem_description.md](glulam_beam_problem_description.md), which is the
+Companion to [glulam_problem_and_simple_env_spec.md](glulam_problem_and_simple_env_spec.md), which is the
 authoritative specification. This plan covers a single, framework-free Python implementation whose
 purpose is: a **random policy**, **step visualization**, and serving as an executable **completeness
 test of the spec**. No gym, no JAX.

@@ -1,1 +1,1 @@
-"""Glulam beam assembly environment (see glulam_beam_problem_description.md)."""
+"""Glulam beam assembly environment (see glulam_problem_and_simple_env_spec.md)."""

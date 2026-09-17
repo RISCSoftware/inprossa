@@ -169,8 +169,9 @@ Each directory contains checkpoints from iteration 0 to 400 in steps of 5.
 > for rollout generation, and produce step-by-step visualizations.
 
 The authoritative specification is
-[`glulam_beam_problem_description.md`](glulam_beam_problem_description.md); the
-companion implementation plan is
+[`glulam_problem_and_simple_env_spec.md`](glulam_problem_and_simple_env_spec.md); the agent
+specification is [`glulam_jax_agent_spec.md`](glulam_jax_agent_spec.md); the companion
+implementation plan is
 [`glulam_implementation_plan.md`](glulam_implementation_plan.md).
 
 ## Modules

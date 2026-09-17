@@ -1,4 +1,4 @@
-# Glulam Beam Assembly Problem (Leimbinder)
+# Glulam Beam Assembly — Problem and Simple Environment Specification (Leimbinder)
 
 ## Abstract, informal problem definition
 

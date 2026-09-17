@@ -1,11 +1,14 @@
-# Glulam Beam Assembly Problem — Reinforcement Learning Specification (JAX/Flax)
+# Glulam Beam Assembly Problem — JAX Agent Specification
 
-Companion to [glulam_beam_problem_description.md](glulam_beam_problem_description.md), which remains
-the authoritative specification of the problem dynamics, constants, observable and hidden variables,
-actions, legality, and reward. This document specifies **only what is new** in casting that problem
-as a reinforcement learning problem and solving it with a JAX/Flax transformer guided by tree
-search: the POMDP framing, the policy input and its encoding, the network, the search, instance
-generation, and the training setup.
+Companion to [glulam_problem_and_simple_env_spec.md](glulam_problem_and_simple_env_spec.md),
+which is authoritative for the problem dynamics, constants, observable and hidden variables,
+actions, legality, and reward. It binds this implementation as it binds the simple one; where this
+document departs from it, the deviation is marked explicitly.
+
+This document specifies **only what is new** in casting that problem as a reinforcement learning
+problem and solving it with a JAX/Flax transformer guided by tree search: the POMDP framing, the
+policy input and its encoding, the network, the search, instance generation, and the training
+setup.
 
 ## Design philosophies
 
@@ -46,7 +49,7 @@ Anything not covered here — queue mechanics, cutting, assembly, legality of ac
 unchanged, and the reader is referred to the authoritative spec's corresponding section. In
 particular, the full reuse map is:
 
-| Topic                                            | Authoritative section (glulam_beam_problem_description.md) |
+| Topic                                            | Authoritative section (glulam_problem_and_simple_env_spec.md) |
 | ------------------------------------------------ | ---------------------------------------------------------- |
 | Problem dynamics (queue, saw, out/buf, assembly) | "Abstract, informal problem definition"                    |
 | Environment constants                            | "Instance constants" table                                 |

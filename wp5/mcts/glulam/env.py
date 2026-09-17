@@ -1,7 +1,7 @@
 """Glulam beam assembly environment.
 
 Framework-free reference implementation of the authoritative spec in
-glulam_beam_problem_description.md. Immutable state + pure functions:
+glulam_problem_and_simple_env_spec.md. Immutable state + pure functions:
 ``step(state, cfg, action) -> (next_state, reward)``. A rollout is a plain
 list of states.
 
