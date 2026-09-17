@@ -6,7 +6,8 @@ Usage:
 For every planned config (set of constants) and every policy seed, one episode
 is rolled out (the input data is fixed by the config's env seed, so the same
 instance is replayed with different random policies). Each episode's frames go
-into its own directory under logs/glulam/, together with an animated
+into its own directory under logs/glulam/weighted/ (the subdirectory named
+for the policy this script rolls out), together with an animated
 episode.gif showing all steps (seconds per step configurable per episode).
 """
 
@@ -25,7 +26,8 @@ from mcts.glulam.env import EnvConfig, action_name, current_layer_left
 from mcts.glulam.policy import run_episode, weighted_policy
 from mcts.glulam.visualization import VizConfig, compute_layout, render
 
-OUT_ROOT = Path("logs/glulam")
+# Episodes live under a per-policy subdirectory; this script rolls out weighted_policy.
+OUT_ROOT = Path("logs/glulam/weighted")
 
 # (config name, policy seeds, seconds per step in the GIF, PNG dpi, VIZ_NUM_FINISHED_BEAMS).
 # Smaller episodes get 0.5 s per step, the larger ones 0.2 s.
