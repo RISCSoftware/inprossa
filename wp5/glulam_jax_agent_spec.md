@@ -83,8 +83,6 @@ Scope this document is intended to cover, still to be written:
   masks enter the search.
 - **Planning without a transition model** — MuZero-style learned dynamics; what replaces the
   environment during search, and what that implies for the policy input.
-- **Instance generation** — how an instance set is sampled; which constants vary and over what
-  ranges; per-instance feasibility checks.
 - **Training setup** — self-play loop, targets, losses, optimiser, batching across instances,
   evaluation protocol.
 
@@ -309,6 +307,33 @@ instance yields identical input under any instance set.
 **Action list sizing.** The candidate list has one token per cut length `1 .. BOUND_MAX_PIECE_LEN`
 plus the six named actions, for every instance. Candidates permanently illegal for an instance
 (`k < MIN_PIECE_LEN`, `k > MAX_PIECE_LEN`) are still present and are masked at the output.
+
+## Instance generation
+
+An instance set is drawn at two levels — a set of instance-constant configs each with a
+probability, and a distribution over boards per config — as defined in the authoritative spec's
+"Instances and instance sets". **For now the set holds one config at probability 1**, so instances
+differ only in their generated boards.
+
+**Bounds follow the support, not the probabilities.** Each `BOUND_` is the maximum of its
+per-config value taken over every config with non-zero probability. Reweighting the configs
+therefore never changes a tensor shape; adding a config to the support may. With a single config
+each bound equals that config's own value, so there is no cross-instance slack — the bounds still
+earn their place because list lengths vary from *step* to step within any one instance, and because
+admitting a second config later costs a recompile rather than a redesign.
+
+**What a single-config set suspends.** Five of the twelve scalars in the global block are constant
+across such a set and therefore carry no signal: `1 / NUM_LAYERS`, `1 / INI_BOARDS`,
+`MIN_PIECE_LEN / LAYER_LEN`, `MAX_PIECE_LEN / LAYER_LEN` and
+`PREV_MEET_FORBIDDEN_HALF / LAYER_LEN`. They exist so that one model can span configs whose
+constants differ, which is exactly what a single config suspends. They are kept — five positions,
+live the moment a second config enters the support — but they do no work today and should not be
+read as if they did.
+
+**What the policy generalises over.** With one config, the material alone: board lengths and the
+way `INI_PIECES` is split across boards. The layer geometry, the forbidden intervals and the action
+space are fixed. Adding configs extends this to the geometry without touching the architecture,
+since [TOKEN_DIM](#token-encoding) depends on neither the configs nor the bounds.
 
 ## Token encoding
 
