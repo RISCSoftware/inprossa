@@ -441,6 +441,8 @@ MCTS prior. Cut tokens that no instance can ever use — `k < MIN_PIECE_LEN` or 
 for this instance — exist in the layout so that token order matches cut length, and never receive
 finite probability.
 
-**Diagram (to be generated).** A rendered (token × feature) grid would make the block structure
-legible at a glance. None exists yet, and note that `docs/` is gitignored, so a diagram kept there
-is absent from a fresh clone; it should be committed somewhere tracked or the reference dropped.
+**Diagram.** `scripts/glulam_token_diagram.py` renders the policy-input sequence against the
+feature positions, each list elided between its first and last item, with the global block drawn as
+one abstract cell. It writes
+`docs/private/glulam_token_diagram.png`. That path is gitignored, so the image is a local artifact
+rather than a committed one — regenerate it by running the script.
