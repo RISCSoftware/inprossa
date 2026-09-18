@@ -190,9 +190,9 @@ def run_checked_episode(
         ), "length conservation violated"
 
         # Waste conservation: discarded_pieces total matches discarded_total.
-        assert sum(p.length for p in state.discarded_pieces) == state.discarded_total, (
-            "discarded_pieces total != discarded_total"
-        )
+        assert (
+            sum(p.length for p in state.discarded_pieces) == state.discarded_total
+        ), "discarded_pieces total != discarded_total"
 
         # Per-lineage conservation (equality including finished beams).
         finished = _finished_pieces_by_pid(state)
