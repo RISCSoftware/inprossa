@@ -29,9 +29,7 @@ from pydantic import BaseModel
 
 from mcts.bin_packing.env import (
     DEFAULT_MAX_ITEM_SIZE,
-    DEFAULT_MAX_ITEMS,
     DEFAULT_MIN_ITEM_SIZE,
-    DEFAULT_MIN_ITEMS,
     BinPackingState,
     init,
     step_env,

@@ -212,7 +212,6 @@ def demo_gpu():
     batch_size = 2048
     n_batches = 20
 
-    n_value = 1
     n_bins = 128
     n_items = 128
 
