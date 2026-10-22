@@ -1,4 +1,4 @@
-from src.optdsl.translator.Objects.DSTypes import DSInt, compute_type
+from src.optdsl.translator.Objects.DSTypes import DSInt, DSList, compute_type
 
 
 class Variable:
@@ -33,6 +33,15 @@ class Variable:
         return prefix
 
     def _index_expr(self, d):
+        # MiniZinc's empty index set `1..0` means `{}`, which makes `arr[1]`
+        # an out-of-bounds access. Decision lists of *zero* length (e.g.
+        # `DSList(N_PIECES - 1, bool)` when N_PIECES == 1) are still referenced
+        # by unrolled loop bodies (guarded by `i < (N_PIECES - 1)`), so we
+        # declare a minimum length of 1 to stay type-consistent (the extra
+        # element is inert because the guard keeps it unused). Only applies to
+        # integer dimensions; symbolic/string dims are left untouched.
+        if isinstance(d, int):
+            d = max(d, 1)
         return f"1..{d}" if isinstance(d, (int, str)) else str(d)
 
     def define_versions(self, versions):
@@ -42,7 +51,13 @@ class Variable:
         self.type = type_
 
     def to_minizinc(self):
-        return f"{self._array_prefix()}{self.type.var_name}: {self.name}"
+        # Zero-length scalar decision lists (e.g. DSList(N_PIECES-1, bool) with
+        # N_PIECES==1) declare as [1..0], which MiniZinc treats as the empty set
+        # and rejects. Clamp such lists to length 1 so the (guarded) unrolled
+        # accesses stay in bounds. Record-element lists are left untouched
+        # (their empties are legitimate interval lists).
+        type_var_name = self.type.clamped_var_name() if isinstance(self.type, DSList) else self.type.var_name
+        return f"{self._array_prefix()}{type_var_name}: {self.name}"
         
     def versioned_name(self):
         return f"{self.name}[{self.versions}]"

@@ -1,0 +1,84 @@
+{
+  "purpose": "Empirically calibrated Small/Medium instance sets for the computational study comparing MiniZinc (exact) with LNS. The sets are based on measured wall-clock cost (translation + solve with cp-sat, capping solve at 20 s) on the reference machine. IMPORTANT: DSL->MiniZinc translation is the dominant cost (deepcopy blow-up in the translator's loop unrolling); a 10x10 JSSP takes ~600 s just to translate, and 2dbp n>=30 is infeasible. Instances are listed only if translation completes in a practical budget.",
+  "timeout_default_s": 120,
+  "measured_environment": "cp-sat 9.15 (via --params max_time_in_seconds), MiniZinc 2.10.1, uv venv python 3.11, Windows.",
+  "measurement_notes": {
+    "translation_is_bottleneck": "translation time is the binding constraint: cvrp15=29.7s, jssp 10x5=13.5s, jssp 10x10=607s, 2dbp n=20=45-90s, 2dbp n=30=>4min.",
+    "proves_within_budget": "only tiny instances reach proof: cvrp8 (2.0s total, optimal), jssp 2x2 (0.2s), jssp 5x4 (0.8s).",
+    "medium_definition": "Medium = translates within budget and gives a feasible incumbent (SAT) but does NOT prove optimality within the solve budget; this is the meaningful regime for the MiniZinc-vs-LNS gap study."
+  },
+  "classes": {
+    "cvrp": {
+      "metadata_headers": ["Cities", "Vehicles", "Capacity"],
+      "sets": {
+        "small": {
+          "expected_budget_s": 60,
+          "meaning": "translates fast, MiniZinc can prove optimality in budget",
+          "instances": [
+            {"file": "problem_instances/cvrp/random_euclidean_cvrp_8.dsl", "size": {"Cities": 8, "Vehicles": 4, "Capacity": 10}, "measured": {"translate_s": 0.52, "solve_s": 1.47, "status": "OPTIMAL"}},
+            {"file": "problem_instances/cvrp/benchmarks/christofides_e_optdsl/E-n13-k4.dsl", "size": {"Cities": 13, "Vehicles": 4, "Capacity": 6000}, "measured": {"translate_s": 2.19, "solve_s": 20.99, "status": "UNKNOWN"}}
+          ]
+        },
+        "medium": {
+          "expected_budget_s": 120,
+          "meaning": "translates within budget, gives incumbent but no proof (MiniZinc-vs-LNS gap regime)",
+          "instances": [
+            {"file": "problem_instances/cvrp/random_euclidean_cvrp_15.dsl", "size": {"Cities": 15, "Vehicles": 10, "Capacity": 17}, "measured": {"translate_s": 29.69, "solve_s": 24.1, "status": "UNKNOWN"}},
+            {"file": "problem_instances/cvrp/random_euclidean_cvrp_20.dsl", "size": {"Cities": 20, "Vehicles": 5, "Capacity": 25}}
+          ]
+        }
+      },
+      "lns_only_note": "Golden (201-483 cities) and E-n22+ translate too slowly for the exact baseline; keep only for the LNS side of the study."
+    },
+    "jssp": {
+      "metadata_headers": ["Jobs", "Machines"],
+      "sets": {
+        "small": {
+          "expected_budget_s": 60,
+          "meaning": "translates fast, MiniZinc proves optimality in budget",
+          "instances": [
+            {"file": "problem_instances/jssp/jssp_2x2.dsl", "size": {"Jobs": 2, "Machines": 2}, "measured": {"translate_s": 0.01, "solve_s": 0.22, "status": "OPTIMAL"}},
+            {"file": "problem_instances/jssp/jssp_5x4.dsl", "size": {"Jobs": 5, "Machines": 4}, "measured": {"translate_s": 0.47, "solve_s": 0.31, "status": "OPTIMAL"}},
+            {"file": "problem_instances/jssp/jssp_10x5.dsl", "size": {"Jobs": 10, "Machines": 5}, "measured": {"translate_s": 13.49, "solve_s": 21.04, "status": "SAT"}}
+          ]
+        },
+        "medium": {
+          "expected_budget_s": 120,
+          "meaning": "10x5 JSSP: translates within budget, gives incumbent (SAT) but no proof; top of feasible exact range",
+          "instances": [
+            {"file": "problem_instances/jssp/benchmarks/la_optdsl/la01.dsl", "size": {"Jobs": 10, "Machines": 5}, "measured": {"translate_s": 12.39, "solve_s": 20.97, "status": "SAT"}},
+            {"file": "problem_instances/jssp/benchmarks/la_optdsl/la02.dsl", "size": {"Jobs": 10, "Machines": 5}},
+            {"file": "problem_instances/jssp/benchmarks/la_optdsl/la03.dsl", "size": {"Jobs": 10, "Machines": 5}},
+            {"file": "problem_instances/jssp/benchmarks/la_optdsl/la04.dsl", "size": {"Jobs": 10, "Machines": 5}},
+            {"file": "problem_instances/jssp/benchmarks/la_optdsl/la05.dsl", "size": {"Jobs": 10, "Machines": 5}},
+            {"file": "problem_instances/jssp/benchmarks/orb_optdsl/orb01.dsl", "size": {"Jobs": 10, "Machines": 10}, "measured": {"translate_s": null, "solve_s": null, "status": "NOT_MEASURED"}}
+          ]
+        }
+      },
+      "lns_only_note": "10x10 JSSP (la16-20: 607s translate) and anything larger (ta, swv, abz7+) is translation-infeasible for the exact baseline; keep for LNS only."
+    },
+    "2dbp": {
+      "metadata_headers": ["Box", "Items"],
+      "sets": {
+        "small": {
+          "expected_budget_s": 120,
+          "meaning": "n=20 loose boxes; translates in ~45-50s and completes within budget (incumbent, no proof)",
+          "instances": [
+            {"file": "problem_instances/2dbp/benchmarks/testset_paper_optdsl/2d_bpp_inst_cl_06_020_06.ins2D.dsl", "size": {"Box": "300x300", "Items": 20}, "measured": {"translate_s": 44.84, "solve_s": 21.44, "status": "UNKNOWN"}},
+            {"file": "problem_instances/2dbp/benchmarks/testset_paper_optdsl/2d_bpp_inst_cl_06_020_10.ins2D.dsl", "size": {"Box": "300x300", "Items": 20}, "measured": {"translate_s": 47.64, "solve_s": 18.66, "status": "UNKNOWN"}}
+          ]
+        },
+        "medium": {
+          "expected_budget_s": 150,
+          "meaning": "n=20 tighter boxes; translates in 47-90s, up to the practical translation limit",
+          "instances": [
+            {"file": "problem_instances/2dbp/benchmarks/testset_paper_optdsl/2d_bpp_inst_cl_04_020_08.ins2D.dsl", "size": {"Box": "100x100", "Items": 20}, "measured": {"translate_s": 47.4, "solve_s": 18.21, "status": "UNKNOWN"}},
+            {"file": "problem_instances/2dbp/benchmarks/testset_paper_optdsl/2d_bpp_inst_cl_05_020_08.ins2D.dsl", "size": {"Box": "100x100", "Items": 20}, "measured": {"translate_s": 48.9, "solve_s": 19.56, "status": "SAT"}},
+            {"file": "problem_instances/2dbp/benchmarks/testset_paper_optdsl/2d_bpp_inst_cl_10_020_09.ins2D.dsl", "size": {"Box": "100x100", "Items": 20}, "measured": {"translate_s": 89.85, "solve_s": 20.2, "status": "SAT"}}
+          ]
+        }
+      },
+      "lns_only_note": "n>=30 (the size-scaled generated set) is translation-infeasible (>4min just to translate); the generator Tools/generate_2dbp_instances.py remains useful once the translator is optimized."
+    }
+  }
+}

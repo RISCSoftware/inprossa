@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import ast
+import copy
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from ._expr_eval import DSRecord, DictLiteralToRecordTransformer, eval_dsl_expr, make_record_constructor
 
 
 @dataclass
@@ -24,6 +27,12 @@ class ParsedOptDSLModel:
     objective: ObjectiveSpec | None = None
     objective_function: str | None = None
     module: ast.Module | None = None
+    # name -> {field_name: annotation_ast} for `Name = DSRecord({...})` type aliases.
+    record_types: dict[str, dict[str, ast.expr]] = field(default_factory=dict)
+    # True when the module has module-level data flow between `def` "machines"
+    # (e.g. `x = some_machine(y, z)`), requiring pipeline execution instead of
+    # the isolated per-function constraint evaluation.
+    is_pipeline_model: bool = False
 
 
 class OptDSLImporter:
@@ -45,6 +54,7 @@ class OptDSLImporter:
         parsed = ParsedOptDSLModel(module=tree)
 
         for node in tree.body:
+            self._collect_record_type(node, parsed)
             self._collect_constant(node, parsed)
             self._collect_constraint(node, parsed)
             self._collect_objective(node, parsed)
@@ -54,9 +64,88 @@ class OptDSLImporter:
         # Resolve once more after objective extraction to be order-independent.
         self._resolve_objective_binding(tree, parsed)
 
+        # Resolve derived constants (stored as unparse strings) into concrete
+        # numeric values so compiled DSL functions can use them as loop bounds
+        # and array lengths (e.g. `MAX_N_LAYERS = N_BOARDS * 2`).
+        self._resolve_constants(parsed)
+
+        # Resolve record-valued constants (e.g. `GIVEN_INITIAL_BOARDS = [Board(...), ...]`)
+        # which `ast.literal_eval` cannot handle (constructor calls, not literals).
+        self._resolve_record_constants(parsed)
+
+        self._detect_pipeline_model(tree, parsed)
+
         parsed.runtime_constraints = self._build_runtime_constraints(parsed)
 
         return parsed
+
+    @staticmethod
+    def _collect_record_type(node: ast.AST, parsed: ParsedOptDSLModel) -> None:
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1 or not isinstance(node.targets[0], ast.Name):
+            return
+        value = node.value
+        if not isinstance(value, ast.Call) or not isinstance(value.func, ast.Name) or value.func.id != "DSRecord":
+            return
+        if not value.args or not isinstance(value.args[0], ast.Dict):
+            return
+        fields: dict[str, ast.expr] = {}
+        for key_node, field_annotation in zip(value.args[0].keys, value.args[0].values):
+            if not isinstance(key_node, ast.Constant) or not isinstance(key_node.value, str):
+                continue
+            fields[key_node.value] = field_annotation
+        parsed.record_types[node.targets[0].id] = fields
+
+    @staticmethod
+    def _resolve_record_constants(parsed: ParsedOptDSLModel) -> None:
+        if not parsed.record_types:
+            return
+        for _ in range(3):
+            changed = False
+            for key, value in list(parsed.constants.items()):
+                if not isinstance(value, str):
+                    continue
+                try:
+                    expr = ast.parse(value, mode="eval").body
+                    evaluated = eval_dsl_expr(expr, parsed.constants, parsed.record_types)
+                except (SyntaxError, ValueError, TypeError, KeyError, NotImplementedError, IndexError, ZeroDivisionError):
+                    continue
+                parsed.constants[key] = evaluated
+                changed = True
+            if not changed:
+                break
+
+    @staticmethod
+    def _detect_pipeline_model(tree: ast.Module, parsed: ParsedOptDSLModel) -> None:
+        """Detect genuine module-level data flow between `def` "machines".
+
+        Only a plain ``Assign`` (e.g. ``x = some_machine(y, z)`` or
+        ``a, b = some_machine(y, z)``) counts — this is the pattern that the
+        isolated per-function evaluator cannot handle (call arguments don't
+        match the callee's parameter names). A bare ``Expr(Call(...))``
+        constraint-check statement (e.g. ``cutting_constraints(cut_positions)``)
+        does NOT imply a pipeline: that's exactly the "isolated" style already
+        supported by matching parameter names directly against decision
+        variables, used by every existing non-pipeline model.
+        """
+        for node in tree.body:
+            if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
+                continue
+            call_node = node.value
+            if not isinstance(call_node.func, ast.Name):
+                continue
+            if call_node.func.id in parsed.constraints:
+                parsed.is_pipeline_model = True
+                return
+
+    @staticmethod
+    def _resolve_constants(parsed: ParsedOptDSLModel) -> None:
+        constants = parsed.constants
+        changed = True
+        iterations = 0
+        max_iterations = max(1, len(constants) * 3)
+        while changed and iterations < max_iterations:
+            changed = _resolve_constants_pass(constants)
+            iterations += 1
 
     @staticmethod
     def _resolve_objective_binding(tree: ast.Module, parsed: ParsedOptDSLModel) -> None:
@@ -92,7 +181,7 @@ class OptDSLImporter:
 
         runtime_constraints: dict[str, Any] = {}
         for name, fn_ast in parsed.constraints.items():
-            runtime_constraints[name] = _make_ast_callable(fn_ast, parsed.constants)
+            runtime_constraints[name] = _make_ast_callable(fn_ast, parsed.constants, parsed.record_types)
         return runtime_constraints
 
     @staticmethod
@@ -168,33 +257,128 @@ class OptDSLImporter:
             return ast.unparse(node)
 
 
-def _dsl_make_list(length: Any) -> list[Any]:
-    try:
-        n = int(length)
-    except (TypeError, ValueError):
-        n = 0
-    if n < 0:
-        n = 0
-    return [0 for _ in range(n)]
+def _resolve_expr(expr: ast.AST, constants: dict[str, Any]) -> Any:
+    """Evaluate a constant expression against the (partially) resolved constants.
 
-
-class _ReturnSignal(Exception):
-    def __init__(self, value: Any) -> None:
-        self.value = value
-
-
-def _make_compiled_callable(fn_ast: ast.FunctionDef, constants: dict[str, Any]) -> Any:
-    """Compile DSL function to native Python bytecode at parse time.
-
-    Generates Python source from the AST, wraps it with runtime guards,
-    and compiles to a real function. Falls back to interpreter on failure.
+    Used to turn derived constants stored as strings (e.g. ``MAX_N_LAYERS``
+    resolved as ``'N_BOARDS * 2'``) into concrete numeric values before they
+    are injected into the namespace of compiled DSL functions.
     """
+    if isinstance(expr, ast.Constant):
+        return expr.value
+    if isinstance(expr, ast.Name):
+        value = constants.get(expr.id)
+        if isinstance(value, (int, float)):
+            return value
+        if isinstance(value, str):
+            try:
+                return _resolve_expr(ast.parse(value, mode="eval").body, constants)
+            except (SyntaxError, ValueError, TypeError):
+                return expr  # cannot resolve yet
+        return expr
+    if isinstance(expr, ast.List):
+        elements = [_resolve_expr(elt, constants) for elt in expr.elts]
+        if any(isinstance(elt, ast.AST) for elt in elements):
+            # An element could not be resolved (e.g. a record constructor call
+            # like `Board(...)`) — leave the whole list unresolved so the
+            # record-aware constant resolver can handle it afterwards instead
+            # of accepting a list that still contains raw AST nodes.
+            return expr
+        return elements
+    if isinstance(expr, ast.Tuple):
+        elements = [_resolve_expr(elt, constants) for elt in expr.elts]
+        if any(isinstance(elt, ast.AST) for elt in elements):
+            return expr
+        return tuple(elements)
+    if isinstance(expr, ast.BinOp):
+        left = _resolve_expr(expr.left, constants)
+        right = _resolve_expr(expr.right, constants)
+        if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+            if isinstance(expr.op, ast.Add):
+                return left + right
+            if isinstance(expr.op, ast.Sub):
+                return left - right
+            if isinstance(expr.op, ast.Mult):
+                return left * right
+            if isinstance(expr.op, ast.Div):
+                return left / right
+            if isinstance(expr.op, ast.FloorDiv):
+                return int(left // right)
+            if isinstance(expr.op, ast.Mod):
+                return left % right
+        return expr
+    if isinstance(expr, ast.UnaryOp) and isinstance(expr.op, ast.USub):
+        operand = _resolve_expr(expr.operand, constants)
+        if isinstance(operand, (int, float)):
+            return -operand
+        return expr
+    if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name):
+        func = constants.get(expr.func.id)
+        if func in (sum, len, abs, int, min, max):
+            args = [_resolve_expr(arg, constants) for arg in expr.args]
+            try:
+                return func(*args)
+            except (TypeError, ValueError):
+                return expr
+        return expr
+    return expr
+
+
+def _resolve_constants_pass(constants: dict[str, Any]) -> bool:
+    """One resolution pass over string-valued constants; returns whether any changed."""
+    changed = False
+    for key, value in list(constants.items()):
+        if not isinstance(value, str):
+            continue
+        try:
+            expr = ast.parse(value, mode="eval")
+            evaluated = _resolve_expr(expr.body, constants)
+        except (SyntaxError, ValueError, TypeError, ZeroDivisionError):
+            continue
+        # Only accept concrete primitive results (numbers, lists, tuples).
+        # An unresolved AST node means the constant is not yet resolvable.
+        if isinstance(evaluated, (int, float, list, tuple, bool)):
+            constants[key] = evaluated
+            changed = True
+    return changed
+
+
+def _make_compiled_callable(
+    fn_ast: ast.FunctionDef,
+    constants: dict[str, Any],
+    record_types: dict[str, dict[str, ast.expr]] | None = None,
+) -> Any:
+    """Compile a DSL function to native Python bytecode at parse time.
+
+    Reconstructs Python source from the AST and compiles it to a real
+    function. This is the single execution path for DSL functions (they are
+    resolved through the ``_make_ast_callable`` alias below).
+
+    Every DSL function-local must be initialized with a value (e.g.
+    ``x: DSList(N, DSInt(...)) = [0] * N``); a bare annotation with no value
+    raises ``UnboundLocalError`` when indexed.
+
+    ``record_types`` (name -> {field: annotation}) are DSL ``DSRecord`` type
+    aliases: dict-literal record construction (``{"field": value, ...}``) is
+    rewritten to build a ``DSRecord`` (dict subclass supporting ``.field``
+    attribute access) instead of a plain ``dict``, and each record type name
+    is bound in the exec namespace (both for rare in-body constructor calls
+    and because bare annotations like ``x : Piece = ...`` are eagerly
+    evaluated by Python at exec time).
+    """
+    record_types = record_types or {}
     arg_names = [arg.arg for arg in fn_ast.args.args]
     arg_list = ", ".join(arg_names)
 
-    # Generate Python source from AST with proper indentation
+    # Generate Python source from AST with proper indentation. Operate on a
+    # copy so the shared parsed AST (reused elsewhere, e.g. arg introspection)
+    # is not mutated by the dict-literal-to-record rewrite.
+    transformed_body = [DictLiteralToRecordTransformer().visit(copy.deepcopy(stmt)) for stmt in fn_ast.body]
+    for stmt in transformed_body:
+        ast.fix_missing_locations(stmt)
+
     body_source = ""
-    for stmt in fn_ast.body:
+    for stmt in transformed_body:
         unparsed = ast.unparse(stmt)
         # Indent all lines in this statement by one level (4 spaces)
         if unparsed:
@@ -215,6 +399,7 @@ def _make_compiled_callable(fn_ast: ast.FunctionDef, constants: dict[str, Any]) 
         "len": len,
         "int": int,
         "float": float,
+        "bool": bool,
         "list": list,
         "tuple": tuple,
         "dict": dict,
@@ -228,6 +413,7 @@ def _make_compiled_callable(fn_ast: ast.FunctionDef, constants: dict[str, Any]) 
         "filter": filter,
         "DSInt": lambda *a, **k: int if not a else a[0],
         "DSList": lambda length, *a, **k: [0] * int(length),
+        "_dsrecord_literal": DSRecord,
         "__builtins__": {
             "range": range,
             "sum": sum,
@@ -237,6 +423,7 @@ def _make_compiled_callable(fn_ast: ast.FunctionDef, constants: dict[str, Any]) 
             "len": len,
             "int": int,
             "float": float,
+            "bool": bool,
             "list": list,
             "tuple": tuple,
             "dict": dict,
@@ -258,207 +445,14 @@ def _make_compiled_callable(fn_ast: ast.FunctionDef, constants: dict[str, Any]) 
             "KeyError": KeyError,
         },
     }
+    for type_name, fields in record_types.items():
+        namespace[type_name] = make_record_constructor(type_name, list(fields.keys()))
     namespace.update(constants)
 
-    try:
-        code = compile(wrapper, f"<dsl:{fn_ast.name}>", "exec")
-        exec(code, namespace)
-        return namespace[fn_ast.name]
-    except Exception:
-        # Fall back to interpreter if compilation fails
-        return _make_ast_callable_interpreter(fn_ast, constants)
+    code = compile(wrapper, f"<dsl:{fn_ast.name}>", "exec")
+    exec(code, namespace)
+    return namespace[fn_ast.name]
 
 
-def _make_ast_callable_interpreter(fn_ast: ast.FunctionDef, constants: dict[str, Any]):
-    """Original AST interpreter-based callable (kept for comparison)."""
-    arg_names = [arg.arg for arg in fn_ast.args.args]
-
-    def _callable(*args: Any) -> Any:
-        if len(args) != len(arg_names):
-            raise TypeError(f"{fn_ast.name} expects {len(arg_names)} argument(s), got {len(args)}")
-
-        env: dict[str, Any] = {
-            "range": range,
-            "sum": sum,
-            "DSInt": lambda *a, **k: int,
-            "DSList": lambda *a, **k: list,
-        }
-        env.update(constants)
-        for name, value in zip(arg_names, args):
-            env[name] = value
-
-        try:
-            _exec_block(fn_ast.body, env)
-        except _ReturnSignal as ret:
-            return ret.value
-        return None
-
-    return _callable
-
-
-# Alias: default to compiled version
+# DSL functions are compiled to native Python; there is no interpreter fallback.
 _make_ast_callable = _make_compiled_callable
-
-
-def _exec_block(statements: list[ast.stmt], env: dict[str, Any]) -> None:
-    for statement in statements:
-        _exec_stmt(statement, env)
-
-
-def _exec_stmt(statement: ast.stmt, env: dict[str, Any]) -> None:
-    if isinstance(statement, ast.Assign):
-        value = _eval_expr(statement.value, env)
-        for target in statement.targets:
-            _assign_target(target, value, env)
-        return
-
-    if isinstance(statement, ast.AnnAssign):
-        if statement.value is not None:
-            value = _eval_expr(statement.value, env)
-        else:
-            value = _default_from_annotation(statement.annotation, env)
-        _assign_target(statement.target, value, env)
-        return
-
-    if isinstance(statement, ast.For):
-        iter_value = _eval_expr(statement.iter, env)
-        for loop_value in iter_value:
-            _assign_target(statement.target, loop_value, env)
-            _exec_block(statement.body, env)
-        return
-
-    if isinstance(statement, ast.If):
-        if _truthy(_eval_expr(statement.test, env)):
-            _exec_block(statement.body, env)
-        else:
-            _exec_block(statement.orelse, env)
-        return
-
-    if isinstance(statement, ast.Assert):
-        if not _truthy(_eval_expr(statement.test, env)):
-            raise AssertionError("DSL assert failed")
-        return
-
-    if isinstance(statement, ast.Return):
-        return_value = _eval_expr(statement.value, env) if statement.value is not None else None
-        raise _ReturnSignal(return_value)
-
-    if isinstance(statement, ast.Expr):
-        _eval_expr(statement.value, env)
-        return
-
-    raise NotImplementedError(f"Unsupported DSL statement: {type(statement).__name__}")
-
-
-def _assign_target(target: ast.expr, value: Any, env: dict[str, Any]) -> None:
-    if isinstance(target, ast.Name):
-        env[target.id] = value
-        return
-
-    if isinstance(target, ast.Subscript):
-        container = _eval_expr(target.value, env)
-        index = _eval_expr(target.slice, env)
-        container[index] = value
-        return
-
-    raise NotImplementedError(f"Unsupported assignment target: {type(target).__name__}")
-
-
-def _default_from_annotation(annotation: ast.expr, env: dict[str, Any]) -> Any:
-    if isinstance(annotation, ast.Call) and isinstance(annotation.func, ast.Name) and annotation.func.id == "DSList":
-        length_expr = annotation.args[0] if annotation.args else ast.Constant(value=0)
-        length = _eval_expr(length_expr, env)
-        return _dsl_make_list(length)
-    return 0
-
-
-def _eval_expr(expr: ast.expr, env: dict[str, Any]) -> Any:
-    if isinstance(expr, ast.Constant):
-        return expr.value
-
-    if isinstance(expr, ast.Name):
-        return env[expr.id]
-
-    if isinstance(expr, ast.List):
-        return [_eval_expr(element, env) for element in expr.elts]
-
-    if isinstance(expr, ast.Tuple):
-        return tuple(_eval_expr(element, env) for element in expr.elts)
-
-    if isinstance(expr, ast.Subscript):
-        container = _eval_expr(expr.value, env)
-        index = _eval_expr(expr.slice, env)
-        return container[index]
-
-    if isinstance(expr, ast.BinOp):
-        left = _eval_expr(expr.left, env)
-        right = _eval_expr(expr.right, env)
-        if isinstance(expr.op, ast.Add):
-            return left + right
-        if isinstance(expr.op, ast.Sub):
-            return left - right
-        if isinstance(expr.op, ast.Mult):
-            return left * right
-        if isinstance(expr.op, ast.Div):
-            return left / right
-        raise NotImplementedError(f"Unsupported binary operator: {type(expr.op).__name__}")
-
-    if isinstance(expr, ast.UnaryOp):
-        value = _eval_expr(expr.operand, env)
-        if isinstance(expr.op, ast.USub):
-            return -value
-        if isinstance(expr.op, ast.UAdd):
-            return +value
-        if isinstance(expr.op, ast.Not):
-            return not _truthy(value)
-        raise NotImplementedError(f"Unsupported unary operator: {type(expr.op).__name__}")
-
-    if isinstance(expr, ast.Compare):
-        left = _eval_expr(expr.left, env)
-        for operator, comparator in zip(expr.ops, expr.comparators):
-            right = _eval_expr(comparator, env)
-            if isinstance(operator, ast.Eq):
-                ok = left == right
-            elif isinstance(operator, ast.NotEq):
-                ok = left != right
-            elif isinstance(operator, ast.Lt):
-                ok = left < right
-            elif isinstance(operator, ast.LtE):
-                ok = left <= right
-            elif isinstance(operator, ast.Gt):
-                ok = left > right
-            elif isinstance(operator, ast.GtE):
-                ok = left >= right
-            else:
-                raise NotImplementedError(f"Unsupported compare operator: {type(operator).__name__}")
-            if not ok:
-                return False
-            left = right
-        return True
-
-    if isinstance(expr, ast.BoolOp):
-        if isinstance(expr.op, ast.And):
-            return all(_truthy(_eval_expr(value, env)) for value in expr.values)
-        if isinstance(expr.op, ast.Or):
-            return any(_truthy(_eval_expr(value, env)) for value in expr.values)
-        raise NotImplementedError(f"Unsupported boolean operator: {type(expr.op).__name__}")
-
-    if isinstance(expr, ast.Call):
-        if isinstance(expr.func, ast.Name):
-            func_name = expr.func.id
-            args = [_eval_expr(arg, env) for arg in expr.args]
-            if func_name == "range":
-                return range(*args)
-            if func_name == "sum":
-                return sum(*args)
-            if func_name == "int":
-                return int(*args)
-            if func_name in env and callable(env[func_name]):
-                return env[func_name](*args)
-        raise NotImplementedError("Unsupported function call in DSL expression")
-
-    raise NotImplementedError(f"Unsupported DSL expression: {type(expr).__name__}")
-
-
-def _truthy(value: Any) -> bool:
-    return bool(value)

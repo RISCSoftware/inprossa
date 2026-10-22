@@ -1,19 +1,34 @@
 from __future__ import annotations
 
+import ast
 import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .components import Evaluator, Initializer
+from .components import Evaluator, FeasibilityClassifier, Initializer, run_mcmc
 from .models import LNSContext
 from .problem_reader import ProblemDefinition, read_problem
+from ._expr_eval import DSRecord, eval_dsl_expr
+from ._utils import (
+    clone_assignment,
+    get_decision_value,
+    has_unassigned,
+    is_better_feasibility_lex,
+    is_better_score,
+    is_penalty_score,
+    set_decision_value,
+    _deep_copy_value,
+    _list_get,
+    _list_set,
+)
 
 
 def build_lns_context(
     problem_data: ProblemDefinition,
     random_seed: int = 0,
     excluded_decision_variables: set[str] | None = None,
+    feasibility_classifier: FeasibilityClassifier | None = None,
 ) -> LNSContext:
     objective_variable = problem_data.objective.variable_name if problem_data.objective is not None else None
     excluded_variables = excluded_decision_variables or set()
@@ -53,9 +68,15 @@ def build_lns_context(
         p_one = 1.0 / max(1.0, float(count) ** 0.5)
         binary_one_probability_by_variable[variable_name] = max(0.02, min(0.2, p_one))
 
+    # Default feasibility classifier if not provided
+    if feasibility_classifier is None:
+        from .defaults import OptDSLFeasibilityClassifier
+        feasibility_classifier = OptDSLFeasibilityClassifier(penalty_base=1e9)
+
     return LNSContext(
         constants=dict(problem_data.constants),
         objective_sense=problem_data.objective.sense if problem_data.objective is not None else "minimize",
+        feasibility_classifier=feasibility_classifier,
         extra={
             "problem_data": problem_data,
             "rng": random.Random(random_seed),
@@ -65,6 +86,7 @@ def build_lns_context(
             "keys_by_variable": keys_by_variable,
             "binary_one_probability_by_variable": binary_one_probability_by_variable,
             "value_bias": auto_value_bias,
+            "penalty_base": 1e9,  # Backward compatibility
         },
     )
 
@@ -73,12 +95,14 @@ def read_problem_for_lns(
     path: str | Path,
     random_seed: int = 0,
     excluded_decision_variables: set[str] | None = None,
+    feasibility_classifier: FeasibilityClassifier | None = None,
 ) -> tuple[ProblemDefinition, LNSContext]:
     problem = read_problem(path)
     context = build_lns_context(
         problem,
         random_seed=random_seed,
         excluded_decision_variables=excluded_decision_variables,
+        feasibility_classifier=feasibility_classifier,
     )
     return problem, context
 
@@ -92,7 +116,7 @@ class RandomAssignmentInitializer(Initializer):
         for key in context.extra["decision_keys"]:
             lo, hi = context.extra["decision_domains"][key]
             value = rng.randint(lo, hi)
-            _set_decision_value(assignment, key, value)
+            set_decision_value(assignment, key, value)
 
         return assignment
 
@@ -143,18 +167,18 @@ class GreedyRandomizedInitializer(Initializer):
                         evaluator=evaluator,
                         samples=max(1, self.completion_samples),
                     )
-                    if _is_better_score(trial_score, candidate_best_score, context.objective_sense):
+                    if is_better_score(trial_score, candidate_best_score, context.objective_sense):
                         candidate_best_score = trial_score
                         best_value = value
 
-                _set_decision_value(assignment, key, best_value)
+                set_decision_value(assignment, key, best_value)
 
             assignment = self._post_fixup(assignment, context, evaluator)
             failed, objective_score, _ = self._evaluate_detailed_triplet(assignment, evaluator, context)
 
             if (
                 best_assignment is None
-                or _is_better_feasibility_lex(
+                or is_better_feasibility_lex(
                     failed,
                     objective_score,
                     best_failed,
@@ -195,7 +219,7 @@ class GreedyRandomizedInitializer(Initializer):
             rng.shuffle(decision_keys)
 
             for key in decision_keys:
-                current_value = _get_decision_value(assignment, key)
+                current_value = get_decision_value(assignment, key)
                 if current_value is None:
                     continue
 
@@ -217,11 +241,11 @@ class GreedyRandomizedInitializer(Initializer):
                 for candidate_value in candidates:
                     if candidate_value == current_value:
                         continue
-                    trial = _clone_assignment(assignment)
-                    _set_decision_value(trial, key, int(candidate_value))
+                    trial = clone_assignment(assignment)
+                    set_decision_value(trial, key, int(candidate_value))
                     cand_failed, cand_objective, cand_score = self._evaluate_detailed_triplet(trial, evaluator, context)
 
-                    if _is_better_feasibility_lex(
+                    if is_better_feasibility_lex(
                         cand_failed,
                         cand_objective,
                         best_failed,
@@ -234,7 +258,7 @@ class GreedyRandomizedInitializer(Initializer):
                         best_score = cand_score
 
                 if best_value != current_value:
-                    _set_decision_value(assignment, key, best_value)
+                    set_decision_value(assignment, key, best_value)
                     current_failed = best_failed
                     current_objective = best_objective
                     current_score = best_score
@@ -275,7 +299,7 @@ class GreedyRandomizedInitializer(Initializer):
             return assignment, failed, objective, score
 
         current_failed, current_objective, current_score = self._evaluate_detailed_triplet(assignment, evaluator, context)
-        best_assignment = _clone_assignment(assignment)
+        best_assignment = clone_assignment(assignment)
         best_failed = current_failed
         best_objective = current_objective
         best_score = current_score
@@ -285,7 +309,7 @@ class GreedyRandomizedInitializer(Initializer):
 
         for _ in range(steps):
             key = rng.choice(decision_keys)
-            current_value = _get_decision_value(assignment, key)
+            current_value = get_decision_value(assignment, key)
             if current_value is None:
                 continue
 
@@ -302,11 +326,11 @@ class GreedyRandomizedInitializer(Initializer):
                 continue
 
             candidate_value = rng.choice(candidate_values)
-            trial = _clone_assignment(assignment)
-            _set_decision_value(trial, key, int(candidate_value))
+            trial = clone_assignment(assignment)
+            set_decision_value(trial, key, int(candidate_value))
             cand_failed, cand_objective, cand_score = self._evaluate_detailed_triplet(trial, evaluator, context)
 
-            strictly_better = _is_better_feasibility_lex(
+            strictly_better = is_better_feasibility_lex(
                 cand_failed,
                 cand_objective,
                 current_failed,
@@ -324,14 +348,14 @@ class GreedyRandomizedInitializer(Initializer):
                 current_objective = cand_objective
                 current_score = cand_score
 
-                if _is_better_feasibility_lex(
+                if is_better_feasibility_lex(
                     current_failed,
                     current_objective,
                     best_failed,
                     best_objective,
                     context.objective_sense,
                 ):
-                    best_assignment = _clone_assignment(assignment)
+                    best_assignment = clone_assignment(assignment)
                     best_failed = current_failed
                     best_objective = current_objective
                     best_score = current_score
@@ -344,7 +368,7 @@ class GreedyRandomizedInitializer(Initializer):
 
             # If the walk is not improving from the initial failed count, occasionally restart from best-so-far.
             if current_failed >= initial_failed and rng.random() < 0.01:
-                assignment = _clone_assignment(best_assignment)
+                assignment = clone_assignment(best_assignment)
                 current_failed = best_failed
                 current_objective = best_objective
                 current_score = best_score
@@ -370,7 +394,7 @@ class GreedyRandomizedInitializer(Initializer):
             return failed_constraints, objective_score, score
 
         score = float(evaluator.evaluate(assignment, context))
-        failed_constraints = 10**9 if _is_penalty_score(score, context) else 0
+        failed_constraints = 10**9 if is_penalty_score(score, context) else 0
         objective_score = score
         return failed_constraints, objective_score, score
 
@@ -389,8 +413,8 @@ class GreedyRandomizedInitializer(Initializer):
         rng: random.Random = context.extra["rng"]
 
         for _ in range(samples):
-            trial = _clone_assignment(base_assignment)
-            _set_decision_value(trial, key, value)
+            trial = clone_assignment(base_assignment)
+            set_decision_value(trial, key, value)
             _random_complete_unassigned(trial, context, rng)
             diagnostics = getattr(evaluator, "evaluate_detailed", None)
             if callable(diagnostics):
@@ -404,11 +428,11 @@ class GreedyRandomizedInitializer(Initializer):
                 score = float(getattr(detailed, "score", evaluator.evaluate(trial, context)))
             else:
                 score = float(evaluator.evaluate(trial, context))
-                failed_constraints = 0 if not _is_penalty_score(score, context) else 10**9
+                failed_constraints = 0 if not is_penalty_score(score, context) else 10**9
                 objective_score = score
 
             if self.scoring_mode == "feasibility_first":
-                if _is_better_feasibility_lex(
+                if is_better_feasibility_lex(
                     failed_constraints,
                     objective_score,
                     best_failed,
@@ -419,10 +443,180 @@ class GreedyRandomizedInitializer(Initializer):
                     best_objective = objective_score
                     best = score
             else:
-                if _is_better_score(score, best, context.objective_sense):
+                if is_better_score(score, best, context.objective_sense):
                     best = score
 
         return best
+
+
+@dataclass
+class MCMCInitializer(Initializer):
+    """MCMC initializer (Metropolis-Hastings + simulated annealing).
+
+    Delegates to the generic :func:`run_mcmc` driver.  When the problem is
+    detected as CVRP, uses route-structure-preserving mutation (remove k customers, re-insert).
+
+    Fallback: for non-CVRP problems, uses _constructive initialization + random decision mutation.
+    """
+
+    max_steps: int = 5000
+    initial_temperature: float = 1000.0
+    cooling_rate: float = 0.998
+    min_temperature: float = 0.1
+    num_muted_decisions: int = 3
+    max_muted_decisions: int = 20
+    stall_threshold: int = 200
+    stall_batch_increment: int = 3
+    objective_weight: float = 1.0
+    penalty_scale: float = 100.0
+
+    def initialize(self, context: LNSContext) -> dict[str, object]:
+        evaluator = context.extra.get("evaluator")
+        if evaluator is None:
+            return RandomAssignmentInitializer().initialize(context)
+
+        rng: random.Random = context.extra["rng"]
+
+        # --- Seed: constructive if available (CVRP), else random ---
+        seed = clone_assignment(_build_initializer_seed(context, rng))
+
+        # --- Build problem-aware mutation callback ---
+        mutate_fn = _build_cvrp_or_generic_mutation(context, rng)
+
+        # --- callbacks ---
+        callbacks = type(
+            "_LCBs",
+            (),
+            {
+                "clone": lambda _, a: clone_assignment(a),
+                "evaluate_detailed": lambda _, a: _evaluate_detailed(a, evaluator, context)[:2],
+                "mutate": lambda _, a, bs, bk: mutate_fn(a, bs),
+                "better": lambda _, af, ao, bf, bo: is_better_feasibility_lex(af, ao, bf, bo, context.objective_sense),
+            },
+        )()
+
+        return run_mcmc(
+            seed_assignment=seed,
+            callbacks=callbacks,  # type: ignore[arg-type]
+            rng=rng,
+            max_steps=self.max_steps,
+            initial_temperature=self.initial_temperature,
+            cooling_rate=self.cooling_rate,
+            min_temperature=self.min_temperature,
+            initial_batch_size=self.num_muted_decisions,
+            max_batch_size=self.max_muted_decisions,
+            stall_threshold=self.stall_threshold,
+            stall_batch_increment=self.stall_batch_increment,
+            penalty_scale=self.penalty_scale,
+            objective_weight=self.objective_weight,
+            objective_sense=context.objective_sense,
+        )
+
+
+def _build_initializer_seed(
+    context: LNSContext,
+    _rng: random.Random,
+) -> dict[str, object]:
+    """Return a good starting assignment: constructive if available, else random."""
+    try:
+        from .problems.cvrp import CVRPRouteInitializer
+
+        init = CVRPRouteInitializer(
+            restarts=8,
+            randomization=0.3,
+        )
+        candidate = init.initialize(context)
+        # Check if feasible-looking (not all random)
+        evaluator = context.extra.get("evaluator")
+        if evaluator is not None:
+            failed, _, _ = _evaluate_detailed(candidate, evaluator, context)
+            if failed < 7:  # better than pure random for CVRP
+                return candidate
+
+    except ImportError:
+        pass
+
+    return RandomAssignmentInitializer().initialize(context)
+
+
+def _build_cvrp_or_generic_mutation(
+    context: LNSContext,
+    rng: random.Random,
+) -> Any:
+    """Return a mutate(assignment, batch_size) -> assignment callable.
+
+    Returns CVRP route-aware mutation (destroy+repair) if CVRP is detected,
+    otherwise falls back to generic random decision mutation.
+    """
+    # Try to detect CVRP and use route-structure-aware mutation
+    try:
+        from .problems.cvrp_operators import _cvrp, _cvrp_arc_mutation
+
+        if _cvrp(context) is not None:
+            # CVRP detected — use destroy+repair (remove k customers, re-insert)
+            return lambda a, bs: _cvrp_arc_mutation(
+                a, context, rng, customer_count=min(max(bs, 1), 5),
+            )
+    except ImportError:
+        pass
+
+    # Fallback: generic random decision mutation
+    return lambda a, bs: _multi_decision_mutation(a, context, rng, count=bs)
+
+
+def _evaluate_detailed(
+    assignment: dict[str, object],
+    evaluator: Any,
+    context: LNSContext,
+) -> tuple[int, float, float]:
+    """Return (failed_constraints, objective_value, score)."""
+    diagnostics = getattr(evaluator, "evaluate_detailed", None)
+    if callable(diagnostics):
+        detailed = diagnostics(assignment, context)
+        failed_constraints = int(getattr(detailed, "failed_constraints", 10**9))
+        objective_value = getattr(detailed, "objective_value", None)
+        if objective_value is None:
+            objective_score = float("inf") if context.objective_sense != "maximize" else float("-inf")
+        else:
+            objective_score = float(objective_value)
+        score = float(getattr(detailed, "score", evaluator.evaluate(assignment, context)))
+        return failed_constraints, objective_score, score
+
+    score = float(evaluator.evaluate(assignment, context))
+    failed_constraints = 10**9 if is_penalty_score(score, context) else 0
+    return failed_constraints, score, score
+
+def _multi_decision_mutation(
+    assignment: dict[str, object],
+    context: LNSContext,
+    rng: random.Random,
+    count: int = 1,
+    biased_keys: list[tuple[str, int | None]] | None = None,
+) -> dict[str, object]:
+    """Mutate *count* random decision positions in the assignment.
+
+    When *biased_keys* is non-empty, each mutation has a 70 % chance of
+    picking from the biased set (variables involved in failed constraints)
+    and 30 % chance of a fully uniform pick.
+    """
+    proposal = clone_assignment(assignment)
+    decision_keys: list[tuple[str, int | None]] = list(context.extra["decision_keys"])
+    n_decisions = len(decision_keys)
+    if n_decisions == 0:
+        return proposal
+
+    k = min(count, n_decisions)
+    chosen_keys = rng.sample(decision_keys, k)
+    if count > k:
+        chosen_keys.extend(rng.choices(decision_keys, k=max(0, count - k)))
+
+    for chosen in chosen_keys:
+        key = chosen
+        if (biased_keys and len(biased_keys) > 0 and rng.random() < 0.7):
+            key = rng.choice(biased_keys)
+        set_decision_value(proposal, key, _sample_value_for_key(key, context, rng))
+
+    return proposal
 
 
 @dataclass
@@ -443,22 +637,19 @@ class OptDSLEvaluator(Evaluator):
     def evaluate_detailed(self, assignment: dict[str, object], context: LNSContext) -> EvaluationDetails:
         _apply_pre_evaluation_hook(assignment, context)
 
-        if _has_unassigned(assignment):
+        if has_unassigned(assignment):
             return EvaluationDetails(failed_constraints=10_000, objective_value=None, score=self._penalty_score(10_000, context.objective_sense))
 
         # Reject assignments with negative values in any decision variable — they violate
         # DSInt(0, …) lower bounds and correspond to infeasible/invalid states.
+        # (has_unassigned already checks this recursively, incl. record fields;
+        # kept as a fast top-level guard too, matching prior behavior.)
         for value in assignment.values():
             if isinstance(value, (int, float)) and value < 0:
                 return EvaluationDetails(failed_constraints=10_000, objective_value=None, score=self._penalty_score(10_000, context.objective_sense))
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, (int, float)) and item < 0:
-                        return EvaluationDetails(failed_constraints=10_000, objective_value=None, score=self._penalty_score(10_000, context.objective_sense))
-                    if isinstance(item, list):
-                        for inner in item:
-                            if isinstance(inner, (int, float)) and inner < 0:
-                                return EvaluationDetails(failed_constraints=10_000, objective_value=None, score=self._penalty_score(10_000, context.objective_sense))
+
+        if self.problem_data.parsed.is_pipeline_model:
+            return self._evaluate_pipeline(assignment, context)
 
         runtime_constraints = self.problem_data.parsed.runtime_constraints
         constraint_asts = self.problem_data.parsed.constraints
@@ -515,6 +706,141 @@ class OptDSLEvaluator(Evaluator):
 
         return EvaluationDetails(failed_constraints=1, objective_value=None, score=self._penalty_score(1, context.objective_sense))
 
+    def _evaluate_pipeline(self, assignment: dict[str, object], context: LNSContext) -> EvaluationDetails:
+        """Execute the full module-level "pipeline" (data flow between machines).
+
+        Used for models where `def`-declared functions are chained via
+        module-level assignments (``x = some_machine(y, z)``) rather than
+        each being an isolated constraint over decision variables directly.
+        See ``ParsedOptDSLModel.is_pipeline_model``.
+        """
+        try:
+            return self._evaluate_pipeline_unsafe(assignment, context)
+        except Exception:
+            # Defensive fallback: an unanticipated expression/statement shape
+            # should not crash the search; treat as a failed evaluation.
+            return EvaluationDetails(
+                failed_constraints=1,
+                objective_value=None,
+                score=self._penalty_score(1, context.objective_sense),
+            )
+
+    def _evaluate_pipeline_unsafe(self, assignment: dict[str, object], context: LNSContext) -> EvaluationDetails:
+        parsed = self.problem_data.parsed
+        module = parsed.module
+        if module is None:
+            return EvaluationDetails(failed_constraints=1, objective_value=None, score=self._penalty_score(1, context.objective_sense))
+
+        record_types = parsed.record_types
+        runtime_constraints = parsed.runtime_constraints
+        objective = self.problem_data.objective
+        objective_name = objective.variable_name if objective is not None else None
+
+        env: dict[str, Any] = dict(self.problem_data.constants)
+        failed_constraints = 0
+
+        for node in module.body:
+            if isinstance(node, ast.FunctionDef):
+                continue
+
+            if (
+                isinstance(node, ast.Expr)
+                and isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Name)
+                and node.value.func.id in ("minimize", "maximize")
+            ):
+                continue
+
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                target = node.targets[0]
+                value_node = node.value
+                if isinstance(target, ast.Name) and target.id.isupper():
+                    continue  # constant, already resolved
+                if (
+                    isinstance(value_node, ast.Call)
+                    and isinstance(value_node.func, ast.Name)
+                    and value_node.func.id.startswith("DS")
+                ):
+                    continue  # type alias assignment (e.g. Board = DSRecord({...}))
+
+                if (
+                    isinstance(value_node, ast.Call)
+                    and isinstance(value_node.func, ast.Name)
+                    and value_node.func.id in runtime_constraints
+                ):
+                    fn = runtime_constraints[value_node.func.id]
+                    args = [eval_dsl_expr(a, env, record_types) for a in value_node.args]
+                    try:
+                        result = fn(*args)
+                    except AssertionError:
+                        failed_constraints += 1
+                        break
+                    if isinstance(target, ast.Tuple):
+                        result_tuple = result if isinstance(result, tuple) else (result,)
+                        if len(result_tuple) != len(target.elts):
+                            failed_constraints += 1
+                            break
+                        for elt, value in zip(target.elts, result_tuple):
+                            if isinstance(elt, ast.Name):
+                                env[elt.id] = value
+                    elif isinstance(target, ast.Name):
+                        env[target.id] = result
+                    continue
+
+                # Plain (non-predicate) assignment, e.g. `initial_boards = GIVEN_INITIAL_BOARDS`.
+                if isinstance(target, ast.Name):
+                    env[target.id] = _deep_copy_value(eval_dsl_expr(value_node, env, record_types))
+                continue
+
+            if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                name = node.target.id
+                if name.isupper():
+                    continue  # constant
+                if node.value is None:
+                    # Bare declaration. Only a genuine free decision variable
+                    # (non-None domain) must come from the LNS assignment —
+                    # otherwise this is a forward declaration overwritten by a
+                    # later top-level `Assign` (e.g. `x: T(...)` then
+                    # `x = some_machine(...)`), so it's a no-op here.
+                    var_spec = self.problem_data.variables.get(name)
+                    if var_spec is not None and var_spec.domain is not None:
+                        if name not in assignment or assignment[name] is None:
+                            failed_constraints += 1
+                            break
+                        env[name] = _deep_copy_value(assignment[name])
+                else:
+                    env[name] = _deep_copy_value(eval_dsl_expr(node.value, env, record_types))
+                continue
+
+            if (
+                isinstance(node, ast.Expr)
+                and isinstance(node.value, ast.Call)
+                and isinstance(node.value.func, ast.Name)
+                and node.value.func.id in runtime_constraints
+            ):
+                fn = runtime_constraints[node.value.func.id]
+                args = [eval_dsl_expr(a, env, record_types) for a in node.value.args]
+                try:
+                    fn(*args)
+                except AssertionError:
+                    failed_constraints += 1
+                continue
+
+            # Any other top-level statement shape is ignored defensively.
+
+        if failed_constraints > 0:
+            return EvaluationDetails(
+                failed_constraints=failed_constraints,
+                objective_value=None,
+                score=self._penalty_score(failed_constraints, context.objective_sense),
+            )
+
+        if objective_name is not None and objective_name in env and isinstance(env[objective_name], (int, float)):
+            obj = float(env[objective_name])
+            return EvaluationDetails(failed_constraints=0, objective_value=obj, score=obj)
+
+        return EvaluationDetails(failed_constraints=1, objective_value=None, score=self._penalty_score(1, context.objective_sense))
+
     def _penalty_score(self, failed_count: int, objective_sense: str) -> float:
         penalty = self.penalty_base + float(failed_count)
         if objective_sense == "maximize":
@@ -522,39 +848,7 @@ class OptDSLEvaluator(Evaluator):
         return penalty
 
 
-def _set_decision_value(assignment: dict[str, object], key: tuple[str, int | tuple[int, int] | None], value: int | None) -> None:
-    var_name, idx = key
-    if idx is None:
-        assignment[var_name] = value
-        return
 
-    var_value = assignment[var_name]
-    if isinstance(var_value, list):
-        # Support both 1D index (int) and 2D index (tuple[int, int]).
-        if isinstance(idx, tuple):
-            # 2D: var_value[i][j]
-            i, j = idx
-            var_value[i][j] = value
-        else:
-            var_value[idx] = value
-
-
-def _get_decision_value(assignment: dict[str, object], key: tuple[str, int | tuple[int, int] | None]) -> int | None:
-    var_name, idx = key
-    if idx is None:
-        value = assignment.get(var_name)
-        return int(value) if isinstance(value, int) else None
-
-    var_value = assignment.get(var_name)
-    if isinstance(var_value, list):
-        if isinstance(idx, tuple):
-            # 2D: var_value[i][j]
-            i, j = idx
-            item = var_value[i][j]
-        else:
-            item = var_value[idx]
-        return int(item) if isinstance(item, int) else None
-    return None
 
 
 def _build_empty_assignment(context: LNSContext) -> dict[str, object]:
@@ -579,20 +873,23 @@ def _build_empty_assignment(context: LNSContext) -> dict[str, object]:
             inner_domain = domain.element_domain
             inner_length = inner_domain.length if inner_domain is not None else 1
             assignment[var.name] = [[None for _ in range(inner_length)] for _ in range(domain.length)]
+        elif domain.kind == "list_of_record" and domain.length is not None and domain.record_fields is not None:
+            record_fields = domain.record_fields
+            assignment[var.name] = [
+                DSRecord({
+                    field_name: (
+                        [None for _ in range(field_domain.length)]
+                        if field_domain.kind == "list" and field_domain.length is not None
+                        else None
+                    )
+                    for field_name, field_domain in record_fields.items()
+                })
+                for _ in range(domain.length)
+            ]
     return assignment
 
 
-def _clone_assignment(assignment: dict[str, object]) -> dict[str, object]:
-    cloned: dict[str, object] = {}
-    for key, value in assignment.items():
-        if isinstance(value, list):
-            # One-level deep copy so that inner lists are not shared references.
-            # This prevents in-place operators (e.g. JSSPShiftTimesDestroy) from
-            # corrupting the incumbent across LNS iterations.
-            cloned[key] = [item.copy() if isinstance(item, list) else item for item in value]
-        else:
-            cloned[key] = value
-    return cloned
+
 
 
 def _sample_value_for_key(key: tuple[str, int | None], context: LNSContext, rng: random.Random) -> int:
@@ -631,6 +928,10 @@ def _candidate_values_for_key(
 
 
 def _random_complete_unassigned(assignment: dict[str, object], context: LNSContext, rng: random.Random) -> None:
+    """Randomly fill all unassigned decision variables in place.
+    
+    Handles 1D, 2D, and scalar decision variables correctly using _list_get/_list_set.
+    """
     for key in context.extra["decision_keys"]:
         var_name, idx = key
         if idx is None:
@@ -639,58 +940,13 @@ def _random_complete_unassigned(assignment: dict[str, object], context: LNSConte
             continue
 
         value = assignment.get(var_name)
-        if isinstance(value, list) and value[idx] is None:
-            value[idx] = _sample_value_for_key(key, context, rng)
-
-
-def _is_better_score(candidate: float, best: float, objective_sense: str) -> bool:
-    if objective_sense == "maximize":
-        return candidate > best
-    return candidate < best
-
-
-def _is_better_feasibility_lex(
-    cand_failed: int,
-    cand_objective: float,
-    best_failed: int,
-    best_objective: float,
-    objective_sense: str,
-) -> bool:
-    if cand_failed != best_failed:
-        return cand_failed < best_failed
-    if objective_sense == "maximize":
-        return cand_objective > best_objective
-    return cand_objective < best_objective
-
-
-def _is_penalty_score(score: float, context: LNSContext) -> bool:
-    penalty_base = context.extra.get("penalty_base")
-    if not isinstance(penalty_base, (int, float)):
-        return False
-    if context.objective_sense == "maximize":
-        return score <= -float(penalty_base)
-    return score >= float(penalty_base)
-
-
-def _has_unassigned(assignment: dict[str, object]) -> bool:
-    for value in assignment.values():
-        if value is None:
-            return True
         if isinstance(value, list):
-            for item in value:
-                if item is None:
-                    return True
-                # Negative elements violate DSInt(0, …) domain — treat as infeasible.
-                if isinstance(item, (int, float)) and item < 0:
-                    return True
-                # Recurse into inner lists (for 2D decision variables like JSSP completion).
-                if isinstance(item, list):
-                    for inner in item:
-                        if inner is None:
-                            return True
-                        if isinstance(inner, (int, float)) and inner < 0:
-                            return True
-    return False
+            # Use _list_get to handle both 1D (int) and 2D (tuple) indices correctly
+            if _list_get(value, idx) is None:
+                _list_set(value, idx, _sample_value_for_key(key, context, rng))
+
+
+
 
 
 def _apply_pre_evaluation_hook(assignment: dict[str, object], context: LNSContext) -> None:

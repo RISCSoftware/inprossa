@@ -48,7 +48,7 @@ def detect_cvrp_problem(context: LNSContext) -> bool:
 def prepare_cvrp_assignment_for_evaluation(assignment: dict[str, object], context: LNSContext) -> None:
     if not detect_cvrp_problem(context):
         return
-    if "arcs" not in assignment:
+    if assignment is None or "arcs" not in assignment:
         return
 
     arcs = assignment.get("arcs")

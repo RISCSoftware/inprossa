@@ -168,6 +168,24 @@ class DSList:
             representation += type_repr.name
         return representation
 
+    def clamped_var_name(self):
+        """Like `var_name`, but a zero-length list (length 0) is declared with
+        length 1 instead of MiniZinc's empty-set `1..0` — but ONLY when the
+        element is a scalar decision leaf (DSBool/DSInt), i.e. a *decision*
+        list such as `DSList(N_PIECES - 1, bool)` where N_PIECES == 1.
+
+        Record-element lists (e.g. boards carrying empty `bad_intervals` /
+        `curved_intervals` when MAX_N_INTERVALS == 0) keep their true `[1..0]`
+        because those empties are legitimate and must stay consistent with the
+        matching constant literals.
+        """
+        from src.optdsl.translator.Objects.DSTypes import DSBool, DSInt
+        is_scalar_elem = isinstance(self.elem_type, (DSBool, DSInt))
+        if self.length == 0 and is_scalar_elem:
+            type_repr = compute_type(self.elem_type, known_types=self.known_types)
+            return f"array[1..1] of {type_repr.representation(with_vars=True)}"
+        return self.var_name
+
     def emit_definition(self):
         declaration = f"type {self.name} = {self.representation()}"
         return declaration

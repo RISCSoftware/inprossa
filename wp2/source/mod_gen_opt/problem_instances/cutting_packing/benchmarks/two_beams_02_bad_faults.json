@@ -1,0 +1,980 @@
+{
+  "BeamConfiguration": {
+    "BeamLength": 500,
+    "BeamWidth": 0,
+    "BeamHeight": 0,
+    "NumberOfLayers": 5,
+    "NumberOfBeams": 2,
+    "BeamSkipStart": 10,
+    "BeamSkipEnd": 10,
+    "MinLengthOfBoardInLayer": 10,
+    "GapToBoardAbutInConsecutiveLayers": 10,
+    "MaxShiftCurvedCut": 50,
+    "StaticForbiddenZones": [
+      {
+        "Begin": 90,
+        "End": 110
+      },
+      {
+        "Begin": 190,
+        "End": 210
+      },
+      {
+        "Begin": 290,
+        "End": 310
+      },
+      {
+        "Begin": 390,
+        "End": 410
+      }
+    ]
+  },
+  "InputBoards": [
+    {
+      "Position": 0,
+      "RawBoard": {
+        "Id": 1,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 1,
+            "StartPosition": 0,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 650,
+            "Interval": [
+              0,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 1,
+      "RawBoard": {
+        "Id": 2,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 2,
+            "StartPosition": 0,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 650,
+            "Interval": [
+              0,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 2,
+      "RawBoard": {
+        "Id": 3,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 3,
+            "StartPosition": 0,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 650,
+            "Interval": [
+              0,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 3,
+      "RawBoard": {
+        "Id": 4,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 4,
+            "StartPosition": 0,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 650,
+            "Interval": [
+              0,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 4,
+      "RawBoard": {
+        "Id": 5,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 5,
+            "StartPosition": 0,
+            "EndPosition": 156,
+            "Quality": 1,
+            "Length": 156,
+            "Interval": [
+              0,
+              156
+            ]
+          },
+          {
+            "Id": 6,
+            "StartPosition": 156,
+            "EndPosition": 176,
+            "Quality": 2,
+            "Length": 20,
+            "Interval": [
+              156,
+              176
+            ]
+          },
+          {
+            "Id": 7,
+            "StartPosition": 176,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 474,
+            "Interval": [
+              176,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 5,
+      "RawBoard": {
+        "Id": 6,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 8,
+            "StartPosition": 0,
+            "EndPosition": 204,
+            "Quality": 1,
+            "Length": 204,
+            "Interval": [
+              0,
+              204
+            ]
+          },
+          {
+            "Id": 9,
+            "StartPosition": 204,
+            "EndPosition": 224,
+            "Quality": 2,
+            "Length": 20,
+            "Interval": [
+              204,
+              224
+            ]
+          },
+          {
+            "Id": 10,
+            "StartPosition": 224,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 426,
+            "Interval": [
+              224,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 6,
+      "RawBoard": {
+        "Id": 7,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 11,
+            "StartPosition": 0,
+            "EndPosition": 113,
+            "Quality": 1,
+            "Length": 113,
+            "Interval": [
+              0,
+              113
+            ]
+          },
+          {
+            "Id": 12,
+            "StartPosition": 113,
+            "EndPosition": 126,
+            "Quality": 2,
+            "Length": 13,
+            "Interval": [
+              113,
+              126
+            ]
+          },
+          {
+            "Id": 13,
+            "StartPosition": 126,
+            "EndPosition": 149,
+            "Quality": 1,
+            "Length": 23,
+            "Interval": [
+              126,
+              149
+            ]
+          },
+          {
+            "Id": 14,
+            "StartPosition": 149,
+            "EndPosition": 160,
+            "Quality": 2,
+            "Length": 11,
+            "Interval": [
+              149,
+              160
+            ]
+          },
+          {
+            "Id": 15,
+            "StartPosition": 160,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 490,
+            "Interval": [
+              160,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 7,
+      "RawBoard": {
+        "Id": 8,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 16,
+            "StartPosition": 0,
+            "EndPosition": 276,
+            "Quality": 1,
+            "Length": 276,
+            "Interval": [
+              0,
+              276
+            ]
+          },
+          {
+            "Id": 17,
+            "StartPosition": 276,
+            "EndPosition": 289,
+            "Quality": 2,
+            "Length": 13,
+            "Interval": [
+              276,
+              289
+            ]
+          },
+          {
+            "Id": 18,
+            "StartPosition": 289,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 361,
+            "Interval": [
+              289,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 8,
+      "RawBoard": {
+        "Id": 9,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 19,
+            "StartPosition": 0,
+            "EndPosition": 266,
+            "Quality": 1,
+            "Length": 266,
+            "Interval": [
+              0,
+              266
+            ]
+          },
+          {
+            "Id": 20,
+            "StartPosition": 266,
+            "EndPosition": 283,
+            "Quality": 2,
+            "Length": 17,
+            "Interval": [
+              266,
+              283
+            ]
+          },
+          {
+            "Id": 21,
+            "StartPosition": 283,
+            "EndPosition": 299,
+            "Quality": 1,
+            "Length": 16,
+            "Interval": [
+              283,
+              299
+            ]
+          },
+          {
+            "Id": 22,
+            "StartPosition": 299,
+            "EndPosition": 311,
+            "Quality": 2,
+            "Length": 12,
+            "Interval": [
+              299,
+              311
+            ]
+          },
+          {
+            "Id": 23,
+            "StartPosition": 311,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 339,
+            "Interval": [
+              311,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 9,
+      "RawBoard": {
+        "Id": 10,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 24,
+            "StartPosition": 0,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 650,
+            "Interval": [
+              0,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 10,
+      "RawBoard": {
+        "Id": 11,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 25,
+            "StartPosition": 0,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 650,
+            "Interval": [
+              0,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 11,
+      "RawBoard": {
+        "Id": 12,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 26,
+            "StartPosition": 0,
+            "EndPosition": 249,
+            "Quality": 1,
+            "Length": 249,
+            "Interval": [
+              0,
+              249
+            ]
+          },
+          {
+            "Id": 27,
+            "StartPosition": 249,
+            "EndPosition": 268,
+            "Quality": 2,
+            "Length": 19,
+            "Interval": [
+              249,
+              268
+            ]
+          },
+          {
+            "Id": 28,
+            "StartPosition": 268,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 382,
+            "Interval": [
+              268,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 12,
+      "RawBoard": {
+        "Id": 13,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 29,
+            "StartPosition": 0,
+            "EndPosition": 43,
+            "Quality": 1,
+            "Length": 43,
+            "Interval": [
+              0,
+              43
+            ]
+          },
+          {
+            "Id": 30,
+            "StartPosition": 43,
+            "EndPosition": 58,
+            "Quality": 2,
+            "Length": 15,
+            "Interval": [
+              43,
+              58
+            ]
+          },
+          {
+            "Id": 31,
+            "StartPosition": 58,
+            "EndPosition": 236,
+            "Quality": 1,
+            "Length": 178,
+            "Interval": [
+              58,
+              236
+            ]
+          },
+          {
+            "Id": 32,
+            "StartPosition": 236,
+            "EndPosition": 249,
+            "Quality": 2,
+            "Length": 13,
+            "Interval": [
+              236,
+              249
+            ]
+          },
+          {
+            "Id": 33,
+            "StartPosition": 249,
+            "EndPosition": 317,
+            "Quality": 1,
+            "Length": 68,
+            "Interval": [
+              249,
+              317
+            ]
+          },
+          {
+            "Id": 34,
+            "StartPosition": 317,
+            "EndPosition": 336,
+            "Quality": 2,
+            "Length": 19,
+            "Interval": [
+              317,
+              336
+            ]
+          },
+          {
+            "Id": 35,
+            "StartPosition": 336,
+            "EndPosition": 491,
+            "Quality": 1,
+            "Length": 155,
+            "Interval": [
+              336,
+              491
+            ]
+          },
+          {
+            "Id": 36,
+            "StartPosition": 491,
+            "EndPosition": 510,
+            "Quality": 2,
+            "Length": 19,
+            "Interval": [
+              491,
+              510
+            ]
+          },
+          {
+            "Id": 37,
+            "StartPosition": 510,
+            "EndPosition": 616,
+            "Quality": 1,
+            "Length": 106,
+            "Interval": [
+              510,
+              616
+            ]
+          },
+          {
+            "Id": 38,
+            "StartPosition": 616,
+            "EndPosition": 627,
+            "Quality": 2,
+            "Length": 11,
+            "Interval": [
+              616,
+              627
+            ]
+          },
+          {
+            "Id": 39,
+            "StartPosition": 627,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 23,
+            "Interval": [
+              627,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 13,
+      "RawBoard": {
+        "Id": 14,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 40,
+            "StartPosition": 0,
+            "EndPosition": 23,
+            "Quality": 1,
+            "Length": 23,
+            "Interval": [
+              0,
+              23
+            ]
+          },
+          {
+            "Id": 41,
+            "StartPosition": 23,
+            "EndPosition": 34,
+            "Quality": 2,
+            "Length": 11,
+            "Interval": [
+              23,
+              34
+            ]
+          },
+          {
+            "Id": 42,
+            "StartPosition": 34,
+            "EndPosition": 312,
+            "Quality": 1,
+            "Length": 278,
+            "Interval": [
+              34,
+              312
+            ]
+          },
+          {
+            "Id": 43,
+            "StartPosition": 312,
+            "EndPosition": 328,
+            "Quality": 2,
+            "Length": 16,
+            "Interval": [
+              312,
+              328
+            ]
+          },
+          {
+            "Id": 44,
+            "StartPosition": 328,
+            "EndPosition": 482,
+            "Quality": 1,
+            "Length": 154,
+            "Interval": [
+              328,
+              482
+            ]
+          },
+          {
+            "Id": 45,
+            "StartPosition": 482,
+            "EndPosition": 497,
+            "Quality": 2,
+            "Length": 15,
+            "Interval": [
+              482,
+              497
+            ]
+          },
+          {
+            "Id": 46,
+            "StartPosition": 497,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 153,
+            "Interval": [
+              497,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 14,
+      "RawBoard": {
+        "Id": 15,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 47,
+            "StartPosition": 0,
+            "EndPosition": 76,
+            "Quality": 1,
+            "Length": 76,
+            "Interval": [
+              0,
+              76
+            ]
+          },
+          {
+            "Id": 48,
+            "StartPosition": 76,
+            "EndPosition": 87,
+            "Quality": 2,
+            "Length": 11,
+            "Interval": [
+              76,
+              87
+            ]
+          },
+          {
+            "Id": 49,
+            "StartPosition": 87,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 563,
+            "Interval": [
+              87,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 15,
+      "RawBoard": {
+        "Id": 16,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 50,
+            "StartPosition": 0,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 650,
+            "Interval": [
+              0,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 16,
+      "RawBoard": {
+        "Id": 17,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 51,
+            "StartPosition": 0,
+            "EndPosition": 67,
+            "Quality": 1,
+            "Length": 67,
+            "Interval": [
+              0,
+              67
+            ]
+          },
+          {
+            "Id": 52,
+            "StartPosition": 67,
+            "EndPosition": 81,
+            "Quality": 2,
+            "Length": 14,
+            "Interval": [
+              67,
+              81
+            ]
+          },
+          {
+            "Id": 53,
+            "StartPosition": 81,
+            "EndPosition": 166,
+            "Quality": 1,
+            "Length": 85,
+            "Interval": [
+              81,
+              166
+            ]
+          },
+          {
+            "Id": 54,
+            "StartPosition": 166,
+            "EndPosition": 178,
+            "Quality": 2,
+            "Length": 12,
+            "Interval": [
+              166,
+              178
+            ]
+          },
+          {
+            "Id": 55,
+            "StartPosition": 178,
+            "EndPosition": 250,
+            "Quality": 1,
+            "Length": 72,
+            "Interval": [
+              178,
+              250
+            ]
+          },
+          {
+            "Id": 56,
+            "StartPosition": 250,
+            "EndPosition": 268,
+            "Quality": 2,
+            "Length": 18,
+            "Interval": [
+              250,
+              268
+            ]
+          },
+          {
+            "Id": 57,
+            "StartPosition": 268,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 382,
+            "Interval": [
+              268,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 17,
+      "RawBoard": {
+        "Id": 18,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 58,
+            "StartPosition": 0,
+            "EndPosition": 117,
+            "Quality": 1,
+            "Length": 117,
+            "Interval": [
+              0,
+              117
+            ]
+          },
+          {
+            "Id": 59,
+            "StartPosition": 117,
+            "EndPosition": 128,
+            "Quality": 2,
+            "Length": 11,
+            "Interval": [
+              117,
+              128
+            ]
+          },
+          {
+            "Id": 60,
+            "StartPosition": 128,
+            "EndPosition": 189,
+            "Quality": 1,
+            "Length": 61,
+            "Interval": [
+              128,
+              189
+            ]
+          },
+          {
+            "Id": 61,
+            "StartPosition": 189,
+            "EndPosition": 206,
+            "Quality": 2,
+            "Length": 17,
+            "Interval": [
+              189,
+              206
+            ]
+          },
+          {
+            "Id": 62,
+            "StartPosition": 206,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 444,
+            "Interval": [
+              206,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 18,
+      "RawBoard": {
+        "Id": 19,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 63,
+            "StartPosition": 0,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 650,
+            "Interval": [
+              0,
+              650
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "Position": 19,
+      "RawBoard": {
+        "Id": 20,
+        "Length": 650,
+        "Width": 25,
+        "Height": 3,
+        "ScanBoardParts": [
+          {
+            "Id": 64,
+            "StartPosition": 0,
+            "EndPosition": 42,
+            "Quality": 1,
+            "Length": 42,
+            "Interval": [
+              0,
+              42
+            ]
+          },
+          {
+            "Id": 65,
+            "StartPosition": 42,
+            "EndPosition": 54,
+            "Quality": 2,
+            "Length": 12,
+            "Interval": [
+              42,
+              54
+            ]
+          },
+          {
+            "Id": 66,
+            "StartPosition": 54,
+            "EndPosition": 650,
+            "Quality": 1,
+            "Length": 596,
+            "Interval": [
+              54,
+              650
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import ast
 from src.optdsl.translator.Objects.CodeBlock import CodeBlock
-from src.optdsl.translator.Objects.DSTypes import DSInt, compute_type
+from src.optdsl.translator.Objects.DSTypes import DSInt, DSList, compute_type
 from src.optdsl.translator.Objects.Constraint import Constraint
 
     
@@ -73,9 +73,11 @@ class Predicate(CodeBlock):
         # Parameters: inputs, outputs, then arrays in variable declarations
         params = []
         # inputs
-        params += [f"{i_type.var_name}: input_{i+1}" for i, i_type in enumerate(self.input_types)]
+        params += [f"{i_type.clamped_var_name() if isinstance(i_type, DSList) else i_type.var_name}: input_{i+1}"
+                   for i, i_type in enumerate(self.input_types)]
         # outputs
-        params += [f"{o_type.var_name}: output_{i+1}" for i, o_type in enumerate(self.output_types)]
+        params += [f"{o_type.clamped_var_name() if isinstance(o_type, DSList) else o_type.var_name}: output_{i+1}"
+                   for i, o_type in enumerate(self.output_types)]
         # arrays (as var int arrays)
         for v in self.arrays_order:
             params += [self.variable_table[v].to_minizinc()]

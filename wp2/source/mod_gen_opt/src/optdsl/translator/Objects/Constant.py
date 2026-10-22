@@ -3,34 +3,63 @@ from typing import Union
 from src.optdsl.translator.Objects.DSTypes import DSList, DSRecord
 from src.optdsl.translator.helper_tools import ast_to_object, ExpressionRewriter
 
+
 class Constant:
-    def __init__(self,
-                 name: str,
-                 stmt_value: str = None,
-                 type_: Union[int, float, bool, DSList] = "int",
-                 code_block=None,
-                 loop_scope=None):
+    def __init__(
+        self,
+        name: str,
+        stmt_value: str = None,
+        type_: Union[int, float, bool, DSList] = "int",
+        code_block=None,
+        loop_scope=None,
+    ):
         self.code_block = code_block
         self.name = name
         self.type = type_
         self.loop_scope = {} if loop_scope is None else loop_scope
         self.empty_structure = self.build_empty_structure(self.type)
-        self.value_structure = self.fill_structure(
-            self.empty_structure,
-            stmt_value)
-
+        self.value_structure = self.fill_structure(self.empty_structure, stmt_value)
 
     def to_minizinc(self) -> str:
         return f"{self.type.name}: {self.name} = {self._to_mzn(self.value_structure)}"
 
-    def _to_mzn(self, value):
-        """Recursively convert stored Python structures to MiniZinc text."""
+    def _is_empty_filler(self, value) -> bool:
+        """True if ``value`` is an empty structure produced by padding a
+        shorter DSL literal to the declared DS type length (never supplied
+        by the user), so it should be omitted from the MiniZinc output."""
         if isinstance(value, dict):
-            fields = [f"{k}: {self._to_mzn(v)}" for k, v in value.items()]
+            return all(self._is_empty_filler(v) for v in value.values())
+        if isinstance(value, (list, tuple)):
+            return len(value) == 0 or all(self._is_empty_filler(v) for v in value)
+        return value is None
+
+    def _to_mzn(self, value):
+        """Recursively convert stored Python structures to MiniZinc text.
+
+        ``None`` marks a field/element that was never filled from the DSL
+        literal (e.g. a ``DSList`` declared longer than its literal).  Such
+        sentinel values are never valid MiniZinc, so they are dropped:
+          - for a list/tuple we trim the trailing empty elements (a MiniZinc
+            array literal doesn't need padding to the declared length), and
+          - any ``None`` that remains (e.g. inside a record) is skipped.
+        """
+        if isinstance(value, dict):
+            fields = []
+            for k, v in value.items():
+                rendered = self._to_mzn(v)
+                if rendered is None:
+                    continue
+                fields.append(f"{k}: {rendered}")
+            if not fields:
+                return None
             return f"({', '.join(fields)})"
         elif isinstance(value, (list, tuple)):
-            elems = [f"{self._to_mzn(v)}" for v in value]
+            elems = [self._to_mzn(v) for v in value]
+            while elems and elems[-1] is None:
+                elems.pop()
             return f"[{', '.join(elems)}]"
+        elif value is None:
+            return None
         elif isinstance(value, str):
             return f"{value}"
         else:
@@ -45,9 +74,14 @@ class Constant:
         """
 
         if isinstance(ds_type, DSRecord):
-            return {k: self.build_empty_structure(v) for k, v in ds_type.types_dict.items()}
+            return {
+                k: self.build_empty_structure(v) for k, v in ds_type.types_dict.items()
+            }
         elif isinstance(ds_type, DSList):  # DSList
-            return [self.build_empty_structure(ds_type.elem_type) for _ in range(ds_type.length)]
+            return [
+                self.build_empty_structure(ds_type.elem_type)
+                for _ in range(ds_type.length)
+            ]
         else:
             return None
 
@@ -85,10 +119,14 @@ class Constant:
         else:
             if self.empty_structure is None:
                 # It's a base type constant
-                evaluation = ExpressionRewriter(self.loop_scope, code_block = self.code_block).get_expr_value(value_node)
+                evaluation = ExpressionRewriter(
+                    self.loop_scope, code_block=self.code_block
+                ).get_expr_value(value_node)
             else:
                 # It's a structure assignment
-                evaluation = ExpressionRewriter(self.loop_scope, code_block = self.code_block).rewrite_expr(value_node)
+                evaluation = ExpressionRewriter(
+                    self.loop_scope, code_block=self.code_block
+                ).rewrite_expr(value_node)
             return evaluation
 
     def assign_chain(self, structure, chain, value):
@@ -96,7 +134,7 @@ class Constant:
         Recursively assign `value` into a nested structure (dict/list)
         following a key/index chain where each step is a tuple:
             ("dict", key)  or  ("list", index)
-        
+
         Supports partial record updates like:
             assign_chain(fam, [("dict","father")], {"name":"Peter","age":23})
             assign_chain(fam, [("dict","children"),("list",1),("dict","age")], 12)
@@ -131,14 +169,12 @@ class Constant:
             if not isinstance(structure, list):
                 raise TypeError(f"Expected list at this step, got {type(structure)}")
             if key >= len(structure):
-                raise IndexError(f"List index {key} out of range (len={len(structure)})")
+                raise IndexError(
+                    f"List index {key} out of range (len={len(structure)})"
+                )
             structure[key] = self.assign_chain(structure[key], rest, value)
 
         else:
             raise ValueError(f"Invalid chain kind: {kind}")
 
         return structure
-
-
-
-

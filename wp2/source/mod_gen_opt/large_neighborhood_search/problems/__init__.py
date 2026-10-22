@@ -12,12 +12,26 @@ from .binpacking_2d import (
     DBPGreedyPlacementRepair,
     detect_2dbp_problem,
 )
+from .cutting_packing import (
+    CuttingPackingInitializer,
+    CuttingPackingLayerDestroy,
+    CuttingPackingPieceDestroy,
+    CuttingPackingRepackRepair,
+    CuttingPackingInsertionRepair,
+    CuttingPackingRecutRepair,
+    detect_cutting_packing_problem,
+)
 from .cvrp import CVRPRouteInitializer, detect_cvrp_problem, prepare_cvrp_assignment_for_evaluation
 from .cvrp_operators import (
+    CVRPClusterDestroy,
     CVRPInsertionRepair,
+    CVRPInterRouteRepair,
     CVRPOROptRepair,
     CVRPRegretInsertionRepair,
     CVRPRouteBreakDestroy,
+    CVRPSegmentDestroy,
+    CVRPShawDestroy,
+    CVRPTwoOptRepair,
     CVRPWCUSTOMERDestroy,
 )
 from .jssp import (
@@ -44,14 +58,31 @@ from .jssp_optdsl import (
     JSSPRemainingWorkRepair,
     JSSPTimeWindowDestroy,
 )
+from .woodcutting_pipeline import (
+    WoodcuttingCarryThreadDestroy,
+    WoodcuttingCarryThreadRepair,
+    WoodcuttingCutDestroy,
+    WoodcuttingCutRepair,
+    WoodcuttingKeepDestroy,
+    WoodcuttingKeepRepair,
+    WoodcuttingPipelineInitializer,
+    WoodcuttingSwapDestroy,
+    WoodcuttingSwapRepair,
+    detect_woodcutting_pipeline_problem,
+)
 
 __all__ = [
     "CVRPRouteInitializer",
     "CVRPRouteBreakDestroy",
     "CVRPWCUSTOMERDestroy",
+    "CVRPShawDestroy",
+    "CVRPClusterDestroy",
+    "CVRPSegmentDestroy",
     "CVRPInsertionRepair",
     "CVRPRegretInsertionRepair",
     "CVRPOROptRepair",
+    "CVRPTwoOptRepair",
+    "CVRPInterRouteRepair",
     "detect_cvrp_problem",
     "prepare_cvrp_assignment_for_evaluation",
     "JSSPScheduleInitializer",
@@ -80,4 +111,23 @@ __all__ = [
     "DBPGreedyPlacementRepair",
     "DBPFullRepackRepair",
     "detect_2dbp_problem",
+    # Cutting & packing (1D cutting stock + layer bin-packing)
+    "CuttingPackingInitializer",
+    "CuttingPackingLayerDestroy",
+    "CuttingPackingPieceDestroy",
+    "CuttingPackingRepackRepair",
+    "CuttingPackingInsertionRepair",
+    "CuttingPackingRecutRepair",
+    "detect_cutting_packing_problem",
+    # Woodcutting rich pipeline model (Board/Interval/Piece/CutList DSRecords)
+    "WoodcuttingPipelineInitializer",
+    "WoodcuttingCarryThreadDestroy",
+    "WoodcuttingCarryThreadRepair",
+    "WoodcuttingCutDestroy",
+    "WoodcuttingCutRepair",
+    "WoodcuttingKeepDestroy",
+    "WoodcuttingKeepRepair",
+    "WoodcuttingSwapDestroy",
+    "WoodcuttingSwapRepair",
+    "detect_woodcutting_pipeline_problem",
 ]
