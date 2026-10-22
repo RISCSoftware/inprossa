@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from time import perf_counter
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .components import FeasibilityClassifier
 
 
 @dataclass
@@ -10,6 +13,7 @@ class LNSContext:
     constants: dict[str, Any] = field(default_factory=dict)
     objective_sense: str = "minimize"
     extra: dict[str, Any] = field(default_factory=dict)
+    feasibility_classifier: FeasibilityClassifier | None = field(default=None, repr=False)
 
 
 @dataclass
@@ -22,6 +26,7 @@ class LNSStats:
     infeasible_candidates: int = 0
     restarts: int = 0
     last_improvement_iteration: int = 0
+    stop_reason: str = "unknown"  # "max_iterations", "time_limit", "convergence", "stop_criterion", or "unknown"
 
     @property
     def elapsed_seconds(self) -> float:

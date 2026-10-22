@@ -1,0 +1,54 @@
+# Job Shop Scheduling instance: ta02
+# Minimize makespan (total completion time for all jobs).
+
+N_JOBS : int = 15
+N_MACHINES : int = 15
+MAX_TIME : int = 11356
+
+# PROCESSING_TIMES[j][op] and MACHINE_SEQUENCE[j][op] define each job route.
+PROCESSING_TIMES : DSList(N_JOBS, DSList(N_MACHINES, DSInt())) = [[86, 60, 10, 59, 65, 94, 71, 25, 98, 49, 43, 8, 90, 21, 73], [68, 28, 38, 36, 93, 35, 37, 28, 62, 86, 65, 11, 20, 82, 23], [33, 67, 96, 91, 83, 81, 60, 88, 20, 62, 22, 79, 38, 40, 82], [13, 14, 73, 88, 24, 16, 78, 70, 53, 68, 73, 90, 58, 7, 4], [93, 52, 63, 13, 19, 41, 71, 59, 19, 60, 85, 99, 73, 95, 19], [62, 60, 93, 16, 10, 72, 88, 69, 58, 41, 46, 63, 76, 83, 62], [50, 68, 90, 34, 44, 5, 8, 25, 70, 53, 78, 92, 62, 85, 70], [60, 64, 92, 44, 63, 91, 21, 1, 96, 19, 59, 12, 41, 11, 94], [93, 46, 51, 37, 91, 90, 63, 40, 68, 13, 16, 83, 49, 24, 23], [5, 35, 21, 14, 66, 3, 6, 98, 63, 64, 76, 94, 17, 62, 37], [35, 42, 62, 68, 73, 27, 52, 39, 41, 25, 9, 34, 50, 41, 98], [23, 32, 35, 10, 29, 68, 20, 8, 58, 62, 39, 32, 8, 33, 91], [28, 31, 3, 28, 66, 59, 24, 45, 81, 8, 44, 42, 2, 23, 53], [11, 93, 27, 59, 62, 23, 23, 7, 77, 64, 60, 97, 36, 53, 72], [36, 98, 38, 24, 84, 47, 72, 1, 91, 85, 68, 42, 20, 30, 30]]
+MACHINE_SEQUENCE : DSList(N_JOBS, DSList(N_MACHINES, DSInt())) = [[9, 14, 4, 13, 10, 3, 7, 8, 0, 5, 1, 2, 12, 6, 11], [10, 8, 11, 14, 3, 13, 9, 7, 4, 2, 6, 1, 5, 12, 0], [7, 0, 6, 5, 14, 13, 2, 11, 4, 12, 1, 9, 3, 10, 8], [9, 11, 14, 0, 1, 8, 5, 10, 12, 4, 13, 3, 6, 7, 2], [11, 4, 13, 3, 8, 1, 10, 12, 2, 14, 6, 7, 0, 9, 5], [5, 2, 1, 10, 0, 4, 8, 14, 6, 3, 9, 7, 11, 12, 13], [5, 10, 13, 0, 9, 8, 1, 11, 14, 7, 12, 2, 6, 4, 3], [12, 0, 9, 3, 13, 6, 5, 7, 2, 14, 11, 8, 10, 1, 4], [11, 10, 5, 13, 1, 9, 8, 7, 3, 6, 0, 2, 14, 12, 4], [2, 14, 3, 10, 6, 1, 0, 13, 11, 4, 5, 8, 7, 12, 9], [11, 14, 13, 5, 4, 9, 1, 6, 12, 0, 2, 8, 10, 3, 7], [12, 3, 10, 8, 4, 7, 13, 11, 14, 1, 2, 0, 5, 6, 9], [8, 13, 5, 0, 11, 9, 4, 12, 1, 10, 6, 2, 7, 14, 3], [2, 5, 4, 3, 9, 1, 11, 13, 7, 6, 10, 14, 0, 8, 12], [1, 10, 4, 2, 0, 7, 6, 9, 11, 12, 5, 14, 3, 13, 8]]
+
+# Decision variable: completion time of operation op for each job.
+completion: DSList(N_JOBS, DSList(N_MACHINES, DSInt(0, MAX_TIME)))
+
+
+def precedence_constraint(completion: DSList(N_JOBS, DSList(N_MACHINES, DSInt(0, MAX_TIME)))):
+    # Each job's operations must respect sequence order with processing times.
+    for j in range(N_JOBS):
+        first_machine = MACHINE_SEQUENCE[j][0]
+        assert completion[j][0] >= PROCESSING_TIMES[j][first_machine]
+        for op in range(1, N_MACHINES):
+            machine = MACHINE_SEQUENCE[j][op]
+            assert completion[j][op] >= completion[j][op - 1] + PROCESSING_TIMES[j][machine]
+
+
+def no_overlap_constraint(completion: DSList(N_JOBS, DSList(N_MACHINES, DSInt(0, MAX_TIME)))):
+    # No two jobs can use the same machine at overlapping times.
+    for m in range(N_MACHINES):
+        for j1 in range(N_JOBS):
+            for op1 in range(N_MACHINES):
+                if MACHINE_SEQUENCE[j1][op1] == m:
+                    for j2 in range(j1 + 1, N_JOBS):
+                        for op2 in range(N_MACHINES):
+                            if MACHINE_SEQUENCE[j2][op2] == m:
+                                assert (
+                                    completion[j1][op1] >= completion[j2][op2] + PROCESSING_TIMES[j1][m]
+                                    or completion[j2][op2] >= completion[j1][op1] + PROCESSING_TIMES[j2][m]
+                                )
+
+
+def makespan(completion: DSList(N_JOBS, DSList(N_MACHINES, DSInt(0, MAX_TIME)))):
+    ms: DSInt() = 0
+    for j in range(N_JOBS):
+        if completion[j][N_MACHINES - 1] > ms:
+            ms = completion[j][N_MACHINES - 1]
+    return ms
+
+
+precedence_constraint(completion)
+no_overlap_constraint(completion)
+
+objective: DSInt(0, MAX_TIME) = makespan(completion)
+
+minimize(objective)

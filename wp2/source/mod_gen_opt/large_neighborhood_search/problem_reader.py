@@ -35,15 +35,23 @@ class VariableDomain:
     kind: str
     int_domain: IntDomain | None = None
     length: int | None = None
-    element_domain: IntDomain | None = None
+    element_domain: "VariableDomain | None" = None
+    # For kind == "list_of_record": field_name -> domain (kind "int" or "list").
+    record_fields: dict[str, "VariableDomain"] | None = None
 
 
 @dataclass
 class DecisionIndexSpec:
-    """Flattened decision index entry for scalar/list decision variables."""
+    """Flattened decision index entry for scalar/list/record decision variables.
+
+    ``index`` is ``None`` for a scalar variable, an ``int`` for a plain list
+    element, a ``(i, j)`` int tuple for a 2D list element, a ``(i, field)``
+    tuple for a record-list scalar field, or a ``(i, field, j)`` tuple for a
+    record-list field that is itself a list.
+    """
 
     variable_name: str
-    index: int | None
+    index: int | tuple | None
     domain: IntDomain
 
 
@@ -90,7 +98,7 @@ def read_problem_from_code(code: str) -> ProblemDefinition:
     importer = OptDSLImporter()
     parsed = importer.from_code(code)
     resolved_constants = _resolve_constants(parsed.constants)
-    variables = _collect_variables(parsed.module, resolved_constants)
+    variables = _collect_variables(parsed.module, resolved_constants, parsed.record_types)
     decision_indices = _collect_decision_indices(variables)
     constraints = _collect_constraints(parsed)
     objective = _collect_objective(parsed.module, parsed)
@@ -104,23 +112,32 @@ def read_problem_from_code(code: str) -> ProblemDefinition:
     )
 
 
-def _collect_variables(module: ast.Module | None, constants: dict[str, Any]) -> dict[str, VariableSpec]:
+def _collect_variables(
+    module: ast.Module | None,
+    constants: dict[str, Any],
+    record_types: dict[str, dict[str, ast.expr]] | None = None,
+) -> dict[str, VariableSpec]:
     if module is None:
         return {}
 
     variables: dict[str, VariableSpec] = {}
+    record_types = record_types or {}
     for node in module.body:
         if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             name = node.target.id
             if name.isupper():
                 continue
+            # A variable with an explicit initializer (e.g. `initial_boards = GIVEN_INITIAL_BOARDS`,
+            # or the objective `= total_cost(...)`) is a fixed/derived value, never a free decision —
+            # even if its annotation would otherwise look like a decision domain.
+            domain = _parse_variable_domain(node.annotation, constants, record_types) if node.value is None else None
             variables[name] = VariableSpec(
                 name=name,
                 code=ast.unparse(node),
                 annotation_code=ast.unparse(node.annotation) if node.annotation is not None else None,
                 value_code=ast.unparse(node.value) if node.value is not None else None,
                 ast_node=node,
-                domain=_parse_variable_domain(node.annotation, constants),
+                domain=domain,
             )
         elif isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
             name = node.targets[0].id
@@ -134,6 +151,21 @@ def _collect_variables(module: ast.Module | None, constants: dict[str, Any]) -> 
                 ast_node=node,
                 domain=None,
             )
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple):
+            # Tuple-unpacking assignment (e.g. `filtered_pieces, objective = filtering_machine(...)`):
+            # every named target is a derived value, never a free decision — even if an earlier
+            # bare forward-declaration (`filtered_pieces: DSList(N_PIECES, Piece)`) looked decision-shaped.
+            for elt in node.targets[0].elts:
+                if not isinstance(elt, ast.Name) or elt.id.isupper():
+                    continue
+                variables[elt.id] = VariableSpec(
+                    name=elt.id,
+                    code=ast.unparse(node),
+                    annotation_code=None,
+                    value_code=ast.unparse(node.value),
+                    ast_node=node,
+                    domain=None,
+                )
     return variables
 
 
@@ -178,10 +210,36 @@ def _collect_decision_indices(variables: dict[str, VariableSpec]) -> list[Decisi
                             )
                         )
 
+        if domain.kind == "list_of_record" and domain.length is not None and domain.record_fields is not None:
+            for i in range(domain.length):
+                for field_name, field_domain in domain.record_fields.items():
+                    if field_domain.kind == "int" and field_domain.int_domain is not None:
+                        indices.append(
+                            DecisionIndexSpec(
+                                variable_name=variable.name,
+                                index=(i, field_name),
+                                domain=field_domain.int_domain,
+                            )
+                        )
+                    elif field_domain.kind == "list" and field_domain.length is not None and field_domain.element_domain is not None:
+                        for j in range(field_domain.length):
+                            indices.append(
+                                DecisionIndexSpec(
+                                    variable_name=variable.name,
+                                    index=(i, field_name, j),
+                                    domain=field_domain.element_domain,
+                                )
+                            )
+
     return indices
 
 
-def _parse_variable_domain(annotation: ast.expr | None, constants: dict[str, Any]) -> VariableDomain | None:
+def _parse_variable_domain(
+    annotation: ast.expr | None,
+    constants: dict[str, Any],
+    record_types: dict[str, dict[str, ast.expr]] | None = None,
+) -> VariableDomain | None:
+    record_types = record_types or {}
     if annotation is None or not isinstance(annotation, ast.Call) or not isinstance(annotation.func, ast.Name):
         return None
 
@@ -195,6 +253,15 @@ def _parse_variable_domain(annotation: ast.expr | None, constants: dict[str, Any
             return None
         length = _safe_eval_int_expr(annotation.args[0], constants)
         elem = annotation.args[1]
+
+        # bool element type -> binary decision domain (e.g. DSList(N, bool)).
+        if isinstance(elem, ast.Name) and elem.id == "bool":
+            return VariableDomain(
+                kind="list",
+                length=length,
+                element_domain=IntDomain(lower=0, upper=1),
+            )
+
         # Handle nested DSList: DSList(N, DSList(M, DSInt(...))) — store a
         # flagged kind so _collect_decision_indices knows to expand both dims.
         if isinstance(elem, ast.Call) and isinstance(elem.func, ast.Name) and elem.func.id == "DSList":
@@ -211,6 +278,22 @@ def _parse_variable_domain(annotation: ast.expr | None, constants: dict[str, Any
                         element_domain=_parse_int_domain(inner_dsint, constants),
                     ),
                 )
+
+        # Record element type -> list of DSRecord-shaped decisions (e.g.
+        # DSList(N, CutList) where CutList = DSRecord({...})). Only records
+        # whose fields are all DSInt/DSList(N, DSInt)/DSList(N, bool) are
+        # supported as decision domains; anything else makes the whole
+        # variable non-decision (returns None, same as an unsupported type).
+        if isinstance(elem, ast.Name) and elem.id in record_types:
+            fields = record_types[elem.id]
+            record_fields: dict[str, VariableDomain] = {}
+            for field_name, field_annotation in fields.items():
+                field_domain = _parse_variable_domain(field_annotation, constants, record_types)
+                if field_domain is None:
+                    return None
+                record_fields[field_name] = field_domain
+            return VariableDomain(kind="list_of_record", length=length, record_fields=record_fields)
+
         if not isinstance(elem, ast.Call) or not isinstance(elem.func, ast.Name) or elem.func.id != "DSInt":
             return None
         return VariableDomain(

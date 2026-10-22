@@ -7,7 +7,7 @@
 #
 # NOTE: This formulation is designed for LNS (example_lns.py) with
 #   --operator-profile permutation
-# It is NOT compatible with MiniZinc (main.py).
+# It is NOT compatible with MiniZinc (run_minizinc.py).
 
 N_CITIES : int = 401
 N_CUSTOMERS : int = N_CITIES - 1

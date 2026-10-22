@@ -4,6 +4,7 @@ from time import perf_counter
 
 from .components import AcceptanceCriterion, Evaluator, Initializer, LNSLogger, NeighborhoodSelector, StopCriterion
 from .models import LNSContext, LNSResult, LNSState, LNSSolution
+from ._utils import clone_assignment
 
 
 class LargeNeighborhoodSearchEngine:
@@ -15,6 +16,8 @@ class LargeNeighborhoodSearchEngine:
         acceptance: AcceptanceCriterion,
         stop: StopCriterion,
         logger: LNSLogger | None = None,
+        max_runtime_seconds: float | None = None,
+        no_improvement_iterations: int | None = None,
     ) -> None:
         self.initializer = initializer
         self.selector = selector
@@ -22,8 +25,18 @@ class LargeNeighborhoodSearchEngine:
         self.acceptance = acceptance
         self.stop = stop
         self.logger = logger
+        self.max_runtime_seconds = max_runtime_seconds  # Time limit in seconds (None = no limit)
+        self.no_improvement_iterations = no_improvement_iterations  # Convergence threshold (None = no convergence detection)
 
     def run(self, context: LNSContext) -> LNSResult:
+        # Reset all injected components for this run to clear any state from previous runs
+        self.initializer.reset_for_run(context)
+        self.selector.reset_for_run(context)
+        self.acceptance.reset_for_run(context)
+        self.stop.reset_for_run(context)
+        if self.logger is not None:
+            self.logger.reset_for_run(context)
+        
         initial_assignment = self.initializer.initialize(context)
         initial_score = self.evaluator.evaluate(initial_assignment, context)
         initial = LNSSolution(assignment=initial_assignment, score=initial_score)
@@ -51,6 +64,20 @@ class LargeNeighborhoodSearchEngine:
             self.logger.on_start(state, context)
 
         while not self.stop.should_stop(state, context):
+            # Check time limit
+            if self.max_runtime_seconds is not None:
+                elapsed = perf_counter() - state.stats.started_at
+                if elapsed >= self.max_runtime_seconds:
+                    state.stats.stop_reason = "time_limit"
+                    break
+            
+            # Check convergence (no improvement for N iterations)
+            if self.no_improvement_iterations is not None and self.no_improvement_iterations > 0:
+                iterations_without_improvement = state.stats.iterations - state.stats.last_improvement_iteration
+                if iterations_without_improvement >= self.no_improvement_iterations:
+                    state.stats.stop_reason = "convergence"
+                    break
+            
             if (
                 stagnation_restart_after > 0
                 and state.stats.restarts < restart_limit
@@ -148,6 +175,24 @@ class LargeNeighborhoodSearchEngine:
                     context,
                 )
 
+            # Feed back to adaptive selectors (no-op for non-adaptive).
+            record_result = getattr(self.selector, "record_result", None)
+            if record_result is not None:
+                is_new_best = improved and candidate_score == state.incumbent.score
+                improvement_mag = 0.0
+                if improved and state.current.score != float("inf"):
+                    improvement_mag = abs(state.current.score - candidate_score)
+                record_result(
+                    was_accepted=accepted,
+                    is_improvement=improved,
+                    is_new_best=is_new_best,
+                    improvement=improvement_mag,
+                )
+
+        # Set stop reason if not already set
+        if state.stats.stop_reason == "unknown":
+            state.stats.stop_reason = "stop_criterion"
+
         state.stats.finished_at = perf_counter()
 
         if self.logger is not None:
@@ -157,16 +202,12 @@ class LargeNeighborhoodSearchEngine:
 
 
 def _clone_assignment(assignment: dict[str, object]) -> dict[str, object]:
-    cloned: dict[str, object] = {}
-    for key, value in assignment.items():
-        if isinstance(value, list):
-            # Copy one level deep so that in-place modifications of inner lists
-            # (e.g. JSSPSwapDestroy slice assignment, JSSPShiftTimesDestroy element
-            # assignment) do not corrupt the original assignment's inner lists.
-            cloned[key] = [item.copy() if isinstance(item, list) else item for item in value]
-        else:
-            cloned[key] = value
-    return cloned
+    # Full deep copy: nested list/dict (DSRecord) values must NOT be shared
+    # with the original assignment.  The incumbent's inner records (e.g.
+    # cuts_list_list[i]["position_list"]) would otherwise be mutated in place
+    # by destroy operators on a later candidate, silently corrupting the
+    # stored incumbent so its recorded score no longer matches its data.
+    return clone_assignment(assignment)
 
 
 def _is_better(candidate: float, best: float, objective_sense: str) -> bool:
@@ -176,6 +217,11 @@ def _is_better(candidate: float, best: float, objective_sense: str) -> bool:
 
 
 def _is_infeasible_score(score: float, context: LNSContext) -> bool:
+    """Check if a score represents an infeasible solution using the FeasibilityClassifier."""
+    if context.feasibility_classifier is not None:
+        return context.feasibility_classifier.is_infeasible(score)
+    
+    # Fallback to legacy behavior if classifier is missing
     if score == float("inf"):
         return True
     penalty_base = context.extra.get("penalty_base")

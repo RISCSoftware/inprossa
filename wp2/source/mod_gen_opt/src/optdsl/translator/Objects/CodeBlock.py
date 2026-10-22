@@ -212,12 +212,40 @@ class CodeBlock:
         var_obj.versions += 1
         new_version_name = var_obj.versioned_name()
         assigned_chains = var_obj.collect_assigned_chains(var_obj.assigned_fields)
+        # If the current assignment writes an array element through a *variable*
+        # index (e.g. `layer_lengths[n_length] = x` where `n_length` is a runtime
+        # decision variable), then a preserved copy of a *literal* slot in the SAME
+        # array can fight the write whenever the runtime index reuses that slot
+        # (e.g. `n_length` resetting to 0 after a layer completes overwrites slot 1,
+        # while the stale copy would force the old value back).  When that happens
+        # the copy must be guarded so the write wins: `(write_index =/= slot) -> ...`.
+        write_variable_index = None
+        write_variable_pos = None
+        for pos, (step_type, step) in enumerate(chain):
+            if step_type == "list" and isinstance(step, str) and not step.isdigit():
+                write_variable_index = step
+                write_variable_pos = pos
+                break
         for new_chain in assigned_chains:
             if len(new_chain) < len(chain) or new_chain[:len(chain)] != chain:
                 # Make sure this new chain is not under the chain being assigned
                 full_chain = new_chain
                 # Create equality constraint for this chain
                 appended_text_for_chain = self.chain_to_appended_text(full_chain)
+                if (write_variable_index is not None and write_variable_pos is not None
+                        and write_variable_pos < len(full_chain)
+                        and full_chain[write_variable_pos][0] == "list"):
+                    # This preserve-copy targets a literal slot in the same array
+                    # position that the write addresses with a variable index.
+                    # Guard it so that when the runtime index equals that slot the
+                    # copy is skipped (the write then defines the slot).
+                    guard_slot = full_chain[write_variable_pos][1]
+                    if isinstance(guard_slot, str) and guard_slot.isdigit():
+                        self.constraints.append(Constraint(
+                            f"{new_version_name}{appended_text_for_chain} = {old_version_name}{appended_text_for_chain}",
+                            conditions=[f"({write_variable_index} != {guard_slot})"],
+                        ))
+                        continue
                 self.constraints.append(Constraint(f"{new_version_name}{appended_text_for_chain} = {old_version_name}{appended_text_for_chain}"))
 
     def chain_to_appended_text(self, chain):
@@ -737,5 +765,11 @@ def merge_assigned_fields(fields_if, fields_else):
             merged.append(merge_assigned_fields(sub_if, sub_else))
         return merged
     else:
-        # One branch assigned, the other did not
-        return fields_if if fields_if is not None else fields_else
+        # A field is "assigned" after an if/else if EITHER branch assigned it.
+        # Returning 0 (unassigned) when one branch left it 0 and the other 1
+        # makes scalar SSA variables (e.g. `s`) look unassigned after the merge,
+        # which suppresses the next version bump and reuses the merged index for
+        # a DIFFERENT write in the next loop iteration -> over-constrained UNSAT.
+        if isinstance(fields_if, int) and isinstance(fields_else, int):
+            return fields_if | fields_else
+        return fields_if if fields_if not in (None, 0) else fields_else
