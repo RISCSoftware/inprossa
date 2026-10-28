@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "OptDSL",
+  "scopeName": "source.optdsl",
+  "comment": "OptDSL is syntactically Python, so this grammar extends the built-in Python scope and only adds OptDSL-specific highlighting for DS* types, decision-variable declarations, and the objective markers. The scope name MUST differ from source.python: including source.python from a grammar that is itself source.python is a self-reference and makes the tokenizer recurse until the window hangs.",
+  "patterns": [
+    { "include": "#optdsl-types" },
+    { "include": "#optdsl-decision" },
+    { "include": "#optdsl-objective" },
+    { "include": "#optdsl-warm-start" },
+    { "include": "source.python" }
+  ],
+  "repository": {
+    "optdsl-types": {
+      "patterns": [
+        {
+          "name": "support.class.optdsl",
+          "match": "\\b(DSInt|DSFloat|DSBool|DSList|DSRecord)\\b"
+        }
+      ]
+    },
+    "optdsl-decision": {
+      "comment": "A bare annotation with no initializer declares a decision variable.",
+      "patterns": [
+        {
+          "name": "variable.other.decision.optdsl",
+          "match": "^\\s*([a-z_][A-Za-z0-9_]*)\\s*(?=:\\s*(?:DSInt|DSFloat|DSBool|DSList|DSRecord)\\b[^=]*$)"
+        }
+      ]
+    },
+    "optdsl-objective": {
+      "patterns": [
+        {
+          "name": "keyword.control.objective.optdsl",
+          "match": "\\b(minimize|maximize)\\b"
+        }
+      ]
+    },
+    "optdsl-warm-start": {
+      "patterns": [
+        {
+          "name": "entity.name.function.decorator.optdsl",
+          "match": "@warm_start\\b"
+        }
+      ]
+    }
+  }
+}

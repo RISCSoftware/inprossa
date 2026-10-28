@@ -1,0 +1,32 @@
+# Capacitated lot-sizing
+
+A plant makes 3 products (A, B, C) over a 4-period horizon. Demand per product per period (rows = products, columns = periods):
+
+product	P1	P2	P3	P4
+A	2	1	3	2
+B	1	4	2	1
+C	2	1	5	1
+
+Decisions: how much of each product to produce in each period (non-negative integer quantity), and a binary "setup" flag per product per period. If a product is produced in a period, its setup flag for that period must be 1 (a product cannot be produced without being set up).
+
+Constraints:
+
+Total production in any period may not exceed 8 units (capacity).
+Demand in each period must be met from that period's production plus inventory carried from earlier periods (no backlogging).
+Leftover units carry to the next period as inventory; inventory is unbounded.
+
+Costs:
+
+Production per unit: A = 1, B = 2, C = 2.
+Setup (= fixed cost whenever the product is produced in a period): A = 6, B = 9, C = 7.
+Holding per unit per period kept: A = 1, B = 1, C = 1.
+Find the production and setup plan that meets all demand and minimizes total setup + production + holding cost.
+
+**OptDSL data types to use**
+
+Model the binary setup flags with a binary integer domain so the heuristic
+backend can assign them (both forms below are equivalent to LNS):
+
+- `production`: 2-D integer decision, `DSList(N_PRODUCTS, DSList(N_PERIODS, DSInt(0, CAPACITY)))` (units produced, non-negative).
+- `setup`: 2-D binary decision per product/period. Either `DSList(N_PRODUCTS, DSList(N_PERIODS, DSInt(0, 1)))` or `DSList(N_PRODUCTS, DSList(N_PERIODS, DSBool()))` — both are treated as 0/1 integer decisions by the search.
+- `inventory`: derived inside the cost predicate (cumulative production minus cumulative demand), not a separate decision variable.
