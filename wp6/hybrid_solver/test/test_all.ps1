@@ -1,4 +1,4 @@
-# Smoke-test script: runs run_minizinc.py (MiniZinc) and example_lns.py (LNS)
+# Smoke-test script: runs run_minizinc.py (MiniZinc) and run_lns.py (LNS)
 # on the smallest instance of each problem type.
 #
 # Usage:  .\test_all.ps1
@@ -87,7 +87,7 @@ try {
 
     Write-Host ""
     Write-Host ("=" * 70) -ForegroundColor Magenta
-    Write-Host "  OPTDSL SMOKE TEST  (run_minizinc.py + example_lns.py on each problem)" -ForegroundColor Magenta
+    Write-Host "  OPTDSL SMOKE TEST  (run_minizinc.py + run_lns.py on each problem)" -ForegroundColor Magenta
     Write-Host ("=" * 70) -ForegroundColor Magenta
 
     foreach ($key in @("1dbp", "2dbp", "cvrp", "jssp")) {
@@ -108,8 +108,8 @@ try {
             -Command "run_minizinc.py `"$dslPath`" --timelimit 30" `
             -Description "run_minizinc.py (MiniZinc) -- $desc"
 
-        # example_lns.py (LNS baseline)
-        $lnsCmd = "example_lns.py `"$dslPath`" " `
+        # run_lns.py (LNS baseline)
+        $lnsCmd = "run_lns.py `"$dslPath`" " `
             + "--initializer $init " `
             + "--max-iterations $iters " `
             + "--lns-destroy-fraction 0.25 " `
@@ -121,7 +121,7 @@ try {
 
         Invoke-Test -Name $key `
             -Command $lnsCmd `
-            -Description "example_lns.py (LNS $init, $iters iters) -- $desc"
+            -Description "run_lns.py (LNS $init, $iters iters) -- $desc"
     }
 
     Write-Host ""

@@ -22,7 +22,7 @@ hybrid_solver/
 ├── vscode-extension/            VS Code client (LSP + AI features)
 ├── hybrid/lower_bound.py        LNS -> MiniZinc bridge (estimate_lower_bound)
 ├── hybrid/warm_start.py         Warm-start JSON snapshots + @warm_start injection
-├── example_lns.py               LNS CLI (--emit-feasible-dsl / --export-warm-start)
+├── run_lns.py                  LNS CLI (--emit-feasible-dsl / --export-warm-start)
 ├── run_minizinc.py              MiniZinc CLI (--dump-mzn translates only)
 ├── problem_instances/           Sample OptDSL instances per problem class
 ├── docs/tooling.md              Editor tooling and operator synthesis
@@ -71,7 +71,7 @@ python run_minizinc.py problem_instances\cvrp\random_euclidean_cvrp_8.dsl --dump
 Heuristic solve:
 
 ```powershell
-python example_lns.py problem_instances\cvrp\random_euclidean_cvrp_8.dsl --initializer cvrp --max-iterations 200
+python run_lns.py problem_instances\cvrp\random_euclidean_cvrp_8.dsl --initializer cvrp --max-iterations 200
 ```
 
 ## Hybrid workflow
@@ -84,7 +84,7 @@ together with the *original* problem DSL — the problem file is never modified.
 1. Run LNS and export the incumbent as a warm-start snapshot (JSON):
 
    ```powershell
-   python example_lns.py problem_instances\cvrp\random_euclidean_cvrp_8.dsl `
+   python run_lns.py problem_instances\cvrp\random_euclidean_cvrp_8.dsl `
        --initializer cvrp --max-iterations 500 `
        --export-warm-start .\ws.json --emit-feasible-on incumbent
    ```

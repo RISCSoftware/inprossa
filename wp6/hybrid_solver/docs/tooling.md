@@ -242,12 +242,12 @@ $env:OPENAI_API_KEY = "..."
 `large_neighborhood_search.builtin_operators` populates it with the 51 built-in
 operators.
 
-`example_lns.py` falls back to the registry for any name not handled by its
+`run_lns.py` falls back to the registry for any name not handled by its
 explicit `if/elif` chains, so a generated operator is reachable from the CLI
 without editing that file:
 
 ```powershell
-.\.venv\Scripts\python.exe example_lns.py instance.dsl --lns-destroy MyGeneratedDestroy
+.\.venv\Scripts\python.exe run_lns.py instance.dsl --lns-destroy MyGeneratedDestroy
 ```
 
 Generated operators live in `large_neighborhood_search/problems/generated/`.

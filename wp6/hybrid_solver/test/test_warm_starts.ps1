@@ -1,7 +1,7 @@
 # Warm-start validation test: runs LNS -> emits feasible DSL -> solves with run_minizinc.py
 #
 # For each problem type (using smallest instance), this script:
-#   1. Runs example_lns.py with --emit-feasible-dsl to produce a warm-start DSL
+#   1. Runs run_lns.py with --emit-feasible-dsl to produce a warm-start DSL
 #   2. Runs run_minizinc.py on that DSL and checks for clean exit + solution/bound output
 #
 # Usage:  .\test_warm_starts.ps1
@@ -20,7 +20,7 @@ foreach ($candidate in @(
     if (Test-Path $candidate) { $Python = (Resolve-Path $candidate).Path; break }
 }
 if (-not $Python) { $Python = "python" }
-$ExampleLnS = Join-Path $RepoRoot "example_lns.py"
+$ExampleLnS = Join-Path $RepoRoot "run_lns.py"
 $MainPy = Join-Path $RepoRoot "run_minizinc.py"
 $TempDir = Join-Path $RepoRoot ".tmp_warm_start_tests"
 
