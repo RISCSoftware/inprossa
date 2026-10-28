@@ -1,4 +1,4 @@
-# zero-based indexing. Single unified model: works with both example_lns.py (LNS)
+# zero-based indexing. Single unified model: works with both run_lns.py (LNS)
 # and run_minizinc.py (MiniZinc). Self-contained functions only (no cross-function
 # calls, no module-level data flow); objective is bound to a single function call.
 

@@ -1,5 +1,5 @@
 # Auto-generated from one_beam_no_faults.json by Tools/convert_cutting_packing.py
-# Unified cutting & packing model: runs under example_lns.py AND run_minizinc.py.
+# Unified cutting & packing model: runs under run_lns.py AND run_minizinc.py.
 # Preprocessing: 4 input board(s) -> 4 usable segment(s)
 #   (Quality-1 parts kept; Quality-2 discarded; Quality-3 removed with +-50 margin;
 #    board edges [10, 10] skipped; segments < 10 dropped).
