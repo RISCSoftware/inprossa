@@ -352,7 +352,7 @@ def _build_neighborhoods(
     if not repairs:
         repairs = [SampledRepair(samples=config.repair_samples)]
 
-    # Cartesian product, matching example_lns.py: every destroy is paired with
+    # Cartesian product, matching run_lns.py: every destroy is paired with
     # every repair so the selector can learn which combination works.
     return [(destroy, repair) for destroy in destroys for repair in repairs]
 

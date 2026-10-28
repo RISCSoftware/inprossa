@@ -413,5 +413,5 @@ export function runLnsCommand(): void {
     void vscode.window.showWarningMessage('Open an OptDSL (.dsl) file first.');
     return;
   }
-  runScript('example_lns.py', [editor.document.uri.fsPath, '--max-iterations', '500'], 'OptDSL LNS');
+  runScript('run_lns.py', [editor.document.uri.fsPath, '--max-iterations', '500'], 'OptDSL LNS');
 }

@@ -1,7 +1,7 @@
 """Registry for LNS destroy/repair operators.
 
 Before this module, operators were reachable only through long ``if/elif``
-chains and ``choices=[...]`` lists in ``example_lns.py``. That made a new
+chains and ``choices=[...]`` lists in ``run_lns.py``. That made a new
 operator invisible until three separate places were edited, which in turn made
 generated operators impractical.
 

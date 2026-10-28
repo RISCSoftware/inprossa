@@ -1,7 +1,7 @@
 """Registration of the built-in LNS operators.
 
 Importing this module populates the registry. It is imported lazily by
-``example_lns.py`` and by the synthesis harness, so the language server (which
+``run_lns.py`` and by the synthesis harness, so the language server (which
 never needs operators) does not pay for it.
 
 Every factory accepts ``**kwargs`` and forwards them to the operator's

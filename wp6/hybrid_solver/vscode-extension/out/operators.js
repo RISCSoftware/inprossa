@@ -326,6 +326,6 @@ function runLnsCommand() {
         void vscode.window.showWarningMessage('Open an OptDSL (.dsl) file first.');
         return;
     }
-    (0, python_1.runScript)('example_lns.py', [editor.document.uri.fsPath, '--max-iterations', '500'], 'OptDSL LNS');
+    (0, python_1.runScript)('run_lns.py', [editor.document.uri.fsPath, '--max-iterations', '500'], 'OptDSL LNS');
 }
 //# sourceMappingURL=operators.js.map
