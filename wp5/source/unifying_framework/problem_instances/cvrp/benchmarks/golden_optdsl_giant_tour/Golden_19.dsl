@@ -5,7 +5,7 @@
 #   tour[pos]      = customer ID at tour position pos (permutation of 1..360)
 #   cut_after[pos] = 1 if route break occurs after position pos
 #
-# NOTE: This formulation is designed for LNS (example_lns.py) with
+# NOTE: This formulation is designed for LNS (run_lns.py) with
 #   --operator-profile permutation
 # It is NOT compatible with MiniZinc (run_minizinc.py).
 
