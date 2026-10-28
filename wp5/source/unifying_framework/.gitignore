@@ -1,0 +1,7 @@
+archive/
+output/
+*.pyc
+__pycache__/
+coverage.xml
+*.aux,*.bbl,*.blg,*.log   # (one per line)
+commands.txt assignment.json instance.json lns_processed_solution.json
