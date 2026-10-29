@@ -1,14 +1,24 @@
 # run_and_viz.ps1
 # Usage:
-#   .\run_and_viz.ps1 <dsl_file> [-Solver minizinc|lns|both] [-Iters N] [-LnsIters N]
+#   .\run_and_viz.ps1 <dsl_file> [-Solver minizinc|lns|both] [-Initializer NAME]
+#                     [-Iters N] [-LnsIters N] [-NoBrowser]
+#
+# -Initializer selects the LNS initializer, which also selects the operator pool
+# (e.g. "2dbp" enables DBPClearBoxesDestroy/DBPClearItemsDestroy and
+# DBPGreedyPlacementRepair/DBPFullRepackRepair). When omitted, a default is
+# derived from the detected problem type.
 #
 # Examples:
 #   .\run_and_viz.ps1 problem_instances\jssp\jssp_2x2.dsl
 #   .\run_and_viz.ps1 problem_instances\cvrp\random_euclidean_cvrp_8.dsl -Solver both -LnsIters 100
+#   .\run_and_viz.ps1 problem_instances\2dbp\random_2dbp_zero_based.dsl -Solver lns -Initializer 2dbp
 
 param(
     [Parameter(Mandatory=$true, Position=0)][string]$DslFile,
     [Parameter(Mandatory=$false)][ValidateSet("minizinc","lns","both")][string]$Solver = "minizinc",
+    [Parameter(Mandatory=$false)]
+    [ValidateSet("greedy","random","mcmc","cvrp","jssp","2dbp","cutting_packing","woodcutting_pipeline")]
+    [string]$Initializer = "",
     [Parameter(Mandatory=$false)][int]$Iters = 50,
     [Parameter(Mandatory=$false)][int]$LnsIters = 50,
     [Parameter(Mandatory=$false)][switch]$NoBrowser
@@ -38,8 +48,10 @@ function Get-ProblemType {
 
 function Get-Initializer {
     param([string]$Type)
+    if ($Initializer) { return $Initializer }
     if ($Type -eq "cvrp") { return "cvrp" }
     if ($Type -eq "jssp") { return "jssp" }
+    if ($Type -eq "2dbp") { return "2dbp" }
     return "greedy"
 }
 
@@ -165,10 +177,10 @@ Write-Host ("=" * 70) -ForegroundColor Magenta
 
 $htmlFiles = @()
 
-if ($Solver -eq "main" -or $Solver -eq "both") {
-    $r = Invoke-Solver -Mode "main" -Type $problemType
+if ($Solver -eq "minizinc" -or $Solver -eq "both") {
+    $r = Invoke-Solver -Mode "minizinc" -Type $problemType
     if ($r.ExitCode -eq 0) {
-        $h = Invoke-Visualizer -Mode "main" -Type $problemType
+        $h = Invoke-Visualizer -Mode "minizinc" -Type $problemType
         if ($h) { $htmlFiles += $h }
     }
 }

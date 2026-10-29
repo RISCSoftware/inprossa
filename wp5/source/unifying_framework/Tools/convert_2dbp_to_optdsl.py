@@ -44,7 +44,7 @@ def all_assigned(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
     for k in range(0, NITEMS):
         assert assigned[k] != 0
 
-def not_exceed_2d(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
+def number_of_boxes(assignments: DSList(NITEMS, DSInt(0, NBOXES - 1))):
     used: DSList(NBOXES, DSInt(0, 1)) = [0] * NBOXES
     obj = 0
     for i in range(0, NBOXES):
@@ -83,7 +83,7 @@ def no_overlap(
 
 all_assigned(assignments)
 no_overlap(assignments, x_positions, y_positions)
-objective: DSInt(0, NBOXES) = not_exceed_2d(assignments)
+objective: DSInt(0, NBOXES) = number_of_boxes(assignments)
 
 minimize(objective)
 """

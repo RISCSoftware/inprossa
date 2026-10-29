@@ -24,6 +24,8 @@ from large_neighborhood_search import (
     DBPFullRepackRepair,
     DBPGreedyPlacementRepair,
     FillMissingPermutationRepair,
+    GiantTourCutRepair,
+    GiantTourInitializer,
     GreedyRandomizedInitializer,
     MCMCInitializer,
     PermutationPreservingInitializer,
@@ -213,9 +215,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--initializer",
-        choices=["greedy", "random", "mcmc", "cvrp", "jssp", "2dbp", "cutting_packing", "woodcutting_pipeline"],
+        choices=["greedy", "random", "mcmc", "cvrp", "giant_tour", "jssp", "2dbp", "cutting_packing", "woodcutting_pipeline"],
         default="greedy",
-        help="Initialization strategy before LNS iterations. 'mcmc' is the generic Metropolis-Hastings initializer; 'cvrp', 'jssp', '2dbp', 'cutting_packing', 'woodcutting_pipeline' are problem-specific.",
+        help="Initialization strategy before LNS iterations. 'mcmc' is the generic Metropolis-Hastings initializer; 'cvrp' (arc encoding) and 'giant_tour' (permutation encoding) are CVRP-specific; 'jssp', '2dbp', 'cutting_packing', 'woodcutting_pipeline' are problem-specific.",
     )
     parser.add_argument(
         "--cvrp-init-restarts",
@@ -228,6 +230,30 @@ def main() -> None:
         type=float,
         default=0.3,
         help="Probability of random tie-break in CVRP nearest-neighbor construction.",
+    )
+    parser.add_argument(
+        "--giant-tour-init-restarts",
+        type=int,
+        default=8,
+        help="Restart attempts for the giant-tour constructive initializer.",
+    )
+    parser.add_argument(
+        "--giant-tour-init-randomization",
+        type=float,
+        default=0.1,
+        help="Probability of random tie-break in giant-tour nearest-neighbor construction.",
+    )
+    parser.add_argument(
+        "--giant-tour-init-improve-steps",
+        type=int,
+        default=20000,
+        help="Bounded 2-opt improvement steps applied to the giant-tour initializer result.",
+    )
+    parser.add_argument(
+        "--giant-tour-init-or-opt-steps",
+        type=int,
+        default=20000,
+        help="Bounded Or-opt improvement steps applied to the giant-tour initializer result.",
     )
     parser.add_argument(
         "--lns-init-restarts",
@@ -575,6 +601,7 @@ def main() -> None:
         use_jssp_tools = args.initializer == "jssp"
         use_2dbp_tools = args.initializer == "2dbp"
         use_cvrp_tools = args.initializer == "cvrp"
+        use_giant_tour_tools = args.initializer == "giant_tour"
         use_cutting_packing_tools = args.initializer == "cutting_packing"
         use_woodcutting_pipeline_tools = args.initializer == "woodcutting_pipeline"
         
@@ -597,6 +624,11 @@ def main() -> None:
         use_woodcutting_pipeline_operators = (lns_destroy_names & wc_destroy_names) or (lns_repair_names & wc_repair_names) or use_woodcutting_pipeline_tools
         
         neighborhoods: list[tuple[Any, Any]] = []
+
+        if use_giant_tour_tools:
+            # The giant-tour encoding is permutation-shaped by construction, so
+            # the permutation destroy/repair tooling is the right neighbourhood.
+            use_permutation_tools = True
 
         if use_permutation_tools and not detected_permutation_shape:
             print(
@@ -865,7 +897,12 @@ def main() -> None:
             neighborhoods = [(d, r) for d in destroy_operators for r in repair_pool]
         else:
             # Fallback repair
-            if use_permutation_tools:
+            if use_giant_tour_tools:
+                repair = SampledRepair(
+                    samples=max(1, args.repair_samples),
+                    base_repair=GiantTourCutRepair(),
+                )
+            elif use_permutation_tools:
                 repair = SampledRepair(
                     samples=max(1, args.repair_samples),
                     base_repair=FillMissingPermutationRepair(),
@@ -906,6 +943,13 @@ def main() -> None:
                 randomization=max(0.0, min(1.0, args.cvrp_init_randomization)),
             )
             context.extra["pre_evaluate_assignment_hook"] = prepare_cvrp_assignment_for_evaluation
+        elif args.initializer == "giant_tour":
+            initializer = GiantTourInitializer(
+                restarts=max(1, args.giant_tour_init_restarts),
+                randomization=max(0.0, min(1.0, args.giant_tour_init_randomization)),
+                improve_steps=max(0, args.giant_tour_init_improve_steps),
+                or_opt_steps=max(0, args.giant_tour_init_or_opt_steps),
+            )
         elif args.initializer == "jssp":
             initializer = JSSPScheduleInitializer(restarts=max(1, args.lns_init_restarts))
         elif args.initializer == "2dbp":
@@ -992,6 +1036,7 @@ def main() -> None:
         f"{args.operator_profile} "
         f"(perm_enabled={use_permutation_tools}, perm_shape={detected_permutation_shape})"
     )
+    print(f"Initializer: {args.initializer}")
     print(f"Constants ({len(parsed.constants)}): {sorted(parsed.constants.keys())}")
     print(f"Variables ({len(problem_data.variables)}): {sorted(problem_data.variables.keys())}")
     print(f"Constraints ({len(parsed.constraints)}): {sorted(parsed.constraints.keys())}")
