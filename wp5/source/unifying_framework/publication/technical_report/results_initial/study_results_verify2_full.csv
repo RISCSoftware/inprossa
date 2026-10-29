@@ -1,0 +1,19 @@
+Class,Set,Instance,Size,MiniZinc Quality,MiniZinc Bound,MiniZinc Time (s),LNS Quality,LNS Time (s),LNS Stop,Gap (%)
+cvrp,small,E-n13-k4,13 / 4 / 6000,279.0,139.0,123.6698,247.0,3.8057,stop_criterion,77.70
+cvrp,small,random_euclidean_cvrp_8,8 / 4 / 10,370.0,370.0,2.2546,370.0,1.8893,stop_criterion,0.00
+cvrp,medium,random_euclidean_cvrp_15,15 / 10 / 17,<no_solution>,274.0,141.0104,555.0,9.8408,stop_criterion,102.55
+cvrp,medium,random_euclidean_cvrp_20,20 / 5 / 25,<no_solution>,300.0,133.5110,554.0,10.0997,stop_criterion,84.67
+jssp,small,jssp_10x5,10 / 5,37.0,37.0,71.2252,38.0,10.3157,stop_criterion,2.70
+jssp,small,jssp_2x2,2 / 2,6.0,6.0,0.7998,6.0,0.5037,stop_criterion,0.00
+jssp,small,jssp_5x4,5 / 4,22.0,22.0,1.2897,22.0,2.0635,stop_criterion,0.00
+jssp,medium,la01,10 / 5,727.0,413.0,130.8212,733.0,10.6280,stop_criterion,77.48
+jssp,medium,la02,10 / 5,666.0,394.0,130.7104,709.0,10.5977,stop_criterion,79.95
+jssp,medium,la03,10 / 5,706.0,349.0,130.6332,703.0,10.1834,stop_criterion,101.43
+jssp,medium,la04,10 / 5,636.0,369.0,130.9598,622.0,10.2130,stop_criterion,68.56
+jssp,medium,la05,10 / 5,606.0,380.0,130.3733,593.0,10.5816,stop_criterion,56.05
+jssp,medium,orb01,10 / 10,1173.0,695.0,484.3057,1186.0,47.0083,stop_criterion,70.65
+2dbp,small,2d_bpp_inst_cl_06_020_06.ins2D,300x300 / 20,<no_solution>,0.0,160.3313,1.0,71.1367,stop_criterion,inf
+2dbp,small,2d_bpp_inst_cl_06_020_10.ins2D,300x300 / 20,1.0,1.0,106.1851,1.0,64.9162,stop_criterion,0.00
+2dbp,medium,2d_bpp_inst_cl_04_020_08.ins2D,100x100 / 20,<no_solution>,0.0,155.9268,1.0,72.9484,stop_criterion,inf
+2dbp,medium,2d_bpp_inst_cl_05_020_08.ins2D,100x100 / 20,5.0,5.0,118.6288,5.0,12.4325,stop_criterion,0.00
+2dbp,medium,2d_bpp_inst_cl_10_020_09.ins2D,100x100 / 20,6.0,0.0,153.2186,6.0,13.6255,stop_criterion,inf

@@ -28,11 +28,9 @@ $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("dmpbuild-" + [guid]::NewGui
 New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 
 try {
-    # Strip the YAML front matter and the per-file footer; the footer is
-    # reproduced once in the PDF page footer instead.
+    # Strip the YAML front matter; the PDF gets its own title block below.
     $c = Get-Content -Raw -Encoding UTF8 $source
     $c = [regex]::Replace($c, '(?s)^---\r?\n.*?\r?\n---\r?\n', '')
-    $c = [regex]::Replace($c, '(?s)\r?\n---\r?\n\*InProSSA.*?CC BY 4\.0\.\*\s*$', '')
 
     $combined = Join-Path $tmp 'combined.md'
     # Prepend metadata so pandoc emits a title block before the table of contents.
@@ -40,7 +38,7 @@ try {
 ---
 title: "Data Management Plan"
 subtitle: "InProSSA -- Industrial Problem Solving using Symbolic and Subsymbolic AI"
-date: "Version 1.2 -- 28 October 2026"
+date: "Version 1.2 -- 29 October 2026"
 ---
 
 "@

@@ -57,7 +57,7 @@ neighborhood pool (destroy/repair combinations), acceptance policy, stop criteri
 
 | Flag | Effect | Default |
 |---|---|---|
-| `--initializer` | `random`, `greedy`, `mcmc`, `cvrp`, `jssp`, `2dbp`, `cutting_packing`, `woodcutting_pipeline` | `greedy` |
+| `--initializer` | `random`, `greedy`, `mcmc`, `cvrp`, `giant_tour`, `jssp`, `2dbp`, `cutting_packing`, `woodcutting_pipeline` | `greedy` |
 | `--operator-profile` | `generic` or `permutation` — see [Operator Profiles](#4-operator-profiles) | `generic` |
 | `--max-iterations` | LNS iteration budget | `10000` |
 | `--max-runtime-seconds` | Optional wall-clock cap | none |
@@ -69,6 +69,9 @@ neighborhood pool (destroy/repair combinations), acceptance policy, stop criteri
 | `--lns-destroy` / `--lns-repair` | Explicit operator names to build neighborhoods (see operator reference) | per-family defaults |
 | `--lns-destroy-fraction` | Fraction destroyed per iteration | `0.25` |
 | `--lns-init-restarts` | Restart attempts for constructive initializers | family default |
+| `--giant-tour-init-restarts` / `--giant-tour-init-randomization` | Giant-tour initializer restarts and GRASP candidate-list width | 8 / 0.1 |
+| `--giant-tour-init-improve-steps` | Bounded 2-opt steps applied to the giant-tour initializer result | 20000 |
+| `--giant-tour-init-or-opt-steps` | Bounded Or-opt steps applied to the giant-tour initializer result | 20000 |
 | `--init-restarts` / `--init-scoring` | Greedy initializer restarts and `objective`/`feasibility-first` scoring | 1 / `objective` |
 | `--print-assignment` | Print the incumbent assignment | off |
 | `--emit-feasible-dsl` | Write feasible DSL snapshots (`@warm_start`) with `{iteration}`, `{event}`, `{score}` placeholders | none |
@@ -128,10 +131,22 @@ uv run python run_lns.py .\problem_instances\cvrp\random_euclidean_cvrp_8.dsl --
 
 # permutation profile — giant tour
 uv run python run_lns.py .\problem_instances\cvrp\random_euclidean_cvrp_20_gt.dsl --operator-profile permutation --initializer greedy --max-iterations 200 --log-every 50
+
+# giant-tour initializer — required for tour + cut_after encodings
+uv run python run_lns.py .\problem_instances\cvrp\benchmarks\golden_optdsl_giant_tour\Golden_1.dsl --initializer giant_tour --max-iterations 5000
 ```
 
 In permutation mode the run uses a permutation-preserving initializer, a permutation-segment destroy,
 and a repair that fills missing permutation values without duplicates.
+
+> **Giant-tour encodings with an explicit `cut_after` array need `--initializer giant_tour`.**
+> The generic permutation initializer fills `cut_after` uniformly at random, which violates the
+> route-count constraint (`cuts + 1 <= N_VEHICLES`) on any instance with more than a handful of
+> customers, so every candidate is infeasible. `GiantTourInitializer` builds a capacity-feasible
+> nearest-neighbour tour and derives the cuts by shortest-path DP, and `GiantTourCutRepair`
+> re-derives them after every destroy step. `--initializer giant_tour` also enables the permutation
+> operator profile automatically. Encodings that only declare a permutation (`city_tour`, no
+> `cut_after`) work with either initializer.
 
 > The `--operator-profile` selects *generic vs permutation* tooling only. Problem-specific operators
 > (CVRP/JSSP/2DBP/woodcutting) are activated by `--initializer <family>` or by naming operators
@@ -148,6 +163,9 @@ and a repair that fills missing permutation values without duplicates.
 
 # CVRP-specific constructive initializer
 --initializer cvrp --cvrp-init-restarts 16 --cvrp-init-randomization 0.3
+
+# CVRP giant-tour constructive initializer (tour + cut_after encodings)
+--initializer giant_tour --giant-tour-init-restarts 8 --giant-tour-init-improve-steps 20000
 
 # JSSP-specific constructive initializer (SPT dispatch)
 --initializer jssp --lns-init-restarts 16 --lns-destroy-fraction 0.25
@@ -186,6 +204,8 @@ Files: `problems/cvrp.py`, `problems/cvrp_operators.py`.
 | Component | Class | Behavior |
 |---|---|---|
 | Initializer | `CVRPRouteInitializer` | Randomized nearest-neighbor route construction, capacity-feasible |
+| Initializer | `GiantTourInitializer` | Giant-tour encoding: capacity-feasible NN tour + DP cut placement + 2-opt |
+| Repair | `GiantTourCutRepair` | Re-inserts destroyed customers and re-derives `cut_after` |
 | Destroy | `CVRPRouteBreakDestroy` | Remove whole routes (`random` / `worst` / `largest`) |
 | Destroy | `CVRPWCUSTOMERDestroy` | Remove worst/random customers (worst = high insertion cost) |
 | Destroy | `CVRPShawDestroy` | Relatedness-based removal (distance + demand), optional noise |
