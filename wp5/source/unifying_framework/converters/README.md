@@ -109,6 +109,61 @@ that visit a machine twice are rejected with an error.
 
 ---
 
+### CVRPTW: `convert_cvrptw.py`
+
+Converts Capacitated Vehicle Routing with Time Windows instances from the
+Solomon format (.txt).
+
+**Usage:**
+
+```bash
+# Batch conversion
+python convert_cvrptw.py --input-dir problem_instances/cvrptw/benchmarks/Solomon \
+  --output-dir problem_instances/cvrptw/benchmarks/solomon_optdsl
+
+# Single file
+python convert_cvrptw.py --input-file C101.txt --output-file C101.dsl
+```
+
+**Input Format (.txt):**
+```
+INSTANCE_NAME
+
+VEHICLE
+NUMBER     CAPACITY
+   25         200
+
+CUSTOMER
+CUST NO.  XCOORD.   YCOORD.    DEMAND   READY TIME  DUE DATE   SERVICE TIME
+
+    0      40         50          0          0       1236          0
+    1      45         68         10        912        967         90
+    ...
+```
+
+The depot is customer 0. Distances are Euclidean, rounded to the nearest integer.
+
+**Output:**
+OptDSL model with an arc-based formulation and explicit time propagation.
+Minimizes total travel distance.
+
+**Indexing convention:** the model uses three flat arrays, all indexed by
+vehicle `k`:
+
+- `arc[i * NUM_NODES * N_VEHICLES + j * N_VEHICLES + k]` — vehicle `k` travels `i -> j`
+- `arrival_time[(c - 1) * N_VEHICLES + k]`, `departure_time[...]`, `load[...]` —
+  customer-indexed slots (customer `c` is 1-based, so the depot has no slot)
+- `route_start[k]` / `route_end[k]` — depot departure / return time per vehicle
+
+Every constraint is emitted as a top-level `def` function
+(`all_customers_visited`, `flow_conservation`, `no_self_loops`,
+`depot_balance`, `capacity_constraints`, `time_windows`). This is required by
+the LNS backend: `OptDSLImporter` only collects `ast.FunctionDef` nodes as
+constraints, so a model written as bare top-level `for`/`assert` statements is
+invisible to the evaluator and every candidate is scored as infeasible.
+
+---
+
 ## Workflow
 
 ### Step 1: Download Benchmarks

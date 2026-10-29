@@ -22,6 +22,11 @@ from .cutting_packing import (
     detect_cutting_packing_problem,
 )
 from .cvrp import CVRPRouteInitializer, detect_cvrp_problem, prepare_cvrp_assignment_for_evaluation
+from .cvrp_giant_tour import (
+    GiantTourCutRepair,
+    GiantTourInitializer,
+    detect_giant_tour_problem,
+)
 from .cvrp_operators import (
     CVRPClusterDestroy,
     CVRPInsertionRepair,
@@ -83,7 +88,10 @@ __all__ = [
     "CVRPOROptRepair",
     "CVRPTwoOptRepair",
     "CVRPInterRouteRepair",
+    "GiantTourInitializer",
+    "GiantTourCutRepair",
     "detect_cvrp_problem",
+    "detect_giant_tour_problem",
     "prepare_cvrp_assignment_for_evaluation",
     "JSSPScheduleInitializer",
     "JSSPJobLevelDestroy",

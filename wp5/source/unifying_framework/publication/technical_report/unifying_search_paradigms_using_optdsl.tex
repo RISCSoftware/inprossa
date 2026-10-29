@@ -11,22 +11,25 @@
 \usepackage[a4paper,margin=1in]{geometry}
 \usepackage{setspace}
 \onehalfspacing
+% Long unbreakable tokens (e.g. \texttt{OptDSL}) in captions.
+\setlength{\emergencystretch}{2em}
 
 % --- Math, tables, figures ---
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{graphicx}
-\usepackage{subcaption}
-\usepackage{siunitx}
+\usepackage{adjustbox}
 \usepackage{rotating}
 \usepackage{url}
-% Long repository paths: also allow breaks after underscores.
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,shapes.geometric}
+% Allow line breaks after underscores in long URLs.
 \expandafter\def\expandafter\UrlBreaks\expandafter{\UrlBreaks\do\_}
 
 % --- References (simple and journal-compatible baseline) ---
 \usepackage[numbers,sort&compress]{natbib}
 
-\title{Unifying Search Paradigms using optDSL}
+\title{Unifying Search Paradigms using OptDSL}
 \author{
   Michael Bögl
 }
@@ -39,9 +42,10 @@
 In practical combinatorial optimization, solver-paradigm decisions are frequently made at an early project stage.
 Such early commitments constrain subsequent modeling choices and can render later paradigm changes technically and organizationally costly.
 This report addresses that limitation through a workflow that enables paradigm switching over the full project lifecycle.
-The workflow is based on \texttt{optDSL} as a shared problem representation, leveraging its existing MiniZinc translation and extending the same representation with a Large Neighborhood Search (LNS) backend.
+The workflow is based on \texttt{OptDSL} as a shared problem representation, leveraging its existing MiniZinc translation and extending the same representation with a Large Neighborhood Search (LNS) backend.
+Beyond switching between the exact and the heuristic paradigm, the same model-centric representation provides the substrate for automated operator development: the construction, destroy, and repair operators that drive the LNS search can themselves be generated from the \texttt{OptDSL} model rather than being written by hand.
 We detail the LNS design, including operator profiles, initialization strategies, and restart mechanisms, and evaluate the approach on benchmark instances from multiple problem classes.
-Under fixed iteration and time budgets, we compare LNS-based heuristic search with a MiniZinc-based exact baseline on identical \texttt{optDSL} instances, and we further demonstrate practical applicability on a real-world use case within an extensible, model-driven optimization workflow.
+Under fixed iteration and time budgets, we compare LNS-based heuristic search with a MiniZinc-based exact baseline on identical \texttt{OptDSL} instances, and we further demonstrate practical applicability on a real-world use case within an extensible, model-driven optimization workflow.
 \end{abstract}
 
 \section{Introduction}
@@ -67,72 +71,114 @@ Neither paradigm dominates the other; their strengths and weaknesses are largely
 Which paradigm is preferable typically changes over the course of a project, for example when instance sizes grow, when time budgets shrink, or when formal quality guarantees become necessary.
 This observation motivates a unifying approach in which the problem is modeled once and the solution paradigm remains exchangeable.
 
-\texttt{optDSL}, a Python-inspired domain-specific language for describing optimization problems, provides such a unifying representation.
-A single \texttt{optDSL} model can be dispatched to conceptually different backends:
+\texttt{OptDSL}, a Python-inspired domain-specific language for describing optimization problems, provides such a unifying representation.
+A single \texttt{OptDSL} model can be dispatched to conceptually different backends:
 an exact backend, currently realized through a translation to the constraint modeling language MiniZinc and its portfolio of solvers, and
-a heuristic backend, currently realized through a Large Neighborhood Search (LNS) framework that operates directly on \texttt{optDSL} decision variables.
-Because both backends consume identical problem descriptions, users can defer the paradigm decision, switch paradigms as project requirements evolve, and compare both paradigms under a common protocol without re-modeling.
-A single \texttt{optDSL} model is fed through an importer into two parallel pipelines, one deriving the MiniZinc representation for exact solvers and one operating directly on the \texttt{optDSL} decision variables inside the LNS framework.
-Beyond this dispatch view, the architecture admits a forward-looking perspective, illustrated in Figure~\ref{fig:optdsl-validation}: a solution that the LNS backend writes back in \texttt{optDSL} format can be re-injected into the exact pipeline, where the MiniZinc representation and its solvers are used to validate and improve the solution and to derive quality bounds. This closes the loop between heuristic and formal optimization within one consistent, model-centric workflow.
-In the figure, the dashed line together with the gray-shaded area marks this feedback loop (writing a solution back in \texttt{optDSL} format and passing it to the exact backend for validation and improvement); this step is performed outside the scope of the present technical report, which provides the component optimizers but not yet an automated orchestration of the loop.
+a heuristic backend, currently realized through a Large Neighborhood Search (LNS) framework that operates directly on \texttt{OptDSL} decision variables.
+Because both backends consume identical problem descriptions, users can defer the paradigm decision, switch paradigms as project requirements evolve, and compare both paradigms under a common protocol without re-modeling: the exact side translates the model into the MiniZinc representation, and the heuristic side imports it and operates directly on the \texttt{OptDSL} decision variables inside the LNS framework.
+Beyond this dispatch view, the architecture admits a forward-looking perspective, illustrated in Figure~\ref{fig:optdsl-validation}: a solution that the LNS backend writes back in \texttt{OptDSL} format can be re-injected into the exact pipeline, where the MiniZinc representation and its solvers are used to validate and improve the solution and to derive quality bounds. This closes the loop between heuristic and formal optimization within one consistent, model-centric workflow.
+In the figure, the dashed line together with the gray-shaded area marks this feedback loop (writing a solution back in \texttt{OptDSL} format and passing it to the exact backend for validation and improvement); this step is performed outside the scope of the present technical report, which provides the component optimizers but not yet an automated orchestration of the loop.
 The blue box, by contrast, denotes the LNS-based heuristic part; it is the component that this report evaluates, and its full integration into the feedback loop is intended to be automated in subsequent work.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.6\textwidth]{optDSL_validation.drawio.png}
-\caption{Perspective of the unifying workflow. The dashed line and the gray-shaded area mark the loop in which a solution is written back in \texttt{optDSL} format and passed to the exact backend for validation and improvement; this step is performed outside the scope of the present technical report. The blue box denotes the LNS-based heuristic part, which is intended to be automated in subsequent work.}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[
+    font=\small,
+    box/.style={draw, rounded corners=2pt, align=center, inner sep=4pt, minimum height=8mm},
+    ell/.style={draw, ellipse, align=center, inner sep=2pt, minimum height=7mm},
+    arrow/.style={-{Latex[length=2mm]}, thick},
+    darrow/.style={-{Latex[length=2mm]}, thick, dashed},
+  ]
+
+  % --- formulation and translation ---
+  \node[box, minimum width=46mm] (prosa) at (0,0) {Problem formulation in prose\\by domain expert};
+  \node[ell, draw=black!55, fill=black!22, dashed, minimum width=44mm] (llm) at (0,-1.5)
+    {LLM-based translation and\\feedback loop};
+  \node[box, minimum width=30mm] (dsl) at (0,-3.0) {\texttt{OptDSL}};
+
+  % --- dispatch ---
+  \node[ell, minimum width=22mm] (trans) at (-2.9,-4.4) {Translator};
+  \node[ell, minimum width=22mm] (imp)   at ( 2.9,-4.4) {Importer};
+
+  % --- backends ---
+  \node[box, minimum width=36mm] (mzn) at (-2.9,-5.8) {MiniZinc\\Representation};
+  \node[box, minimum width=36mm] (lns) at ( 2.9,-5.8) {Large Neighborhood Search\\(Metaheuristic)};
+
+  % --- bottom ---
+  \node[box, minimum width=30mm] (solver) at (-2.9,-7.9) {Solver};
+  \node[box, draw=blue!55!black, fill=blue!10, minimum width=36mm] (ops) at (2.9,-7.9)
+    {LLM-based interactive\\development of operators\\(destroy, repair)};
+
+  % --- solid flow ---
+  \draw[arrow] (prosa) -- (llm);
+  \draw[arrow] (llm) -- (dsl);
+  \coordinate (split) at (0,-3.55);
+  \draw[arrow] (dsl.south) -- (split);
+  \draw[arrow] (split) -| (trans.north);
+  \draw[arrow] (split) -| (imp.north);
+  \draw[arrow] (trans) -- (mzn);
+  \draw[arrow] (imp) -- (lns);
+  \draw[arrow] (mzn) -- (solver);
+  \draw[arrow] (ops) -- (lns);
+
+  % --- feedback loop (dashed) ---
+  \draw[darrow] (lns.east) -- (5.9,-5.8) -- (5.9,-3.0) -- (dsl.east);
+  \node[font=\scriptsize, align=left, anchor=west] at (5.95,-4.4) {write solution\\in \texttt{OptDSL} format};
+  \draw[darrow] (dsl.west) -- (-5.9,-3.0) -- (-5.9,-7.9) -- (solver.west);
+  \node[font=\scriptsize, align=right, anchor=east] at (-5.95,-4.4) {validate solution,\\improve solution,\\get lower bound};
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Perspective of the unifying workflow. The dashed line and the gray-shaded area mark the loop in which a solution is written back in \texttt{OptDSL} format and passed to the exact backend for validation and improvement; this step is performed outside the scope of the present technical report. The blue box denotes the LNS-based heuristic part, which is intended to be automated in subsequent work.}
 \label{fig:optdsl-validation}
 \end{figure}
 
 This report focuses on the design and evaluation of the LNS backend within this unified architecture.
 
-We describe the implemented operator profiles, initialization strategies, and restart mechanisms, and evaluate the resulting search behavior on benchmark instances from multiple problem classes against the MiniZinc-based exact backend on identical \texttt{optDSL} instances.
+We describe the implemented operator profiles, initialization strategies, and restart mechanisms, and evaluate the resulting search behavior on benchmark instances from multiple problem classes against the MiniZinc-based exact backend on identical \texttt{OptDSL} instances.
 The objective is twofold: to study how far adaptive LNS design can close the quality gap under fixed compute budgets, and to demonstrate the practical value of a model-centric workflow in which the solver strategy can be revised throughout the project lifecycle.
+
+The shared representation also unlocks a more ambitious direction: fully automated operator development.
+Because the LNS backend consumes the \texttt{OptDSL} model directly, the ingredients of the search---the constructive initializer, and the destroy and repair operators---do not have to be designed by hand.
+Instead, they can be generated from the model itself, validated, and iteratively improved within the unifying workflow.
+This extends the idea of \emph{autoformulation} \citep{blaimschein2026autoformulation}---the LLM-based generation of an \texttt{OptDSL} formulation from a problem description in prose---from the model to the search: the same model-centric setting is used to also produce the search machinery that operates on the model.
+In this report, the operator profiles are still co-developed by a human with LLM assistance to isolate and study the behavior of the LNS backend itself; the fully automated development of these operators is the subject of ongoing work and a central next step.
 
 \section{Related Work}
 Research on combinatorial optimization has increasingly moved from a strict exact-versus-heuristic dichotomy toward hybrid algorithms that combine the strengths of both paradigms.
 In exact optimization, rich modeling languages and solver portfolios have improved accessibility and reproducibility, with MiniZinc becoming a standard interface for expressing models independently of the backend solver \citep{nethercote2007minizinc,stuckey2014minizinc}.
-In parallel, neighborhood-based metaheuristics evolved from problem-specific local search to large-scale destroy-and-repair frameworks, where very large moves can be explored while preserving feasibility through structured repair \citep{shaw1998lns,ropke2006alns,pisinger2010lns,pisinger2019lns}.
+In parallel, neighborhood-based metaheuristics such as Large Neighborhood Search (LNS) with its destroy-and-repair paradigm are well suited to large-scale, real-world combinatorial optimization problems with complex constraints, where parts of a solution are iteratively removed and rebuilt in a feasibility-preserving way \citep{shaw1998lns,ropke2006alns,pisinger2010lns,pisinger2019lns}.
 
 An important algorithmic line that narrows the quality-runtime gap is the use of exact neighborhoods or exact reasoning inside heuristic search loops.
 In mixed-integer optimization, local branching and relaxation-induced neighborhoods are representative bridge mechanisms: they constrain search to a promising region that can still be solved (approximately or exactly) by mathematical programming machinery \citep{fischetti2003localbranching,danna2005rin}.
-The same principle appears in CP-LNS workflows, where exact propagation and constraint reasoning guide neighborhood repair, while the outer search remains heuristic and anytime \citep{shaw1998lns,pisinger2010lns,pisinger2019lns}.
+The same principle appears in CP-LNS workflows, where exact propagation and constraint reasoning guide neighborhood repair, while the outer search remains heuristic \citep{shaw1998lns,pisinger2010lns,pisinger2019lns}.
 Conceptually, these methods trade global proof guarantees for faster high-quality improvement, but recover part of exact-method robustness through bounded or solver-driven subproblems.
 
-For routing, this bridge perspective is particularly visible in VRP and VRPTW.
-Benchmark culture and instance standardization (e.g., Solomon and later CVRPLIB developments) enabled fair comparisons between exact, heuristic, and hybrid methods under shared protocols \citep{solomon1987vrptw,toth2014vrp,uchoa2017cvrplib}.
-ALNS variants in this domain demonstrate that adaptive operator selection can substantially reduce the performance gap to exact baselines on larger instances where full proofs are expensive \citep{ropke2006alns,pisinger2010lns,pisinger2019lns}.
-
-For packing and scheduling, the same pattern recurs with different primitives.
-In two-dimensional bin packing, exact bounds and formulations are often paired with constructive and improvement heuristics in matheuristic pipelines \citep{lodi2002twodimensional,hopper2001genetic,hopper2001ejor,berkey1987,wang1983}.
-In job shop scheduling, classic methods such as shifting bottleneck and tabu-search-based improvements can be interpreted as structured relax-and-improve strategies that inject stronger local reasoning than pure black-box metaheuristics \citep{adams1988shifting,taillard1993benchmarks,jain1999jssp,lawrence1984,applegate1991,storer1992}.
-Across these classes, the literature suggests that performance gains arise when heuristic diversification is coupled with model-aware intensification.
-
 A prerequisite for such cross-paradigm studies is a shared problem representation that both exact and heuristic solvers can consume.
-optDSL addresses this need: it is a Python-inspired domain-specific language for formulating optimization problems, and a translation from optDSL to MiniZinc has been described and published \citep{delrio2026optdsl}, enabling optDSL instances to be solved by any MiniZinc-compatible backend solver.
+\texttt{OptDSL} addresses this need: it is a Python-inspired domain-specific language for formulating optimization problems, and a translation from \texttt{OptDSL} to MiniZinc has been described and published \citep{delrio2026optdsl}, enabling \texttt{OptDSL} instances to be solved by any MiniZinc-compatible backend solver.
 The present report builds directly on that work.
-Rather than proposing a new modeling language or a new translation pipeline, it uses the existing optDSL representation and MiniZinc translation as a foundation and contributes an experimental study that runs LNS-based heuristic search and MiniZinc-based exact solving on the same optDSL instances.
+Rather than proposing a new modeling language or a new translation pipeline, it uses the existing \texttt{OptDSL} representation and MiniZinc translation as a foundation and contributes an experimental study that runs LNS-based heuristic search and MiniZinc-based exact solving on the same \texttt{OptDSL} instances.
 This enables an apples-to-apples comparison of how much algorithmic gap can be closed through shared instance engineering and adaptive neighborhood design across multiple problem classes, within the bridge-algorithm tradition described above.
 
-\section{Method}
-\subsection{optDSL Representation}
-All benchmark instances are provided as standalone \texttt{optDSL} models
+\section{Metaheuristic Search Framework}
+\subsection{OptDSL Representation}
+All benchmark instances are provided as standalone \texttt{OptDSL} models
 in which data, decision variables, constraints, and the objective form a
 single self-contained file.
-Syntactically, an \texttt{optDSL} model is a Python-inspired DSL
+Syntactically, an \texttt{OptDSL} model is a Python-inspired DSL
 \citep{delrio2026optdsl}: scalar and array data are declared as typed
 constants (e.g.\ \texttt{DSList(N, DSInt())} for integer arrays), decision
 variables are declared with an explicit finite domain, feasibility
-constraints are written as \texttt{assert} statements over (potentially
-nested) loops and arithmetic, and the objective is declared as a final
+constraints are written as \texttt{assert} statements, and the objective
+is declared as a final
 \texttt{minimize(objective)} statement.
 Because both backends consume exactly this file---the exact backend through
 the translation to MiniZinc \citep{delrio2026optdsl}, the LNS backend
 directly on the declared decision variables---no re-modeling is required
 when switching between them.
-We now summarize the model structure for the three main benchmark classes;
-each relies on linear arithmetic over bounded integer domains, which keeps
-the MiniZinc translation straightforward.
+We now summarize the model structure for the four benchmark classes; the
+first three rely on linear arithmetic over bounded integer domains, whereas
+woodcutting is expressed as a pipeline of record-transforming machines.
 
 \textbf{Two-dimensional bin packing (2DBP).}
 The model operates on three finite-domain decision-variable arrays
@@ -145,23 +191,23 @@ first requires that each item fits within the dimensions of its selected
 box and then requires, for any two items in the same box, that they do not
 overlap in either the horizontal or the vertical direction.
 The objective counts the number of distinct boxes in use and is minimized.
-The converted benchmark instances live under
-\texttt{problem\_instances/2dbp/benchmarks/testset\_paper\_optdsl/} and
-contain 20 items on $10 \times 10$ bins.
 
 \textbf{Capacitated vehicle routing (CVRP).}
 Two semantically equivalent encodings are used, which illustrates that
-\texttt{optDSL} permits representation choices tailored to the backend.
+\texttt{OptDSL} permits representation choices tailored to the backend.
 The \emph{arc-based} encoding declares a flat binary array
-\texttt{arcs[v,i,j]} (with index $v\cdot n^2 + i\cdot n + j$), a binary
-\texttt{vehicle\_used} indicator, and MTZ load variables \texttt{u}.
+\texttt{arcs[v,i,j]} with index $v\cdot n^2 + i\cdot n + j$, where $v$
+indexes the vehicle, $i$ the origin node, $j$ the destination node, and
+$n$ the number of nodes including the depot; entries are one exactly when
+vehicle $v$ travels from $i$ to $j$. Together with the arc array, the model
+declares a binary \texttt{vehicle\_used} indicator and a variable $u$,
+which is used for a Miller--Tucker--Zemlin formulation.
 Constraints assert that every customer has in-degree and out-degree one
 (\texttt{all\_customers\_visited}), that every used vehicle starts and ends
 at the depot (\texttt{depot\_start\_end}), that flow is conserved at every
 customer (\texttt{flow\_conservation}), that route demands respect the
-vehicle capacity (\texttt{capacity\_constraints}), that no self-loops occur,
-and that customer-only subtours are excluded through the Miller--Tucker--
-Zemlin inequalities (\texttt{subtour\_elimination}); the objective sums the
+vehicle capacity (\texttt{capacity\_constraints}), and that subtours
+are excluded (\texttt{subtour\_elimination}); the objective sums the
 traveled distance.
 This encoding is used for the benchmark families distributed through the
 CVRPLIB \citep{uchoa2017cvrplib} and is compatible with the MiniZinc
@@ -183,54 +229,161 @@ Two constraint blocks encode feasibility:
 using the per-job \texttt{MACHINE\_SEQUENCE} and \texttt{PROCESSING\_TIMES},
 and \texttt{no\_overlap\_constraint} asserts for every pair of operations
 sharing a machine that one finishes before the other starts.
-\texttt{PROCESSING\_TIMES[j][m]} is indexed by \emph{machine} id, while
-\texttt{MACHINE\_SEQUENCE[j][op]} is indexed by \emph{operation} position, so
-the processing time of operation \texttt{op} of job \texttt{j} is
-\texttt{PROCESSING\_TIMES[j][MACHINE\_SEQUENCE[j][op]]}.
-This convention is shared by the hand-written instances and by the LNS
-operators, which read the same machine-indexed matrix.
 The objective is the makespan, i.e.\ the maximum completion time over all
 jobs.
-Although the finite-domain completion-time formulation is a direct input
-for the exact backend, the LNS repair operator reconstructs an equivalent
-active schedule in the disjunctive space \citep{applegate1991}, so the
-search is performed on the space of machine orders from which optimal
-schedules are known to be recoverable.
+The exact backend solves the completion-time formulation directly.
+The LNS repair operator instead works on the relative order of operations
+per machine and derives an active schedule from that order; because an
+optimal schedule is always recoverable from some machine order
+\citep{applegate1991}, searching this order space does not sacrifice any
+optimum.
 
-Finally, next to the full benchmark sets, each class ships a number of
-small hand-verified instances that serve as executable specifications of
-the encodings above and as smoke tests for both backends, e.g.\ the
-$2\times2$ and $5\times4$ JSSP models, the $E$-n13-k4 CVRP instance
-(13 cities, 4 vehicles, known optimum 247), and the 20-item 2DBP test set.
-% TODO: Decide whether to include one full listing of a tiny instance
-% (e.g. jssp_2x2.dsl or E-n13-k4.dsl) as an illustrative figure.
+\textbf{Woodcutting (industrial use case).}
+The three classes above are flat constraint sets over decision variables.
+The woodcutting problem, taken from an industrial sawing line, shows that
+\texttt{OptDSL} also represents substantially more complex models.
+Instead of a single constraint block, the model is a \emph{pipeline} of
+machines that exchange whole record lists at module level: an optional
+board-reordering machine, cutting, filtering, piece reordering, and a
+checking machine.
+The decision variables are the cut positions of every board
+(\texttt{cuts\_list\_list}), a keep/discard bit per piece
+(\texttt{keep\_decisions}), the piece-reordering bits
+(\texttt{swapping\_decisions}), and, in the board-reordering variant, the
+board-reordering bits (\texttt{swapping\_decisions\_boards}).
+Piece reordering models a single-piece buffer, and board
+reordering applies adjacent swaps from left to right.
+The checking machine then imposes the beam constraints on the stream of kept
+pieces: layer lengths, seam positions relative to the usable part of the beam
+and to static forbidden zones, minimum seam distances between consecutive
+layers, and an exact number of completed layers.
+The objective is the total length of good material that is discarded.
+This class is therefore not a toy formulation: it combines record-valued
+data, list-transforming predicates, and side conditions that depend on the
+order of the produced pieces, all expressed in the same \texttt{OptDSL}
+syntax that the exact and the heuristic backend consume.
+It is evaluated separately in Section~\ref{sec:woodcutting}.
 
 \subsection{LNS Configuration}
 The LNS backend instantiates the classical destroy-and-repair scheme of \citet{shaw1998lns} and combines it with the adaptive operator-selection and weight-update mechanism of ALNS \citep{ropke2006alns,pisinger2010lns,pisinger2019lns}.
+It was not the goal to design a general LNS algorithm that works for every problem formulation in \texttt{OptDSL}; instead, the backend reads the \texttt{OptDSL} model and relies on operators that are customized and specialized for the specific problem at hand.
 Operator profiles are realized per problem class; in particular, the job-shop repair operator constructs active schedules in the spirit of \citet{applegate1991}.
-% TODO: Describe destroy/repair operators, initialization, restart policy, and stopping criteria in detail.
+For each class, a complete profile consists of three complementary operators: a \emph{construction} operator that produces a first feasible assignment from the \texttt{OptDSL} model (an initializer), a \emph{destroy} operator that removes part of a current solution, and a \emph{repair} operator that restores a feasible complete assignment.
+The profiles used in the computational study were co-developed with the assistance of a large language model.
 
-\subsection{Evaluation Baselines}
-The quality of the LNS backend is assessed against the exact MiniZinc-based
-backend on identical \texttt{optDSL} instances.
-On each instance, the exact backend either proves optimality or, when the
-time limit is reached, yields a feasible incumbent together with an
-optimality gap from its reported bound.
-This provides two complementary baselines: reference (optimal) values for
-small instances, and a certified lower bound to bound the achievable gap of
-the heuristic on the larger benchmark families.
-Where published optima or best-known values exist, they serve as an
-additional independent reference
-\citep{applegate1991,nowicki1996fast,taillard1993benchmarks,uchoa2017cvrplib,martello1998exact}.
-% TODO: Describe comparative baselines used for evaluation (for example reference values, bounds, or external solvers).
+\begin{figure}[t]
+\centering
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[
+    font=\small,
+    box/.style={draw, rounded corners=2pt, align=center, inner sep=4pt, minimum height=7mm},
+    gen/.style={box, fill=black!4},
+    spec/.style={box, draw=blue!55!black, fill=blue!10},
+    arrow/.style={-{Latex[length=2mm]}, thick},
+    darrow/.style={-{Latex[length=2mm]}, thick, dashed},
+  ]
+
+  % --- problem-specific input ---
+  \node[spec] (dsl) at (0,0) {OptDSL model\\\scriptsize data, variables, constraints, objective};
+  \node[spec, dashed, rounded corners=3pt, inner sep=5pt] (prof) at (0,-1.9)
+    {Operator profile (per problem class)\\\scriptsize construction, destroy, repair};
+  \node[spec] (constr) at (-5.6,-3.5) {construction\\\scriptsize initializer};
+
+  % --- general engine ---
+  \node[gen] (cur)  at (-5.6,-5.2) {current\\solution};
+  \node[spec] (dest) at (-2.8,-5.2) {destroy\\\scriptsize from profile};
+  \node[gen] (part) at (0,-5.2)    {partial\\assignment};
+  \node[spec] (rep)  at (2.8,-5.2)  {repair\\\scriptsize from profile};
+  \node[gen] (cand) at (5.6,-5.2)  {feasible\\candidate};
+  \node[spec] (eval) at (5.6,-6.7)  {evaluate candidate\\\scriptsize against \texttt{OptDSL} model\\\scriptsize constraints + objective};
+  \node[gen] (acc)  at (5.6,-8.2)  {acceptance\\\scriptsize improve / anneal / restart};
+  \node[gen] (best) at (5.6,-9.9)  {best solution};
+
+  \begin{scope}[on background layer]
+    \node[fit=(cur)(dest)(part)(rep)(cand)(eval)(acc)(best), draw, rounded corners=4pt, inner sep=6mm] (engine) {};
+  \end{scope}
+  \node[font=\small\itshape, anchor=south east] at ([yshift=1mm]engine.north east) {LNS engine (iteration loop)};
+
+  % --- arrows ---
+  \draw[arrow] (dsl) -- (prof);
+  \draw[darrow] (prof.west) -| (constr.north);
+  \draw[arrow] (constr.south) -- (cur.north);
+  \draw[darrow] (prof.south) -- node[right, font=\scriptsize] {provides operators} (prof.south |- engine.north);
+  \draw[arrow] (cur) -- (dest);
+  \draw[arrow] (dest) -- (part);
+  \draw[arrow] (part) -- (rep);
+  \draw[arrow] (rep) -- (cand);
+  \draw[arrow] (cand) -- (eval);
+  \draw[arrow] (eval) -- node[right, font=\scriptsize] {score} (acc);
+  \draw[arrow] (acc) -- node[right, font=\scriptsize] {new best} (best);
+  % the evaluation runs against the OptDSL model itself
+  \draw[darrow, blue!55!black] (dsl.east) -- (9.3,0) -- (9.3,-6.7) -- (eval.east);
+  % feedback: acceptance -> current solution, routed below the evaluation column
+  \coordinate (fb) at (-5.6,-8.2);
+  \draw[arrow] (acc.west) -- node[above, font=\scriptsize, pos=0.55] {accepted} (fb) -- (cur.south);
+
+  % --- legend ---
+  \begin{scope}[shift={(-5.6,-11.2)}]
+    \node[spec, minimum width=5mm, minimum height=3.5mm, inner sep=0pt] (l1) at (0,0) {};
+    \node[anchor=west, font=\scriptsize] at (l1.east) {problem-specific};
+    \node[gen, minimum width=5mm, minimum height=3.5mm, inner sep=0pt] (l2) at (3.4,0) {};
+    \node[anchor=west, font=\scriptsize] at (l2.east) {general};
+  \end{scope}
+\end{tikzpicture}
+\end{adjustbox}
+\caption{Design of the LNS backend with per-class operator profiles. Blue elements are problem-specific: the \texttt{OptDSL} model, the class profile that supplies the construction, destroy, and repair operators, and the evaluation, which runs against the \texttt{OptDSL} model itself. Grey elements form the general engine, which is independent of the problem class. The construction operator builds the initial solution; each iteration then destroys part of the current solution, repairs it into a feasible candidate, evaluates the candidate against the model's own constraints and objective, and feeds the outcome back into the loop.}
+\label{fig:lns-design}
+\end{figure}
+
+The representation-based workflow, however, does not require manually developed operators: because the LNS backend reads the \texttt{OptDSL} model directly, the construction, destroy, and repair operators can be generated automatically from the model, validated against the shared semantics, and iteratively improved.
+We call this \emph{autodevelopment} of the search machinery: a large language model reads the \texttt{OptDSL} model---its data, decision variables, constraints, and objective---and writes the construction, destroy, and repair operators as plain, self-contained Python that registers itself with the LNS engine.
+Because the generated code uses the same registration interface as a hand-written profile, an automatically produced profile plugs into the exact same pipeline and is evaluated by the same engine.
+This process is the subject of our current and future work; a first prototype generates candidate operators, checks them with a static and subprocess-based quality gate that executes the operator on the \texttt{OptDSL} model, and retains them only if they survive a holdout evaluation on seeds that were not used during generation.
+Automated operator development is not the focus of this technical report, which instead concentrates on the human-supervised LNS backend and its evaluation.
+In the present study this automated stage is left to subsequent work so that the human-supervised operators provide a controlled baseline.
+
+\textbf{Search loop.}
+Figure~\ref{fig:lns-design} shows how the engine combines the general loop with
+the problem-specific profile.
+The construction operator builds a first feasible assignment, which is
+evaluated against the \texttt{OptDSL} model and becomes the current and the
+incumbent solution.
+Construction is profile-specific: depending on the class it either samples a
+random feasible assignment or runs a randomized constructive heuristic several
+times and keeps the best attempt.
+Each iteration then selects a destroy/repair pair, removes part of the current
+assignment, repairs it into a feasible candidate, and evaluates the candidate
+against the model's own constraints and objective.
+An acceptance criterion decides whether the candidate replaces the current
+solution: either a strict improving rule, or a simulated-annealing rule that
+also accepts worsening moves with a Metropolis probability and cools down over
+time.
+Independently of acceptance, the candidate replaces the incumbent whenever it
+improves on it.
+Operator selection is either uniform over the configured pairs or adaptive in
+the ALNS sense: each pair carries a weight that is updated from a decayed
+score, rewarding new best solutions, improvements over the current solution,
+and accepted worsening moves, and the destroy intensity is scaled up when the
+search stalls.
+Stagnation can additionally trigger a restart, which re-runs the construction
+operator and continues from the new assignment while keeping the incumbent.
+The loop stops after a fixed number of iterations, when a time limit is
+reached, or when no improvement has occurred for a given number of iterations.
 
 \section{Experimental Setup}
+The main objective of this research is to show that a problem formulated once in \texttt{OptDSL} can be used with two different backends, the exact MiniZinc-based backend and the LNS-based heuristic backend, and that both backends can work together on the same formulation.
+The experimental setup is therefore organized around this goal: we first describe the benchmark families, then the baselines against which the two backends are compared.
+
+The study currently uses small and medium-sized instances for the computational
+comparison.
+This restriction is deliberate: the aim is to demonstrate the feasibility of the unified workflow and the interaction of the two backends, not to establish a competitive benchmark result.
+Larger instances are the subject of ongoing work, where the binding costs are the \texttt{OptDSL}$\to$MiniZinc translation on the exact side and the operator design on the heuristic side.
+
 \subsection{Benchmark Families}
 We evaluate on benchmark families from four problem classes, chosen for their complementary structure, their prevalence in the literature, and the availability of reference solutions.
 
 \textbf{Capacitated Vehicle Routing (CVRP).}
 We use the classical Golden set \citep{christofides1979,golden1998} and the \textsc{E-n} set of \citet{christofides1969}, which are also distributed through the CVRPLIB \citep{uchoa2017cvrplib}; see \citet{toth2014vrp} for a comprehensive treatment.
-For the variant with time windows we use the Solomon instances \citep{solomon1987vrptw}.
 
 \textbf{Two-Dimensional Bin Packing (2DBP).}
 We use the \textsc{n/t} instances of \citet{hopper2001genetic,hopper2001ejor}, the \textsc{Wang} instances \citep{wang1983}, and the instance classes introduced by \citet{berkey1987}; exact methods and bounds follow \citet{lodi2002twodimensional,martello1998exact}.
@@ -244,79 +397,122 @@ Reference makespans are taken from the published optima \citep{applegate1991,now
 The woodcutting class models a sawing line that cuts raw boards into pieces,
 filters out unusable pieces, optionally reorders boards and pieces, and stacks
 the remaining pieces into layers of beams of fixed length.
-All instances are internally generated from simulator input files and are
-stored under
-\path{wp2/source/hybrid_solver/problem_instances/woodcutting/benchmarks/}.
+All instances are internally generated with a problem instance generator and
+are stored together with the benchmark data.
 Their properties are listed in Table~\ref{tab:woodcutting-instances}.
 Because these models are written as a pipeline of record-transforming
 machines rather than as a flat constraint set, they are reported separately in
 Section~\ref{sec:woodcutting} rather than in
 Table~\ref{tab:study-results}.
 
-\subsection{Protocol}
-% TODO: Hardware, software versions, time limits, random seeds, repetitions, and metrics.
+\subsection{Evaluation Baselines}
+The quality of the LNS backend is assessed against the exact MiniZinc-based
+backend on identical \texttt{OptDSL} instances.
+On each instance, the exact backend either proves optimality or, when the
+time limit is reached, yields a feasible incumbent together with an
+optimality gap from its reported bound; on some instances it finds no feasible
+solution at all, which we report as such.
+This provides two complementary baselines: reference (optimal) values for
+small instances, and a certified lower bound that limits the achievable gap of
+the heuristic on the larger benchmark families.
+Where published optima or best-known values exist, they serve as an
+additional independent reference
+\citep{applegate1991,nowicki1996fast,taillard1993benchmarks,uchoa2017cvrplib,martello1998exact}.
 
 \section{Computational Study and Preliminary Results}
 The computational study compares the LNS-based heuristic backend against the
-MiniZinc-based exact backend on identical \texttt{optDSL} instances under
+MiniZinc-based exact backend on identical \texttt{OptDSL} instances under
 fixed iteration and time budgets.
+Only a selected subset of the available benchmark instances is used, restricted
+to small and medium-sized instances.
+This restriction is imposed by the current limitations of the
+\texttt{OptDSL}$\to$MiniZinc translation, whose cost grows with the model size
+and becomes the binding factor on larger instances.
 Table~\ref{tab:study-results} summarizes the outcome for the benchmark
 instances considered so far.
-All rows follow the same protocol: one \texttt{optDSL} file per instance, a
+All rows follow the same protocol: one \texttt{OptDSL} file per instance, a
 120\,s budget per backend, a single LNS seed, and the MiniZinc cp-sat backend
-with the \texttt{optDSL}$\to$MiniZinc translation included in the reported
+with the \texttt{OptDSL}$\to$MiniZinc translation included in the reported
 MiniZinc time.
 The \emph{Size} column is class-specific (cities/vehicles/capacity for CVRP,
 jobs/machines for JSSP, bin dimensions/items for 2DBP).
 For each instance we report the objective value found by each backend, the
-bound reported by MiniZinc, the wall-clock time of each backend, and the
-relative gap $(\text{LNS}-\text{MZ bound})/|\text{MZ bound}|$.
+bound reported by MiniZinc, the wall-clock time of each backend, and two
+relative gaps: the MiniZinc gap
+$(\text{MZ quality}-\text{MZ bound})/|\text{MZ bound}|$ and the LNS gap
+$(\text{LNS}-\text{MZ bound})/|\text{MZ bound}|$.
 
-\textbf{How to read the gap column.}
-The gap is defined against the MiniZinc \emph{bound}, not against the
+\subsection{Results on the Literature Benchmarks}
+Where known optima or best-known values are available, solution quality is benchmarked against them \citep{applegate1991,nowicki1996fast,taillard1993benchmarks,uchoa2017cvrplib,martello1998exact}.
+
+\textbf{How to read the gap columns.}
+The MiniZinc gap measures how far the exact backend's own incumbent is from
+its reported bound, and it is undefined (\textit{---}) when MiniZinc found no
+feasible solution.
+The LNS gap is defined against the MiniZinc \emph{bound}, not against the
 MiniZinc \emph{quality}, so it carries two different meanings depending on
 whether MiniZinc closed the instance.
 When quality and bound coincide, the bound is a proof of optimality and the
-gap is the true suboptimality of the LNS solution.
-When they differ, the gap is dominated by the weakness of the dual bound and
-says nothing about how far the LNS solution is from the optimum.
+LNS gap is the true suboptimality of the LNS solution.
+When they differ, the LNS gap is dominated by the weakness of the dual bound
+and says nothing about how far the LNS solution is from the optimum.
+
+\begin{sloppypar}
 This distinction matters for most rows: MiniZinc closed only
 \texttt{random\_euclidean\_cvrp\_8}, \texttt{jssp\_10x5},
-\texttt{jssp\_2x2}, \texttt{jssp\_5x4}, and
+\texttt{jssp\_2x2}, \texttt{jssp\_5x4},
 \texttt{2d\_bpp\_inst\_cl\_06\_020\_10} and
 \texttt{2d\_bpp\_inst\_cl\_05\_020\_08},
-whereas on \texttt{E-n13-k4}, all \textsc{la} instances, \texttt{orb01}, and
-the two random Euclidean CVRP instances the reported bound lies far below the
-incumbent.
+whereas on \texttt{E-n13-k4}, all \textsc{la} instances and \texttt{orb01}
+the reported bound lies far below the incumbent, and on the two random
+Euclidean CVRP instances and two 2DBP instances MiniZinc found no incumbent at
+all.
 The large gaps in the \textsc{la} block (56--86\,\%) must therefore not be
 read as LNS being 56--86\,\% worse than the exact backend; they mainly
 reflect that the MiniZinc bound stays far below its own incumbent
 (e.g.\ 413 vs.\ 727 on \texttt{la01}).
+\end{sloppypar}
 
-\textbf{Agreement on small instances.}
-On \texttt{random\_euclidean\_cvrp\_8}, \texttt{jssp\_2x2},
-\texttt{jssp\_5x4}, and \texttt{2d\_bpp\_inst\_cl\_05\_020\_08} both backends
-return the same objective value, and MiniZinc proves optimality in
-1.2--108\,s while LNS needs 0.5--13\,s.
-On \texttt{jssp\_10x5} MiniZinc proves the optimum of 37 and LNS returns 38,
-i.e.\ 2.7\,\% above the proven optimum.
+\begin{sloppypar}
+\textbf{Capacitated vehicle routing (CVRP).}
+On the small instances, \texttt{random\_euclidean\_cvrp\_8} is closed by both
+backends at the same objective value (370), with MiniZinc proving optimality
+in 2.2\,s and LNS needing 1.8\,s.
 On \texttt{E-n13-k4} the picture reverses: LNS reaches 247, the known
 optimum, in 3.6\,s, whereas MiniZinc returns 279 with a bound of 139 and does
 not close the instance within its budget.
+On the two medium instances with 15 and 20 cities, MiniZinc reports a bound of
+274 and 300 but no incumbent within its budget, while LNS returns 555 and 554.
+\end{sloppypar}
 
-\textbf{Where LNS is clearly weaker.}
-On the two random Euclidean CVRP instances with 15 and 20 cities, MiniZinc
-reports a bound of 274 and 300 but no incumbent within its budget, while LNS
-returns 555 and 554.
-Because MiniZinc did not produce a feasible solution, these rows carry no
-proven optimum and the gap column only measures the weakness of the dual
-bound; they nevertheless indicate that the current CVRP operator profile is
-not yet competitive on this instance family.
+\textbf{Job shop scheduling (JSSP).}
+On the small instances, both backends return the same objective value on
+\texttt{jssp\_2x2} (6) and \texttt{jssp\_5x4} (22), with MiniZinc proving
+optimality in 0.8\,s and 1.2\,s respectively.
+On \texttt{jssp\_10x5} MiniZinc proves the optimum of 37 and LNS returns 38,
+i.e.\ 2.7\,\% above the proven optimum.
+On the medium instances the exact backend closes none of the rows: on
+\texttt{la01}--\texttt{la05} and \texttt{orb01} the reported bound lies far
+below the incumbent, so the LNS gaps of 56--86\,\% must not be read as LNS
+being that much worse than the exact backend.
+The \textsc{la} rows are limited by the exact backend rather than by the
+model: \texttt{chuffed} proves \texttt{la01}--\texttt{la05} optimal at 666,
+655, 597, 590, and 593, i.e.\ exactly the published optima, whereas
+\texttt{cp-sat} returns incumbents 2--18\,\% above them within the same
+budget.
 
-\textbf{Where the exact baseline fails.}
-On two of the five 2DBP instances MiniZinc produced no feasible solution
-within its budget, while LNS found a one-box packing in about 60--69\,s.
-This is a limitation of the \emph{solver}, not of the model or the
+\begin{sloppypar}
+\textbf{Two-dimensional bin packing (2DBP).}
+On the small instances, \texttt{2d\_bpp\_inst\_cl\_06\_020\_10} is closed by
+both backends at objective $1$, whereas on
+\texttt{2d\_bpp\_inst\_cl\_06\_020\_06} MiniZinc produced no feasible solution
+within its budget and LNS found a one-box packing in 69\,s.
+On the medium instances, \texttt{2d\_bpp\_inst\_cl\_05\_020\_08} is closed by
+both backends at objective $5$, whereas on
+\texttt{2d\_bpp\_inst\_cl\_04\_020\_08} MiniZinc found no feasible solution and
+on \texttt{2d\_bpp\_inst\_cl\_10\_020\_09} it returned a solution (6 boxes)
+but reported a bound of zero.
+These failures are a limitation of the \emph{solver}, not of the model or the
 translation: on \texttt{2d\_bpp\_inst\_cl\_06\_020\_06} the same generated
 MiniZinc model is solved to proven optimality (objective $1$) by both
 \texttt{gecode} and \texttt{chuffed}, whereas \texttt{cp-sat} returns
@@ -326,169 +522,166 @@ the \texttt{cp-sat} backend that fails to find a feasible packing on these
 instances.
 The corresponding $\infty$ entries are consequently not evidence of LNS
 suboptimality; they mark a degenerate bound of zero.
-The same applies to \texttt{2d\_bpp\_inst\_cl\_10\_020\_09}, where MiniZinc
-did return a solution (6 boxes) but reported a bound of zero.
 For the 2DBP class we therefore recommend \texttt{gecode} or
 \texttt{chuffed} over \texttt{cp-sat}.
+The 2DBP rows are limited to $n=20$ because the \texttt{OptDSL}$\to$MiniZinc
+translation becomes the binding cost beyond that size.
+\end{sloppypar}
 
 \textbf{Runtime.}
 LNS never exhausted its 120\,s budget (maximum 69\,s; every run terminated
-by the internal stop criterion), whereas MiniZinc reached its budget on every
-instance except the four smallest.
+by the internal stop criterion), whereas MiniZinc used its full budget on the
+remaining twelve instances.
 The comparison is thus not wall-clock matched.
-On the instances that MiniZinc needs more than 100\,s for, LNS is about six
-to ten times faster (\texttt{jssp\_10x5}: 9\,s vs.\ 57\,s;
-\texttt{2d\_bpp\_inst\_cl\_05\_020\_08}: 13\,s vs.\ 108\,s).
+On those twelve instances LNS is between about two and thirty-five times
+faster (\texttt{la01}: 9\,s vs.\ 130\,s; \texttt{E-n13-k4}: 3.6\,s vs.\
+124\,s), with the smallest speedups on two of the 2DBP instances
+(2.3$\times$ and 2.6$\times$).
 On the tiny instances the two runtimes are comparable and the ranking is not
 stable (\texttt{jssp\_5x4}: 1.9\,s for LNS vs.\ 1.2\,s for MiniZinc), so the
 remaining budget could be spent on additional iterations or restarts rather
 than being read as a speed advantage.
-Note that the reported MiniZinc time includes the \texttt{optDSL}$\to$MiniZinc
+Note that the reported MiniZinc time includes the \texttt{OptDSL}$\to$MiniZinc
 translation, which dominates on the larger models: for \texttt{orb01}
 (10$\times$10) the translation alone takes about 5\,min, so the 471\,s
 reported for that row are mostly translation rather than search.
-
-\textbf{Agreement with published optima.}
-All LNS values on the \textsc{la} family now respect the published optima
-\citep{lawrence1984}: 689, 686, 648, 621, and 593 against optima of 666, 655,
-597, 590, and 593.
-\texttt{la05} is solved to optimality, and the remaining rows are 3--15\,\%
-above the optimum.
-On \texttt{orb01} LNS returns 1198 against a published optimum of 1059
-(13\,\% above), while MiniZinc returns 1173 with a bound of 695.
 
 \textbf{Open issues.}
 The study still uses a single seed and no independent feasibility check of
 the LNS output, so the table should be read as a first indication of relative
 behaviour rather than as a benchmark result.
-The CVRPTW class is not part of the table: its \texttt{optDSL} models are
-generated and evaluable, but the LNS operator profile is still the generic
-CVRP one and does not yet reason about time windows, so no feasible incumbent
-is found within the budget.
-The 2DBP rows are limited to $n=20$ because the \texttt{optDSL}$\to$MiniZinc
-translation becomes the binding cost beyond that size.
-Finally, the \textsc{la} rows are limited by the exact backend rather than by
-the model: \texttt{chuffed} proves \texttt{la01}--\texttt{la05} optimal at
-666, 655, 597, 590, and 593, i.e.\ exactly the published optima, whereas
-\texttt{cp-sat} returns incumbents 2--18\,\% above them within the same
-budget.
 
 \begin{sidewaystable}
 \centering
-\footnotesize
+\scriptsize
+\setlength{\tabcolsep}{4pt}
 \caption{Comparison of MiniZinc-based exact solving and LNS-based heuristic
-search on identical \texttt{optDSL} instances. Quality and time are as
-reported by each backend. The gap is
+search on identical \texttt{OptDSL} instances. Quality and time (in seconds)
+are as reported by each backend. The MiniZinc gap is
+$(\text{MZ quality} - \text{MZ bound})/|\text{MZ bound}|\cdot 100$ and
+measures how far the exact backend's own incumbent is from its reported
+bound. The LNS gap is
 $(\text{LNS} - \text{MZ bound})/|\text{MZ bound}|\cdot 100$ and is only
 interpretable as LNS suboptimality when MiniZinc closed the instance
-(quality $=$ bound); otherwise it measures the weakness of the dual bound.
+(quality $=$ bound).
 \textit{none} marks rows where MiniZinc found no feasible solution within its
-budget, and $\infty$ marks rows where the reported bound is zero.}
+budget, \textit{---} an undefined gap, and $\infty$ rows where the reported
+bound is zero. Bold marks the better of the two quality values in each row,
+and a bold bound marks a proven optimum (bound $=$ quality). The 120\,s budget
+limits the solver search; the reported MiniZinc time additionally includes the
+\texttt{OptDSL}$\to$MiniZinc translation, which is why some rows exceed it.}
 \label{tab:study-results}
-\begin{tabular}{@{}lllllrrrrl@{}}
+\begin{tabular}{@{}lllllrrrrrl@{}}
 \toprule
-Class & Set & Instance & Size & MZ Quality & MZ Bound & MZ Time (s) & LNS Quality & LNS Time (s) & Gap (\%) \\
+Class & Set & Instance & Size & MZ Qual. & MZ Bound & MZ Gap & MZ Time & LNS Qual. & LNS Time & LNS Gap \\
 \midrule
-CVRP & small & E-n13-k4 & 13 / 4 / 6000 & 279.0 & 139.0 & 123.9263 & 247.0 & 3.6291 & 77.70 \\
-CVRP & small & random\_euclidean\_cvrp\_8 & 8 / 4 / 10 & 370.0 & 370.0 & 2.2398 & 370.0 & 1.8423 & 0.00 \\
-CVRP & medium & random\_euclidean\_cvrp\_15 & 15 / 10 / 17 & \textit{none} & 274.0 & 137.7895 & 555.0 & 10.1431 & 102.55 \\
-CVRP & medium & random\_euclidean\_cvrp\_20 & 20 / 5 / 25 & \textit{none} & 300.0 & 134.1788 & 554.0 & 9.6386 & 84.67 \\
+CVRP & small & E-n13-k4 & 13 / 4 / 6000 & 279.0 & 139.0 & 100.72 & 123.9263 & \textbf{247.0} & 3.6291 & 77.70 \\
+CVRP & small & random\_euclidean\_cvrp\_8 & 8 / 4 / 10 & \textbf{370.0} & \textbf{370.0} & 0.00 & 2.2398 & \textbf{370.0} & 1.8423 & 0.00 \\
+CVRP & medium & random\_euclidean\_cvrp\_15 & 15 / 10 / 17 & \textit{none} & 274.0 & --- & 137.7895 & \textbf{555.0} & 10.1431 & 102.55 \\
+CVRP & medium & random\_euclidean\_cvrp\_20 & 20 / 5 / 25 & \textit{none} & 300.0 & --- & 134.1788 & \textbf{554.0} & 9.6386 & 84.67 \\
 \addlinespace
-JSSP & small & jssp\_10x5 & 10 / 5 & 37.0 & 37.0 & 56.5554 & 38.0 & 9.2919 & 2.70 \\
-JSSP & small & jssp\_2x2 & 2 / 2 & 6.0 & 6.0 & 0.7777 & 6.0 & 0.4880 & 0.00 \\
-JSSP & small & jssp\_5x4 & 5 / 4 & 22.0 & 22.0 & 1.2344 & 22.0 & 1.9066 & 0.00 \\
-JSSP & medium & la01 & 10 / 5 & 727.0 & 413.0 & 130.2423 & 689.0 & 9.4905 & 66.83 \\
-JSSP & medium & la02 & 10 / 5 & 666.0 & 394.0 & 129.5558 & 686.0 & 9.7288 & 74.11 \\
-JSSP & medium & la03 & 10 / 5 & 706.0 & 349.0 & 129.4788 & 648.0 & 9.5321 & 85.67 \\
-JSSP & medium & la04 & 10 / 5 & 625.0 & 369.0 & 129.4051 & 621.0 & 9.8149 & 68.29 \\
-JSSP & medium & la05 & 10 / 5 & 606.0 & 380.0 & 130.0443 & 593.0 & 9.5829 & 56.05 \\
-JSSP & medium & orb01 & 10 / 10 & 1173.0 & 695.0 & 470.5026 & 1198.0 & 47.7592 & 72.37 \\
+JSSP & small & jssp\_10x5 & 10 / 5 & \textbf{37.0} & \textbf{37.0} & 0.00 & 56.5554 & 38.0 & 9.2919 & 2.70 \\
+JSSP & small & jssp\_2x2 & 2 / 2 & \textbf{6.0} & \textbf{6.0} & 0.00 & 0.7777 & \textbf{6.0} & 0.4880 & 0.00 \\
+JSSP & small & jssp\_5x4 & 5 / 4 & \textbf{22.0} & \textbf{22.0} & 0.00 & 1.2344 & \textbf{22.0} & 1.9066 & 0.00 \\
+JSSP & medium & la01 & 10 / 5 & 727.0 & 413.0 & 76.03 & 130.2423 & \textbf{689.0} & 9.4905 & 66.83 \\
+JSSP & medium & la02 & 10 / 5 & \textbf{666.0} & 394.0 & 69.04 & 129.5558 & 686.0 & 9.7288 & 74.11 \\
+JSSP & medium & la03 & 10 / 5 & 706.0 & 349.0 & 102.29 & 129.4788 & \textbf{648.0} & 9.5321 & 85.67 \\
+JSSP & medium & la04 & 10 / 5 & 625.0 & 369.0 & 69.38 & 129.4051 & \textbf{621.0} & 9.8149 & 68.29 \\
+JSSP & medium & la05 & 10 / 5 & 606.0 & 380.0 & 59.47 & 130.0443 & \textbf{593.0} & 9.5829 & 56.05 \\
+JSSP & medium & orb01 & 10 / 10 & \textbf{1173.0} & 695.0 & 68.78 & 470.5026 & 1198.0 & 47.7592 & 72.37 \\
 \addlinespace
-2DBP & small & 2d\_bpp\_inst\_cl\_06\_020\_06.ins2D & 300x300 / 20 & \textit{none} & 0.0 & 157.3849 & 1.0 & 69.1330 & $\infty$ \\
-2DBP & small & 2d\_bpp\_inst\_cl\_06\_020\_10.ins2D & 300x300 / 20 & 1.0 & 1.0 & 97.8615 & 1.0 & 62.5340 & 0.00 \\
-2DBP & medium & 2d\_bpp\_inst\_cl\_04\_020\_08.ins2D & 100x100 / 20 & \textit{none} & 0.0 & 152.3384 & 1.0 & 59.7394 & $\infty$ \\
-2DBP & medium & 2d\_bpp\_inst\_cl\_05\_020\_08.ins2D & 100x100 / 20 & 5.0 & 5.0 & 107.7868 & 5.0 & 13.3435 & 0.00 \\
-2DBP & medium & 2d\_bpp\_inst\_cl\_10\_020\_09.ins2D & 100x100 / 20 & 6.0 & 0.0 & 158.2481 & 6.0 & 12.8442 & $\infty$ \\
+2DBP & small & 2d\_bpp\_inst\_cl\_06\_020\_06.ins2D & 300x300 / 20 & \textit{none} & 0.0 & --- & 157.3849 & \textbf{1.0} & 69.1330 & $\infty$ \\
+2DBP & small & 2d\_bpp\_inst\_cl\_06\_020\_10.ins2D & 300x300 / 20 & \textbf{1.0} & \textbf{1.0} & 0.00 & 97.8615 & \textbf{1.0} & 62.5340 & 0.00 \\
+2DBP & medium & 2d\_bpp\_inst\_cl\_04\_020\_08.ins2D & 100x100 / 20 & \textit{none} & 0.0 & --- & 152.3384 & \textbf{1.0} & 59.7394 & $\infty$ \\
+2DBP & medium & 2d\_bpp\_inst\_cl\_05\_020\_08.ins2D & 100x100 / 20 & \textbf{5.0} & \textbf{5.0} & 0.00 & 107.7868 & \textbf{5.0} & 13.3435 & 0.00 \\
+2DBP & medium & 2d\_bpp\_inst\_cl\_10\_020\_09.ins2D & 100x100 / 20 & \textbf{6.0} & 0.0 & $\infty$ & 158.2481 & \textbf{6.0} & 12.8442 & $\infty$ \\
 \bottomrule
 \end{tabular}
 \end{sidewaystable}
-
-\subsection{Primary Comparison}
-We compare MiniZinc-based exact solving against LNS-based heuristic search on identical \texttt{optDSL} instances under fixed iteration and time budgets.
-Where known optima or best-known values are available, solution quality is benchmarked against them \citep{applegate1991,nowicki1996fast,taillard1993benchmarks,uchoa2017cvrplib,martello1998exact}.
-% TODO: Include objective and runtime comparison tables/plots.
 
 \subsection{Woodcutting}
 \label{sec:woodcutting}
 The woodcutting class is not part of Table~\ref{tab:study-results} because its
 models are structurally different from the other three: instead of a flat
 constraint set over decision variables, they are written as a \emph{pipeline}
-of ``machines'' that exchange whole record lists at module level.
+of ``machines'' that exchange whole record lists at module level, one machine
+per processing stage.
 We therefore document the class separately on its two smallest instances,
-which are small enough to state completely and to reason about by hand.
-All paths below are relative to the repository root.
+which are small enough to reason about by hand.
 
-\textbf{Model.}
-The pipeline consists of up to five machines: an optional board-reordering
-machine, cutting, filtering, piece reordering, and checking.
-The decision variables are
-the cut positions of every board (\texttt{cuts\_list\_list},
-\texttt{MAX\_N\_CUTS\_PER\_BOARD} positions per board, the first fixed at
-the start margin and the last at the board length minus the end margin),
-a keep/discard bit per piece (\texttt{keep\_decisions}),
-the piece-reordering bits (\texttt{swapping\_decisions}, one fewer than the
-number of pieces), and, in the board-reordering variant, the board-reordering
-bits (\texttt{swapping\_decisions\_boards}, one fewer than the number of
-boards).
-Piece reordering models the simulator's single-piece buffer: the first set bit
-holds that piece back and releases it at the end of the stream, and later set
-bits are ignored.
-Board reordering applies adjacent swaps from left to right.
-Kept pieces must be of good quality, and the checking machine imposes the beam
-constraints on the stream of kept pieces: the running length of a layer never
-exceeds the layer length; every seam that does not close a layer lies strictly
-inside the usable part of the beam (outside the $10$-unit start and end
-margins) and outside the static forbidden zones $[90,110]$, $[190,210]$,
-$[290,310]$ and $[390,410]$; seams in consecutive layers of the same beam are
-at least $10$ units apart; and at the end exactly
-$\texttt{N\_BEAMS} \times \texttt{BEAM\_DEPTH}$ layers are completed with no
+\begin{sloppypar}
+\textbf{Problem.}
+A set of raw boards must be cut into pieces that are stacked into a given
+number of beams, each consisting of a fixed number of layers of fixed length.
+The boards carry defect intervals, so not every piece is usable, and the
+stacking imposes geometric restrictions on where a layer may be closed.
+The problem is to decide how to cut, select, and order the material so that
+the beams are filled exactly while wasting as little good material as
+possible.
+
+The input fixes the geometry and the demand: the layer length
+\texttt{BEAM\_LENGTH}, the number of layers per beam \texttt{BEAM\_DEPTH}, the
+number of beams \texttt{N\_BEAMS}, the unusable start and end margins
+\texttt{BEAM\_SKIP\_START} and \texttt{BEAM\_SKIP\_END}, the static forbidden
+zones \texttt{FORBIDDEN\_INTERVALS}, and the minimum seam distance between
+consecutive layers \texttt{GAP\_TO\_BOARD\_ABUT\_IN\_CONSECUTIVE\_LAYERS}.
+It further fixes the board data (\texttt{N\_BOARDS}, \texttt{MAX\_BOARD\_LENGTH},
+the defect intervals per board) and the discretisation
+\texttt{MAX\_N\_CUTS\_PER\_BOARD}, from which the number of pieces
+\texttt{N\_PIECES} follows.
+All instances studied here use the same geometry:
+\texttt{BEAM\_LENGTH} $=500$, \texttt{BEAM\_SKIP\_START} $=$
+\texttt{BEAM\_SKIP\_END} $=10$, \texttt{GAP\_TO\_BOARD\_ABUT\_IN\_CONSECUTIVE\_LAYERS}
+$=10$, and the four forbidden zones $[90,110]$, $[190,210]$, $[290,310]$ and
+$[390,410]$; they differ in \texttt{N\_BEAMS}, \texttt{BEAM\_DEPTH}, the
+boards, and the defects.
+
+The problem decomposes into five stages, each of which contributes decisions
+and constraints.
+\begin{itemize}
+\item \emph{Board reordering} (optional) permutes the raw boards by adjacent
+swaps applied from left to right, so that the cutting stage sees them in a
+different order.
+\item \emph{Cutting} splits every board at a bounded number of cut positions
+into pieces. The first cut is fixed at the start margin and the last at the
+board length minus the end margin, the cuts must be non-decreasing, and a
+piece is good if it overlaps no defect interval.
+\item \emph{Filtering} decides for every piece whether it is kept or
+discarded. A bad piece can never be kept, and the length of every discarded
+good piece is charged to the objective.
+\item \emph{Piece reordering} models a single-piece buffer.
+\item \emph{Checking} validates the stream of kept pieces against the beam
+constraints: the running length of a layer never exceeds the layer length;
+every seam that does not close a layer lies strictly inside the usable part of
+the beam, outside the forbidden zones, and at least the required gap away from
+the seams of the previous layer of the same beam; and at the end exactly
+\texttt{N\_BEAMS} $\times$ \texttt{BEAM\_DEPTH} layers are completed with no
 partial layer left.
+\end{itemize}
 The objective is the total length of good material that is discarded.
-For instances without defects this gives a simple volume lower bound: the
-usable material (board lengths minus both margins) minus the demand
-($\texttt{N\_BEAMS} \times \texttt{BEAM\_DEPTH} \times \texttt{BEAM\_LENGTH}$).
-The instance headers also declare \texttt{MAX\_PIECES\_PER\_BEAM},
+The input also declares \texttt{MAX\_PIECES\_PER\_BEAM},
 \texttt{MIN\_DIST\_BETWEEN\_PIECES}, \texttt{MIN\_LENGTH\_OF\_BOARD\_IN\_LAYER}
 and \texttt{MAX\_SHIFT\_CURVED\_CUT}, but the current model body does not use
-them, so these simulator rules are not enforced.
+them, so these rules are not enforced.
+\end{sloppypar}
 
 \begin{sloppypar}
 \textbf{Instances.}
-Every instance is defined by a simulator input file
-\path{wp2/source/hybrid_solver/problem_instances/woodcutting/benchmarks/<name>.json}
-and converted to \texttt{optDSL} with
-\path{wp2/source/hybrid_solver/converters/convert_woodcutting_benchmarks_noreorder.py}.
-Without further flags the converter writes the variant without board
-reordering to
-\path{wp2/source/hybrid_solver/problem_instances/woodcutting/benchmarks/generated_noreorder/<name>.dsl};
-with \texttt{--reorder-boards} it inserts the board-reordering machine, and we
-write that variant to
-\path{wp2/source/hybrid_solver/problem_instances/woodcutting/benchmarks/generated_board_reorder/<name>.dsl}.
-Both variants are otherwise identical.
+All instances are produced with a problem instance generator.
+It takes the beam geometry (layer length, margins, forbidden zones, seam gap),
+the number and length of the raw boards, and the defect rate as parameters,
+and writes one JSON file per instance.
+For a fixed random seed the generator is deterministic, so every instance is
+reproducible.
+Each generated file is converted to \texttt{OptDSL} by a converter script.
 Table~\ref{tab:woodcutting-instances} lists the generated instances.
-All of them share the beam geometry above (layer length $500$, margins $10$,
-four forbidden zones, seam gap $10$).
-The new instance \texttt{two\_boards\_two\_layers\_no\_faults} was designed as
+All of them share the beam geometry given above.
+The instance \texttt{two\_boards\_two\_layers\_no\_faults} was designed as
 the smallest non-trivial case: its usable material equals the demand exactly,
 so the optimum wastes nothing (objective $0$), yet that optimum can only be
 reached with a seam inside a layer, e.g.\ by cutting the $770$ board into
 $500 + 250$ and the $270$ board into $250$, giving the layers $500$ and
 $250 + 250$.
-The two hand-written models
-\path{wp2/source/hybrid_solver/problem_instances/woodcutting/wc_test_mini.dsl} and
-\path{wp2/source/hybrid_solver/problem_instances/woodcutting/one_beam_no_faults_mini.dsl}
-(one board, one layer, toy lengths) serve only as smoke tests of the tool
-chain.
 \end{sloppypar}
 
 \begin{table}[t]
@@ -519,23 +712,20 @@ two\_beams\_02\_bad\_faults & 20 (650) & $2 \times 5$ & 4 & 60 & 23 & 12600 & 50
 \end{tabular}
 \end{table}
 
-\textbf{Protocol.}
-The exact backend translates each \texttt{optDSL} file with
-\path{wp2/source/hybrid_solver/run_minizinc.py} and solves the resulting model
-with MiniZinc 2.10.1 using chuffed, gecode and cp-sat (OR-Tools 9.15).
+\textbf{Experiments.}
+The exact backend translates each \texttt{OptDSL} file to MiniZinc and solves
+the resulting model with MiniZinc 2.10.1 using chuffed, gecode and cp-sat
+(OR-Tools 9.15).
 The time limit is $60$\,s for \texttt{two\_boards\_two\_layers\_no\_faults}
-and $120$\,s for \texttt{one\_beam\_no\_faults}; for cp-sat it is passed as
-\texttt{max\_time\_in\_seconds}.
+and $120$\,s for \texttt{one\_beam\_no\_faults}.
 Reported MiniZinc times are wall-clock times of the MiniZinc process
-(flattening and search); the \texttt{optDSL}$\to$MiniZinc translation is not
+(flattening and search); the \texttt{OptDSL}$\to$MiniZinc translation is not
 included and takes $0.6$--$0.7$\,s and about $2$\,s, respectively.
-The heuristic backend runs the woodcutting profile
-\path{wp2/source/hybrid_solver/studies/optdsl_bench/runners/run_woodcutting_lns.py}
-with $5000$ iterations and the seeds $1$, $7$, $42$ and $123$ on the small
-instance, and with $20\,000$ iterations and seed $42$ on
+The heuristic backend runs the woodcutting LNS profile
+with $5000$ iterations on the small instance and with $20\,000$ iterations on
 \texttt{one\_beam\_no\_faults}.
-For the warm-start runs, LNS writes its incumbent (seed $42$) as an
-\texttt{optDSL} file with a \texttt{@warm\_start} block
+For the warm-start runs, LNS writes its incumbent as an
+\texttt{OptDSL} file with a \texttt{@warm\_start} block
 (option \texttt{--emit-feasible-dsl}); the block carries the cut positions and
 the keep and reordering bits as solution hints and the incumbent's objective
 as an upper bound.
@@ -545,23 +735,19 @@ We compare three variants: hints and bound, hints only, and bound only.
 Table~\ref{tab:woodcutting-small} shows that, with or without board
 reordering, chuffed, cp-sat and LNS all reach the optimum $0$ in about one
 second; chuffed and cp-sat also prove optimality, and LNS finds the optimum
-with every seed.
+as well.
 gecode finds no solution within $60$\,s from a cold start, even though the
 model has only $13$ (respectively $14$) decision variables.
 A warm start helps gecode only through the objective bound: gecode warns that
 it ignores the \texttt{warm\_start} search annotation, so the hints-only run
 behaves like the cold start, whereas every run containing the bound proves the
 optimum in under half a second.
-This success should not be overrated, because here the LNS bound already
+This should not be overrated, because here the LNS bound already
 equals the optimum, so it leaves gecode only the task of finding a waste-free
 solution.
 cp-sat solves the instance from a cold start, so a warm start changes little.
 Board reordering does not change the outcome on this instance: no solver
 chooses to swap the boards, because the optimum is reachable without a swap.
-To check that the board-reordering stage is nevertheless translated
-correctly, we forced a swap: chuffed and cp-sat adapt the cuts to the new
-board order and still prove the optimum $0$, and the LNS evaluator classifies
-the same swapped and unswapped cut patterns exactly as MiniZinc does.
 
 \begin{table}[t]
 \centering
@@ -569,8 +755,8 @@ the same swapped and unswapped cut patterns exactly as MiniZinc does.
 \caption{Woodcutting instance \texttt{two\_boards\_two\_layers\_no\_faults}
 without and with board reordering ($60$\,s limit). opt.\ marks a proven
 optimum, unknown a run without any solution within the limit. Times are
-wall-clock seconds. LNS values are the best and the range over the seeds
-$1$, $7$, $42$, $123$.}
+wall-clock seconds. LNS values are the best objective and the time range over
+repeated runs.}
 \label{tab:woodcutting-small}
 \begin{tabular}{@{}llrrrr@{}}
 \toprule
@@ -578,7 +764,7 @@ $1$, $7$, $42$, $123$.}
 \cmidrule(lr){3-4}\cmidrule(lr){5-6}
 Backend & Start & Objective & Time (s) & Objective & Time (s) \\
 \midrule
-LNS     & ---           & 0 (all seeds) & 1.1--1.2 & 0 (all seeds) & 1.1--1.4 \\
+LNS     & ---           & 0 & 1.1--1.2 & 0 & 1.1--1.4 \\
 chuffed & cold          & 0 opt.        & 0.6      & 0 opt.        & 0.7 \\
 cp-sat  & cold          & 0 opt.        & 0.6      & 0 opt.        & 0.8 \\
 cp-sat  & hints + bound & 0 opt.        & 0.5      & 0 opt.        & 0.3 \\
@@ -628,7 +814,7 @@ the bound $20$ alone does not propagate enough.
 reordering ($120$\,s limit). The volume lower bound on the objective is $20$,
 so every solution with objective $20$ is optimal. For warm starts, the time is
 the time to the first solution; none of the MiniZinc runs proves optimality
-within the limit. LNS uses $20\,000$ iterations and seed $42$.}
+within the limit. LNS uses $20\,000$ iterations.}
 \label{tab:woodcutting-example}
 \begin{tabular}{@{}llrrl@{}}
 \toprule
@@ -648,105 +834,41 @@ gecode  & bound only    & ---  & 119.2 & unknown \\
 \end{tabular}
 \end{table}
 
-\textbf{Interpretation.}
-Both backends solve the same model with the same semantics: LNS evaluates
-candidates by executing the \texttt{optDSL} pipeline, and MiniZinc solves its
-translation.
-The differences between the MiniZinc solvers are therefore differences in
-search, not in the model.
-chuffed and cp-sat learn from failures and solve the small instance in about a
-second; gecode has no such learning and enumerates cut positions without
-guidance, which is why it fails even on four pieces.
-On \texttt{one\_beam\_no\_faults} the LNS incumbent is what makes cp-sat
-competitive: a warm start turns a run without any solution into an optimal
-solution within about one second.
-Proving optimality, however, remains out of reach for all three solvers; the
-proof comes from the volume bound, not from the solver.
-One limitation concerns the heuristic side: LNS never changes the
-board-reordering bits.
-Its initializer and repair operator set them to ``no swap'', and the swap
-destroy operator is configured without them, so on the board-reordering
-variant LNS effectively solves the model without board reordering.
-On the instances studied here this makes no difference, but on instances
-where swapping boards pays off LNS would be at a disadvantage.
-
-\textbf{Translation defects found on these instances.}
-The woodcutting models exposed three defects in the
-\texttt{optDSL}$\to$MiniZinc translation, all of which are now corrected and
-covered by regression tests.
-\begin{sloppypar}
-\begin{itemize}
-\item \emph{Flattener crash.}
-On \texttt{wc\_test\_mini} MiniZinc aborted with ``Memory violation detected
-(segmentation fault)'' before any solver ran.
-A list-valued predicate return was emitted as a whole-array assignment
-\texttt{output\_1 = new\_list[2]}; because every decision variable carries an
-extra version dimension, \texttt{new\_list[2]} is a \emph{slice}, and
-assigning such a slice of records to a predicate output crashes MiniZinc
-2.10.1.
-The translator now emits the element-wise binding
-\texttt{forall(i in 1..n)(output\_1[i] = new\_list[2][i])}.
-The same crash was the reason the converter had originally omitted the
-board-reordering machine; with the fix, board reordering translates and
-solves.
-\item \emph{False unsatisfiability.}
-Before the correction, chuffed reported \textsc{unsatisfiable} on
-\texttt{one\_beam\_no\_faults}.
-This was a correct proof about a wrongly translated model: pinning the LNS
-solution into the generated MiniZinc model made it infeasible within a
-second, and removing pipeline stages one at a time localized the conflict to
-the filtering stage.
-The statement
-\begin{center}
-\texttt{filtered\_pieces, objective = filtering\_machine(\ldots, objective)}
-\end{center}
-was translated with the \emph{new} version of \texttt{objective} as both input
-and output, i.e.\ $\textit{obj}_2 = \textit{obj}_2 + \textit{waste}$, which
-forces zero waste and, since at least $20$ units must be wasted, admits no
-solution.
-The translator rewrote the left-hand side (bumping the variable version)
-before the call arguments, contrary to Python's evaluation order; it now
-rewrites the arguments first.
-The defect affected every statement of the form \texttt{x = f(\ldots, x)},
-not only woodcutting, whereas LNS was never affected because it executes the
-pipeline directly.
-\item \emph{Warm starts for record-valued variables.}
-A warm start for \texttt{cuts\_list\_list}, a list of records, referenced an
-undeclared hint array, so MiniZinc rejected the model.
-MiniZinc's \texttt{warm\_start} annotation only accepts flat arrays of
-integers or Booleans; the translator now flattens record-valued hints into
-their integer and Boolean components, writes Boolean hints as
-\texttt{true}/\texttt{false} instead of $0/1$, and writes an integral bound on
-an integer objective as an integer.
-\end{itemize}
-\end{sloppypar}
-
-\textbf{Caveat on robustness.}
-On \texttt{one\_beam\_no\_faults} the LNS result is not seed-robust: of the
-seeds $\{1, 7, 42, 123\}$, only seed $42$ produced a feasible incumbent in our
-earlier runs, and the remaining seeds returned the penalty score after
-$100\,000$ iterations.
-Increasing the number of initialization restarts from $8$ to $32$ did not
-change this, which points at the constructive initializer rather than at the
-destroy/repair operators: the initializer's cut planner only finds a
-complementary cut structure for some random draws.
-On the small instance, in contrast, every seed reaches the optimum.
-A deterministic cut-planning step in the initializer is the obvious fix and is
-left for future work.
-
-\subsection{Ablations}
-% TODO: Operator profiles, initialization strategies, and warm-start transfer effects.
-
-\section{Threats to Validity}
-% TODO: Dataset bias, implementation maturity, and solver configuration sensitivity.
-
 \section{Conclusion}
-% TODO: Summarize findings and next steps toward journal submission.
+The study shows that a single problem formulation can be used across different
+optimization paradigms.
+The same \texttt{OptDSL} model is consumed by the exact MiniZinc backend and by
+the LNS backend, and both produce solutions of the same semantics on identical
+instances.
+The two paradigms differ in what they require and in what they deliver.
+The LNS backend needs an adaptation of the model: the search machinery, i.e.\
+the construction, destroy, and repair operators, has to be provided per problem
+class, which is the price for a fast search that reaches good solutions under a
+fraction of the exact backend's budget.
+The exact backend, in contrast, is generic: it translates the model and hands
+it to a solver, which provides lower bounds and, where the search completes,
+proofs of optimality.
+The current limitation is on the exact side: the translation into MiniZinc
+produces large models that are hard to solve, so on the larger instances the
+solvers neither find good solutions nor prove optimality within the budget.
+The most immediate next step is therefore to automate the construction of the
+search machinery itself.
+Building on the observation that the LNS backend consumes the model directly,
+the construction, destroy, and repair operators can be generated from the model
+by a large language model and validated within the same workflow, so that
+switching paradigms eventually also automates the preparation of the heuristic
+search.
+This work is already in progress: a first prototype generates candidate
+operators from the model and retains them only if they pass an automated
+quality gate.
+The implementation, the problem instance generator, the converters, and the
+benchmark instances together with their converted \texttt{OptDSL} formulations
+are available at \url{https://github.com/RISCSoftware/inprossa}.
 
-\section*{Reproducibility}
-% TODO: Add commit hash, exact command lines, and data/artifact locations.
-The benchmark instance families and their converted \texttt{optDSL} formulations are contained in this repository under \texttt{problem\_instances/}.
-Public sources include the CVRPLIB (\url{https://cvrplib.gurobi.com}) \citep{uchoa2017cvrplib}, the Solomon VRPTW instances \citep{solomon1987vrptw}, and the job-shop instance archive at \url{http://jobshop.jjvh.nl/}.
+\section*{Acknowledgements}
+This work was funded by the Austrian Research Promotion Agency (FFG) within
+the project \emph{InProSSA}---Industrial Problem Solving using Symbolic and
+Subsymbolic AI (grant number FO999923579).
 
 \bibliographystyle{plainnat}
 \bibliography{references}

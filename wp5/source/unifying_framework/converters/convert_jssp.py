@@ -224,11 +224,11 @@ def convert_single(input_file: str, output_file: str, format: str = "txt") -> bo
         )
         Path(output_file).write_text(optdsl, encoding="utf-8")
         total_time = sum(t for job_ops in data["operations"] for _, t in job_ops)
-        print(f"  ✓ {Path(input_file).name} → {Path(output_file).name}")
+        print(f"  [OK] {Path(input_file).name} -> {Path(output_file).name}")
         print(f"    Jobs: {data['n_jobs']}, Machines: {data['n_machines']}, Total processing time: {total_time}")
         return True
     except Exception as e:
-        print(f"  ✗ {Path(input_file).name}: {e}")
+        print(f"  [FAIL] {Path(input_file).name}: {e}")
         return False
 
 
