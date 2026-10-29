@@ -1,0 +1,24 @@
+# Size-study results: MiniZinc vs LNS
+
+_Solver cp-sat, MiniZinc budget 120.0s/instance_
+
+| Class | Set | Instance | Size | MiniZinc Quality | MiniZinc Bound | MiniZinc Time (s) | LNS Quality | LNS Time (s) | LNS Stop | Gap (%) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cvrp | small | E-n13-k4 | 13 / 4 / 6000 | 279.0 | 139.0 | 123.6925 | 247.0 | 3.6509 | stop_criterion | 77.70 |
+| cvrp | small | random_euclidean_cvrp_8 | 8 / 4 / 10 | 370.0 | 370.0 | 2.2033 | 370.0 | 1.8360 | stop_criterion | 0.00 |
+| cvrp | medium | random_euclidean_cvrp_15 | 15 / 10 / 17 | <no_solution> | 274.0 | 137.5251 | 555.0 | 9.3531 | stop_criterion | 102.55 |
+| cvrp | medium | random_euclidean_cvrp_20 | 20 / 5 / 25 | <no_solution> | 300.0 | 132.8640 | 563.0 | 9.5807 | stop_criterion | 87.67 |
+| jssp | small | jssp_10x5 | 10 / 5 | 37.0 | 37.0 | 59.3241 | 40.0 | 10.0585 | stop_criterion | 8.11 |
+| jssp | small | jssp_2x2 | 2 / 2 | 6.0 | 6.0 | 0.7753 | 6.0 | 0.5109 | stop_criterion | 0.00 |
+| jssp | small | jssp_5x4 | 5 / 4 | 22.0 | 22.0 | 1.3178 | 22.0 | 2.0213 | stop_criterion | 0.00 |
+| jssp | medium | la01 | 10 / 5 | 727.0 | 413.0 | 130.2314 | 700.0 | 10.2990 | stop_criterion | 69.49 |
+| jssp | medium | la02 | 10 / 5 | 666.0 | 394.0 | 135.4928 | 677.0 | 11.3839 | stop_criterion | 71.83 |
+| jssp | medium | la03 | 10 / 5 | 706.0 | 349.0 | 133.6197 | 703.0 | 10.2263 | stop_criterion | 101.43 |
+| jssp | medium | la04 | 10 / 5 | 625.0 | 369.0 | 130.7223 | 621.0 | 9.9661 | stop_criterion | 68.29 |
+| jssp | medium | la05 | 10 / 5 | 606.0 | 380.0 | 130.2944 | 593.0 | 9.9595 | stop_criterion | 56.05 |
+| jssp | medium | orb01 | 10 / 10 | 1173.0 | 695.0 | 501.0516 | 1269.0 | 47.8135 | stop_criterion | 82.59 |
+| 2dbp | small | 2d_bpp_inst_cl_06_020_06.ins2D | 300x300 / 20 | <no_solution> | 0.0 | 156.7372 | 1.0 | 70.8411 | stop_criterion | inf |
+| 2dbp | small | 2d_bpp_inst_cl_06_020_10.ins2D | 300x300 / 20 | 1.0 | 1.0 | 97.4081 | 1.0 | 64.7581 | stop_criterion | 0.00 |
+| 2dbp | medium | 2d_bpp_inst_cl_04_020_08.ins2D | 100x100 / 20 | <no_solution> | 0.0 | 154.0820 | 1.0 | 58.8856 | stop_criterion | inf |
+| 2dbp | medium | 2d_bpp_inst_cl_05_020_08.ins2D | 100x100 / 20 | 5.0 | 5.0 | 93.5323 | 5.0 | 11.7427 | stop_criterion | 0.00 |
+| 2dbp | medium | 2d_bpp_inst_cl_10_020_09.ins2D | 100x100 / 20 | 6.0 | 0.0 | 151.7521 | 6.0 | 13.1790 | stop_criterion | inf |
