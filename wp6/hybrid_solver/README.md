@@ -5,6 +5,150 @@ A self-contained extraction of the hybrid OptDSL solver from
 search (LNS) heuristic that exchange information through `@warm_start` DSL
 snapshots.
 
+## Terminal UI (`optdsl_agent tui`)
+
+The quickest way to drive both backends is the full-screen terminal UI of the
+`optdsl_agent` harness. It shows the model digest, the conversation, and the
+status line side by side, and every action is a slash command that maps 1:1 onto
+the CLI, so nothing in the UI can drift from the scripts below.
+
+### Install and start
+
+The UI needs the optional `textual` dependency; the solver itself does not.
+
+```powershell
+uv pip install --python .venv\Scripts\python.exe "textual>=0.80"
+```
+
+The local `.venv` has no `pip`, so use `uv pip install --python …`. Installing
+the package itself with the extra (`uv pip install --python
+.venv\Scripts\python.exe -e ".[tui]"`) additionally puts `optdsl_agent` on the
+interpreter's path, so `python -m optdsl_agent` then works from any directory.
+
+Run it **from this directory** — without the editable install, `optdsl_agent` is
+imported from the working tree rather than from the environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m optdsl_agent tui problem_instances\cvrp\random_euclidean_cvrp_8.dsl
+```
+
+Omit the file to start from an empty problem and build one with `/describe` or
+`/add`. Add `--dry-run` to try the UI without credentials (a stub model answers,
+so `/analyze`, `/solve` and `/lns` still work for real).
+
+Model access is configured once with `python -m optdsl_agent settings set` (or
+`OPTDSL_AGENT_API_KEY` / `--base-url`); only the model-backed commands
+(`/describe`, `/add`, `/explain`, `/tune`, free-form questions) need it.
+
+### Keys
+
+| Key | Action |
+|---|---|
+| `Enter` | submit the prompt |
+| `/` | open the command popup (filters as you type; `Up`/`Down`, `Tab`/`Enter`, `Esc`) |
+| `F1` | show the command help |
+| `F4` | toggle the left pane between model digest and full source |
+| `F5` | re-analyse the model |
+| `Ctrl+L` | clear the conversation |
+| `Ctrl+C` | quit |
+
+The left pane is scrollable: click it (or `Tab` to it) and use the wheel, arrow
+keys or `PgUp`/`PgDn`. Model calls and solver runs execute on a worker thread, so
+the interface stays responsive while `/solve`, `/lns` or `/tune` are running.
+
+### Slash commands
+
+```
+/analyze                               summarise the model
+/explain                               explain the model in prose
+/describe <problem> | @file[:section]  generate a whole new OptDSL model from a description
+/add <request>                         add constraints described in natural language
+/solve [timelimit-s]                   solve exactly with MiniZinc
+/lns [iterations]                      solve heuristically with LNS
+/solution                              show the last solution in problem-specific form
+/compare                               compare the last LNS run with the last exact solve
+/operators                             list available operators
+/tune [attempts]                       run the self-tuning loop
+/diff                                  show what changed since the file was loaded
+/save                                  write the model (.dsl) and a session transcript
+/new                                   discard the current model and start from an empty problem
+/reset                                 clear the conversation, keep the model
+/help                                  show this help
+/quit                                  exit
+```
+
+A typical session on a prepared instance:
+
+```
+optdsl> /analyze
+optdsl> /lns 500          # heuristic; stores a warm-start snapshot
+optdsl> /solve 30         # exact, reusing the snapshot ("warm start applied")
+optdsl> /compare          # gap between the two
+optdsl> /solution         # routes / schedule / bins in problem-specific form
+optdsl> /tune 3           # synthesize and validate better operators
+```
+
+### Prepared DSL problems
+
+`problem_instances/` holds one formulation per problem class, ready to load:
+
+| Instance | Class | Notes |
+|---|---|---|
+| `problem_instances\1dbp\problem_2_t_zero_based.dsl` | `1dbp` | small; exact and LNS both reach 3 |
+| `problem_instances\2dbp\random_2dbp_zero_based.dsl` | `2dbp` | exact solves; the generic LNS start is infeasible |
+| `problem_instances\cutting_packing\cp_0.dsl` | `woodcutting` | large; the exact backend fails on it, use `/lns` |
+| `problem_instances\cvrp\random_euclidean_cvrp_8.dsl` | `cvrp` | best demo: exact 370, LNS 370 |
+| `problem_instances\cvrp\random_euclidean_cvrp_15.dsl` | `cvrp` | exact needs more than 15 s; LNS ~585 |
+| `problem_instances\cvrp\random_euclidean_cvrp_20.dsl` | `cvrp` | exact needs more time; LNS ~564 |
+| `problem_instances\cvrp\random_euclidean_cvrp_20_gt.dsl` | `cvrp_tour` | giant-tour variant; exact 1046 |
+| `problem_instances\jssp\jssp_2x2.dsl` | `jssp` | tiny; exact 6 |
+| `problem_instances\jssp\jssp_5x4.dsl` | `jssp` | exact 22 |
+| `problem_instances\jssp\jssp_10x5.dsl` | `jssp` | exact 38 |
+| `problem_instances\woodcutting\wc_test_mini.dsl` | `woodcutting` | pipeline model; the exact backend fails on it, use `/lns` |
+
+The class is detected automatically, which selects the problem-specific
+initializer and neighborhood. Where the generic LNS start cannot reach
+feasibility (`2dbp`, `cutting_packing`, `cvrp_20_gt`), `/tune` bootstraps a
+construction heuristic first — that is the intended path for those instances.
+
+### Building a model from `problem_lot_sizing.txt`
+
+`problem_lot_sizing.txt` is a **natural-language description**, not a DSL file —
+loading it as the session file only produces a parse error. Turn it into a model
+with `/describe`, which asks the model for a complete OptDSL formulation,
+validates it (parses, no new diagnostics, translates to MiniZinc) and adopts it:
+
+```powershell
+.\.venv\Scripts\python.exe -m optdsl_agent tui
+```
+
+```
+optdsl> /describe @problem_lot_sizing.txt:Capacitated lot-sizing
+generated and adopted a new OptDSL model (… lines).
+wrote optdsl_agent\out\model.dsl
+Run /analyze to inspect it, or /solve and /lns once you are happy.
+optdsl> /analyze
+optdsl> /solve 30
+optdsl> /lns 500
+optdsl> /save
+```
+
+`@file` uses the whole file and `@file:Section` one `#`-headed section (matched
+case-insensitively); the file currently has the single section
+`Capacitated lot-sizing`, so both forms work. The generated model is written to
+`optdsl_agent\out\model.dsl` and can be reloaded later like any other instance:
+
+```powershell
+.\.venv\Scripts\python.exe -m optdsl_agent tui optdsl_agent\out\model.dsl
+```
+
+The description asks for `production` and `setup` as 2-D integer decisions, so
+both backends can handle it. On the reference formulation of this description
+(the one used by `test/test_initializer.py`) the exact solver returns the optimum
+101, while the generic LNS start stays infeasible — run `/tune` to have a
+construction heuristic synthesized, validated and stored for the model, after
+which `/lns` reuses it automatically.
+
 ## Layout
 
 ```text
@@ -22,9 +166,11 @@ hybrid_solver/
 ├── vscode-extension/            VS Code client (LSP + AI features)
 ├── hybrid/lower_bound.py        LNS -> MiniZinc bridge (estimate_lower_bound)
 ├── hybrid/warm_start.py         Warm-start JSON snapshots + @warm_start injection
+├── optdsl_agent/                LLM harness: CLI, line REPL, TUI, tuning loop
 ├── run_lns.py                  LNS CLI (--emit-feasible-dsl / --export-warm-start)
 ├── run_minizinc.py              MiniZinc CLI (--dump-mzn translates only)
 ├── problem_instances/           Sample OptDSL instances per problem class
+├── problem_lot_sizing.txt       Natural-language lot-sizing description (/describe input)
 ├── docs/tooling.md              Editor tooling and operator synthesis
 └── test/                        pytest suite + PowerShell smoke tests
 ```
