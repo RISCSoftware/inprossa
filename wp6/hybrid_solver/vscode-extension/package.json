@@ -1,0 +1,168 @@
+{
+  "name": "optdsl",
+  "displayName": "OptDSL",
+  "description": "Language support, LLM-assisted constraint authoring, and LNS operator synthesis for OptDSL formulations.",
+  "version": "0.1.0",
+  "publisher": "inprossa",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:optdsl"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "optdsl",
+        "aliases": [
+          "OptDSL",
+          "optdsl"
+        ],
+        "extensions": [
+          ".dsl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "optdsl",
+        "scopeName": "source.python",
+        "path": "./syntaxes/optdsl.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "optdsl.addConstraint",
+        "title": "OptDSL: Add Constraint with AI",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "optdsl.explainModel",
+        "title": "OptDSL: Explain This Formulation"
+      },
+      {
+        "command": "optdsl.synthesizeOperator",
+        "title": "OptDSL: Synthesize LNS Operator"
+      },
+      {
+        "command": "optdsl.solve",
+        "title": "OptDSL: Solve with MiniZinc"
+      },
+      {
+        "command": "optdsl.runLns",
+        "title": "OptDSL: Run LNS"
+      },
+      {
+        "command": "optdsl.showAnalysis",
+        "title": "OptDSL: Show Analysis"
+      },
+      {
+        "command": "optdsl.selectModel",
+        "title": "OptDSL: Select Language Model"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "optdsl.addConstraint",
+          "when": "editorLangId == optdsl",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "optdsl.addConstraint",
+          "when": "editorLangId == optdsl"
+        },
+        {
+          "command": "optdsl.explainModel",
+          "when": "editorLangId == optdsl"
+        },
+        {
+          "command": "optdsl.synthesizeOperator",
+          "when": "editorLangId == optdsl"
+        },
+        {
+          "command": "optdsl.solve",
+          "when": "editorLangId == optdsl"
+        },
+        {
+          "command": "optdsl.runLns",
+          "when": "editorLangId == optdsl"
+        },
+        {
+          "command": "optdsl.showAnalysis",
+          "when": "editorLangId == optdsl"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "OptDSL",
+      "properties": {
+        "optdsl.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Python interpreter used for the language server and CLI tools. Defaults to the workspace's selected interpreter."
+        },
+        "optdsl.serverArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Extra arguments passed to the language server."
+        },
+        "optdsl.repoRoot": {
+          "type": "string",
+          "default": "",
+          "description": "Root of the hybrid_solver checkout. Defaults to the workspace folder."
+        },
+        "optdsl.languageModel": {
+          "type": "string",
+          "default": "",
+          "description": "Model id used for AI features. Leave empty to be prompted, or run 'OptDSL: Select Language Model'."
+        },
+        "optdsl.synthesis.maxAttempts": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "How many times the synthesis loop may retry after a rejected operator."
+        },
+        "optdsl.synthesis.iterations": {
+          "type": "number",
+          "default": 200,
+          "minimum": 10,
+          "description": "LNS iterations used to evaluate a candidate operator."
+        },
+        "optdsl.synthesis.requireImprovement": {
+          "type": "boolean",
+          "default": true,
+          "description": "Reject operators that do not improve on the baseline initializer."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.95.0",
+    "typescript": "^5.4.0"
+  }
+}
